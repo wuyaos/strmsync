@@ -1,6 +1,6 @@
-// Package logger provides a global, structured logger based on zap.
-// It supports console + file output, log rotation, levels, and field enrichment.
-package logger
+// Package utils provides utility functions including logging.
+// Logger supports console + file output, log rotation, levels, and field enrichment.
+package utils
 
 import (
 	"errors"
@@ -20,40 +20,21 @@ var (
 	instance *zap.Logger
 )
 
-// Init initializes the global logger.
-// level: debug|info|warn|error (case-insensitive).
-// dir: directory for log files; a file named "app.log" will be created.
-func Init(level string, dir string) error {
-	cfg, err := buildConfig(level, dir)
+// InitLogger 初始化全局日志器
+// level: debug|info|warn|error（不区分大小写）
+// dir: 日志文件目录，将创建 app.log 文件
+func InitLogger(level string, dir string) error {
+	parsed, err := parseLevel(level)
 	if err != nil {
 		return err
 	}
 
-	l, err := cfg.Build()
-	if err != nil {
-		return fmt.Errorf("build logger: %w", err)
-	}
-
-	mu.Lock()
-	instance = l
-	mu.Unlock()
-
-	return nil
-}
-
-// buildConfig creates a zap.Config with sane defaults for production usage.
-func buildConfig(level string, dir string) (zap.Config, error) {
-	parsed, err := parseLevel(level)
-	if err != nil {
-		return zap.Config{}, err
-	}
-
-	// Ensure log directory exists when file output is requested.
+	// 确保日志目录存在
 	if strings.TrimSpace(dir) == "" {
-		return zap.Config{}, errors.New("log directory is empty")
+		return errors.New("日志目录为空")
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return zap.Config{}, fmt.Errorf("create log directory: %w", err)
+		return fmt.Errorf("创建日志目录失败: %w", err)
 	}
 
 	encoderCfg := zap.NewProductionEncoderConfig()
@@ -61,7 +42,7 @@ func buildConfig(level string, dir string) (zap.Config, error) {
 	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
 	encoderCfg.EncodeLevel = zapcore.CapitalLevelEncoder
 
-	// Log to console and rotating file.
+	// 同时输出到控制台和文件
 	core := zapcore.NewTee(
 		zapcore.NewCore(
 			zapcore.NewJSONEncoder(encoderCfg),
@@ -74,28 +55,23 @@ func buildConfig(level string, dir string) (zap.Config, error) {
 				Filename:   filepath.Join(dir, "app.log"),
 				MaxSize:    100, // MB
 				MaxBackups: 7,
-				MaxAge:     30,  // days
+				MaxAge:     30,  // 天
 				Compress:   true,
 			}),
 			parsed,
 		),
 	)
 
-	return zap.Config{
-		Level:       zap.NewAtomicLevelAt(parsed),
-		Development: false,
-		Sampling:    nil,
-		Encoding:    "json",
-		EncoderConfig: encoderCfg,
-		OutputPaths:      []string{},
-		ErrorOutputPaths: []string{},
-		InitialFields:    map[string]any{},
-		DisableCaller:    false,
-		DisableStacktrace: false,
-	}, nil
+	l := zap.New(core)
+
+	mu.Lock()
+	instance = l
+	mu.Unlock()
+
+	return nil
 }
 
-// parseLevel normalizes and validates the log level.
+// parseLevel 解析并验证日志级别
 func parseLevel(level string) (zapcore.Level, error) {
 	switch strings.ToLower(strings.TrimSpace(level)) {
 	case "debug":
@@ -107,11 +83,11 @@ func parseLevel(level string) (zapcore.Level, error) {
 	case "error":
 		return zapcore.ErrorLevel, nil
 	default:
-		return zapcore.InfoLevel, fmt.Errorf("invalid log level: %q", level)
+		return zapcore.InfoLevel, fmt.Errorf("无效的日志级别: %q", level)
 	}
 }
 
-// L returns the global logger. It falls back to a no-op logger if not initialized.
+// L 返回全局日志器。如果未初始化，返回no-op日志器
 func L() *zap.Logger {
 	mu.RLock()
 	defer mu.RUnlock()
@@ -121,42 +97,42 @@ func L() *zap.Logger {
 	return zap.NewNop()
 }
 
-// With returns a child logger with additional fields.
+// With 返回带有额外字段的子日志器
 func With(fields ...zap.Field) *zap.Logger {
 	return L().With(fields...)
 }
 
-// Debug logs a debug message with optional fields.
+// Debug 记录debug级别日志
 func Debug(msg string, fields ...zap.Field) {
 	L().Debug(msg, fields...)
 }
 
-// Info logs an info message with optional fields.
-func Info(msg string, fields ...zap.Field) {
+// LogInfo 记录info级别日志
+func LogInfo(msg string, fields ...zap.Field) {
 	L().Info(msg, fields...)
 }
 
-// Warn logs a warning message with optional fields.
-func Warn(msg string, fields ...zap.Field) {
+// LogWarn 记录warning级别日志
+func LogWarn(msg string, fields ...zap.Field) {
 	L().Warn(msg, fields...)
 }
 
-// Error logs an error message with optional fields.
-func Error(msg string, fields ...zap.Field) {
+// LogError 记录error级别日志
+func LogError(msg string, fields ...zap.Field) {
 	L().Error(msg, fields...)
 }
 
-// Sync flushes any buffered log entries.
-// It is safe to call multiple times.
-func Sync() error {
+// SyncLogger 刷新缓冲的日志条目
+// 可以安全地多次调用
+func SyncLogger() error {
 	mu.RLock()
 	defer mu.RUnlock()
 	if instance == nil {
 		return nil
 	}
 	if err := instance.Sync(); err != nil {
-		// zap may return an error on stdout sync on some platforms; treat as warning.
-		return fmt.Errorf("logger sync: %w", err)
+		// zap在某些平台上同步stdout可能返回错误；视为警告
+		return fmt.Errorf("日志同步失败: %w", err)
 	}
 	return nil
 }

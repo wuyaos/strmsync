@@ -1,97 +1,91 @@
 // Package config provides centralized configuration management for STRMSync.
-// It loads YAML config files, allows environment variable overrides, validates
-// required fields, and exposes a singleton accessor.
+// It loads configuration from environment variables only (no config files).
+// All settings use STRMSYNC_ prefix and support Docker deployment.
 package config
 
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
+	"os"
+	"strconv"
 	"strings"
-	"sync"
-
-	"github.com/spf13/viper"
 )
 
 // Config is the root configuration structure.
-// It is intentionally explicit to keep configuration stable and auditable.
+// All fields are populated from environment variables.
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Database DatabaseConfig `mapstructure:"database"`
-	Log      LogConfig      `mapstructure:"log"`
-	Security SecurityConfig `mapstructure:"security"`
+	Server   ServerConfig
+	Database DatabaseConfig
+	Log      LogConfig
+	Security SecurityConfig
 }
 
 // ServerConfig defines HTTP server settings.
 type ServerConfig struct {
-	Port int    `mapstructure:"port"`
-	Host string `mapstructure:"host"`
+	Port int
+	Host string
 }
 
 // DatabaseConfig defines database settings.
 type DatabaseConfig struct {
-	Path string `mapstructure:"path"`
+	Path string
 }
 
 // LogConfig defines logging settings.
 type LogConfig struct {
-	Level string `mapstructure:"level"`
-	Path  string `mapstructure:"path"`
+	Level string
+	Path  string
 }
 
 // SecurityConfig defines security-related settings.
 type SecurityConfig struct {
-	EncryptionKey string `mapstructure:"encryption_key"`
+	EncryptionKey string
 }
 
-var (
-	once       sync.Once
-	cachedCfg  *Config
-	cachedErr  error
-	defaultCfgPath = filepath.FromSlash("config/config.yaml")
-)
-
-// Get returns the singleton configuration instance, loading it on first call.
-// It uses the default config path: config/config.yaml.
-func Get() (*Config, error) {
-	once.Do(func() {
-		cachedCfg, cachedErr = LoadFromFile(defaultCfgPath)
-	})
-	return cachedCfg, cachedErr
-}
-
-// LoadFromFile loads configuration from a YAML file and validates it.
-// It does not cache results, making it suitable for tests or custom paths.
-func LoadFromFile(path string) (*Config, error) {
-	if strings.TrimSpace(path) == "" {
-		return nil, errors.New("config path is empty")
+// LoadFromEnv loads configuration from environment variables.
+// Environment variables use STRMSYNC_ prefix.
+// Example: STRMSYNC_SERVER_PORT, STRMSYNC_LOG_LEVEL
+func LoadFromEnv() (*Config, error) {
+	cfg := &Config{
+		Server: ServerConfig{
+			Port: getEnvInt("PORT", 3000),
+			Host: getEnv("HOST", "0.0.0.0"),
+		},
+		Database: DatabaseConfig{
+			Path: getEnv("DB_PATH", "data/strmsync.db"),
+		},
+		Log: LogConfig{
+			Level: getEnv("LOG_LEVEL", "info"),
+			Path:  getEnv("LOG_PATH", "logs"),
+		},
+		Security: SecurityConfig{
+			EncryptionKey: getEnv("ENCRYPTION_KEY", ""),
+		},
 	}
 
-	v := viper.New()
-	v.SetConfigFile(path)
-	v.SetConfigType("yaml")
-
-	// Environment overrides:
-	// - Prefix: STRMSYNC
-	// - Key mapping: server.port -> STRMSYNC_SERVER_PORT
-	v.SetEnvPrefix("STRMSYNC")
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	v.AutomaticEnv()
-
-	if err := v.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("read config file: %w", err)
-	}
-
-	var cfg Config
-	if err := v.Unmarshal(&cfg); err != nil {
-		return nil, fmt.Errorf("unmarshal config: %w", err)
-	}
-
-	if err := Validate(&cfg); err != nil {
+	if err := Validate(cfg); err != nil {
 		return nil, err
 	}
 
-	return &cfg, nil
+	return cfg, nil
+}
+
+// getEnv gets an environment variable with a default value.
+func getEnv(key string, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+// getEnvInt gets an integer environment variable with a default value.
+func getEnvInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
+	}
+	return defaultValue
 }
 
 // Validate performs structural and semantic checks.
@@ -103,32 +97,32 @@ func Validate(cfg *Config) error {
 
 	// Server validation
 	if cfg.Server.Port <= 0 || cfg.Server.Port > 65535 {
-		return fmt.Errorf("server.port must be 1-65535, got %d", cfg.Server.Port)
+		return fmt.Errorf("server port must be 1-65535, got %d", cfg.Server.Port)
 	}
 	if strings.TrimSpace(cfg.Server.Host) == "" {
-		return errors.New("server.host is required")
+		return errors.New("server host is required")
 	}
 
 	// Database validation
 	if strings.TrimSpace(cfg.Database.Path) == "" {
-		return errors.New("database.path is required")
+		return errors.New("database path is required")
 	}
 
 	// Log validation
 	if strings.TrimSpace(cfg.Log.Path) == "" {
-		return errors.New("log.path is required")
+		return errors.New("log path is required")
 	}
 	level := strings.ToLower(strings.TrimSpace(cfg.Log.Level))
 	switch level {
 	case "debug", "info", "warn", "error":
 		// ok
 	default:
-		return fmt.Errorf("log.level must be one of debug|info|warn|error, got %q", cfg.Log.Level)
+		return fmt.Errorf("log level must be one of debug|info|warn|error, got %q", cfg.Log.Level)
 	}
 
 	// Security validation
 	if strings.TrimSpace(cfg.Security.EncryptionKey) == "" {
-		return errors.New("security.encryption_key is required (set via config or STRMSYNC_SECURITY_ENCRYPTION_KEY)")
+		return errors.New("encryption key is required (set via ENCRYPTION_KEY environment variable)")
 	}
 
 	return nil
