@@ -1,0 +1,13 @@
+server:
+  port: 3000
+  host: "0.0.0.0"
+
+database:
+  path: "data/strmsync.db"
+
+log:
+  level: "info"
+  path: "logs"
+
+security:
+  encryption_key: "" # set via STRMSYNC_SECURITY_ENCRYPTION_KEY
