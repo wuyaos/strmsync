@@ -18,7 +18,7 @@
 - ✅ 并发安全优化（竞态窗口消除、Cancel幂等性）
 
 ### 进行中
-- 🔄 Service层完善（FileMonitor、DataServerClient等）
+- 🔄 Filesystem客户端完善（provider模式扩展）
 
 ### 待开发
 - ⏳ 前端页面和组件重构
@@ -56,21 +56,25 @@
 ```
 strm/
 ├── backend/                    # Go后端
-│   ├── cmd/
-│   │   └── server/main.go      # 应用入口
-│   ├── internal/
-│   │   ├── config/             # 配置管理
-│   │   ├── database/           # 数据库模型（GORM）
-│   │   ├── handlers/           # HTTP API处理器
-│   │   ├── service/            # 业务逻辑层
-│   │   │   ├── job/            # Job服务（并发控制）
-│   │   │   ├── taskrun/        # TaskRun服务
-│   │   │   ├── executor/       # 任务执行器
-│   │   │   ├── planner/        # 同步计划器
-│   │   │   └── strm/           # STRM生成器
-│   │   ├── clients/
-│   │   │   └── clouddrive2/    # CloudDrive2客户端
-│   │   └── utils/              # 工具函数
+│   ├── core/                   # 数据库模型（GORM）
+│   ├── handler/                # HTTP API处理器
+│   ├── service/                # 业务逻辑层
+│   │   ├── job.go              # Job服务（并发控制）
+│   │   ├── taskrun.go          # TaskRun服务
+│   │   ├── executor.go         # 任务执行器
+│   │   ├── planner.go          # 同步计划器
+│   │   └── strm.go             # STRM生成器
+│   ├── filesystem/             # 文件系统客户端（provider模式）
+│   │   ├── client.go           # 通用框架
+│   │   ├── openlist.go         # OpenList Provider
+│   │   ├── local.go            # Local Provider
+│   │   └── clouddrive2.go      # CloudDrive2 gRPC客户端
+│   ├── mediaserver/            # 媒体服务器客户端（adapter模式）
+│   │   ├── client.go           # 通用框架
+│   │   ├── emby.go             # Emby Adapter
+│   │   └── jellyfin.go         # Jellyfin Adapter
+│   ├── utils/                  # 工具函数
+│   ├── main.go                 # 应用入口
 │   ├── go.mod
 │   └── Makefile
 │
@@ -98,9 +102,6 @@ strm/
 │   └── gen_clouddrive2_proto.sh # Proto生成
 │
 ├── tests/                      # 测试目录
-│   ├── cmd/                    # 测试工具
-│   │   ├── clouddrive2_simple/ # CloudDrive2简单测试
-│   │   └── clouddrive2_full/   # CloudDrive2完整测试
 │   ├── media/                  # 测试媒体文件
 │   ├── output/                 # 测试输出（gitignore）
 │   ├── test.env                # 测试环境变量
@@ -144,16 +145,13 @@ cd backend
 go mod download
 
 # 运行服务
-go run cmd/server/main.go
+go run main.go
 
 # 或使用Makefile
 make run
 
 # 构建
 make build
-
-# 测试CloudDrive2连接
-go run cmd/test_clouddrive2_full/main.go
 ```
 
 ### 前端开发
@@ -175,14 +173,10 @@ npm run build
 
 ## 🧪 测试
 
-### CloudDrive2集成测试
+### API测试
 
 ```bash
-# 完整功能测试（11项）
-cd backend
-go run cmd/test_clouddrive2_full/main.go
-
-# 快速测试
+# 快速API测试
 ./scripts/test-api.sh
 ```
 
@@ -223,22 +217,35 @@ npm test
 | 端点 | 方法 | 说明 |
 |------|------|------|
 | `/api/health` | GET | 健康检查 |
-| `/api/data-servers` | GET/POST | 数据服务器管理 |
-| `/api/media-servers` | GET/POST | 媒体服务器管理 |
+| `/api/servers/data` | GET/POST | 文件系统服务器管理 |
+| `/api/servers/media` | GET/POST | 媒体服务器管理 |
 | `/api/jobs` | GET/POST | 任务管理 |
 | `/api/jobs/:id/run` | POST | 运行任务 |
 | `/api/jobs/:id/stop` | POST | 停止任务 |
-| `/api/task-runs` | GET | TaskRun记录 |
+| `/api/runs` | GET | TaskRun记录 |
 
 详细API文档见各Handler实现：
-- [backend/internal/handlers/data_server.go](backend/internal/handlers/data_server.go)
-- [backend/internal/handlers/media_server.go](backend/internal/handlers/media_server.go)
-- [backend/internal/handlers/job.go](backend/internal/handlers/job.go)
-- [backend/internal/handlers/task_run.go](backend/internal/handlers/task_run.go)
+- [backend/handler/filesystem_server.go](backend/handler/filesystem_server.go)
+- [backend/handler/media_server.go](backend/handler/media_server.go)
+- [backend/handler/job.go](backend/handler/job.go)
+- [backend/handler/task_run.go](backend/handler/task_run.go)
 
 ---
 
 ## 🎨 核心特性
+
+### 架构模式
+
+**Filesystem（Provider模式）**：
+- 通用框架：`filesystem/client.go`
+- OpenList实现：`filesystem/openlist.go`
+- 本地文件系统：`filesystem/local.go`
+- CloudDrive2 gRPC：`filesystem/clouddrive2.go`
+
+**MediaServer（Adapter模式）**：
+- 通用框架：`mediaserver/client.go`
+- Emby适配器：`mediaserver/emby.go`
+- Jellyfin适配器：`mediaserver/jellyfin.go`
 
 ### Service层架构
 

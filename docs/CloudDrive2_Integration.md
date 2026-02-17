@@ -36,38 +36,7 @@
 - `MoveFile()` - 移动文件
 - `DeleteFile()` - 删除文件
 
-更多API请参考：`backend/internal/clients/clouddrive2/client.go`
-
-## 测试工具
-
-### 连接测试程序
-
-位置：`backend/cmd/test_clouddrive2/main.go`
-
-#### 使用方法
-
-```bash
-# 基础连接测试（只测试GetSystemInfo，无需认证）
-CD2_HOST=127.0.0.1:19798 go run backend/cmd/test_clouddrive2/main.go
-
-# 完整测试（包括认证API）
-CD2_HOST=127.0.0.1:19798 CD2_TOKEN=your_jwt_token go run backend/cmd/test_clouddrive2/main.go
-```
-
-#### 测试内容
-
-1. **GetSystemInfo** - 验证gRPC连接和系统状态
-   - 检查是否登录
-   - 检查系统就绪状态
-   - 检查错误标志
-
-2. **GetMountPoints** - 验证认证和挂载点查询
-   - 列出所有挂载点
-   - 显示挂载状态
-
-3. **GetSubFiles** - 验证流式API
-   - 列出目录内容
-   - 显示文件信息
+更多API请参考：`backend/filesystem/clouddrive2.go`
 
 ## 代码示例
 
@@ -77,14 +46,14 @@ CD2_HOST=127.0.0.1:19798 CD2_TOKEN=your_jwt_token go run backend/cmd/test_cloudd
 import (
     "context"
     "time"
-    "github.com/strmsync/strmsync/internal/clients/clouddrive2"
+    "github.com/strmsync/strmsync/filesystem"
 )
 
 func main() {
-    client := clouddrive2.NewClient(
+    client := filesystem.NewCloudDrive2Client(
         "127.0.0.1:19798",  // gRPC地址
         "your_jwt_token",    // Token（可为空）
-        clouddrive2.WithTimeout(10*time.Second),
+        filesystem.WithTimeout(10*time.Second),
     )
 
     ctx := context.Background()

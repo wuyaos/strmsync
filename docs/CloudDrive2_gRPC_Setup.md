@@ -67,12 +67,12 @@ make gen-clouddrive2-proto
 
 ```bash
 cd backend
-mkdir -p internal/clients/clouddrive2/pb
+mkdir -p filesystem/clouddrive2_proto
 
-protoc -I internal/clients/clouddrive2/proto \
-  --go_out=internal/clients/clouddrive2/pb --go_opt=paths=source_relative \
-  --go-grpc_out=internal/clients/clouddrive2/pb --go-grpc_opt=paths=source_relative \
-  internal/clients/clouddrive2/proto/clouddrive2.proto
+protoc -I filesystem/clouddrive2_proto \
+  --go_out=filesystem/clouddrive2_proto --go_opt=paths=source_relative \
+  --go-grpc_out=filesystem/clouddrive2_proto --go-grpc_opt=paths=source_relative \
+  filesystem/clouddrive2_proto/clouddrive2.proto
 ```
 
 ## 验证生成
@@ -80,7 +80,7 @@ protoc -I internal/clients/clouddrive2/proto \
 生成成功后应该看到以下文件：
 
 ```
-backend/internal/clients/clouddrive2/pb/
+backend/filesystem/clouddrive2_proto/
 ├── clouddrive2.pb.go         # Protocol Buffers 定义
 └── clouddrive2_grpc.pb.go    # gRPC 服务定义
 ```
