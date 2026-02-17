@@ -4,6 +4,8 @@
 *.swp
 *.bak
 *~
+.agents/
+.env.test
 
 # IDE
 .vscode/

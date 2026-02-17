@@ -36,65 +36,94 @@ func NewService(db *gorm.DB, taskRunService service.TaskRunService, taskExecutor
 
 // Run 运行任务
 func (s *Service) Run(ctx context.Context, jobID types.JobID) (types.TaskRunID, error) {
-	// 1. 原子性检查并注册运行状态
+	// 1. 创建执行context（在锁外创建，整个Run过程共享同一个cancel）
+	execCtx, cancelFunc := context.WithCancel(ctx)
+
+	// 2. 原子性检查并注册运行状态
 	s.runningJobsLock.Lock()
 	if _, running := s.runningJobs[jobID]; running {
 		s.runningJobsLock.Unlock()
+		cancelFunc() // 清理context
 		return 0, fmt.Errorf("job: run: job %d is already running", jobID)
 	}
-	// 先占位（使用空context防止nil panic）
-	_, placeholderCancel := context.WithCancel(context.Background())
+	// 注册placeholder（TaskRunID=0表示初始化中，使用统一的cancelFunc）
 	placeholder := &types.ExecutionContext{
 		JobID:      jobID,
-		TaskRunID:  0, // 占位状态，TaskRunID为0
-		CancelFunc: placeholderCancel,
+		TaskRunID:  0, // 0表示占位状态
+		CancelFunc: cancelFunc,
 	}
 	s.runningJobs[jobID] = placeholder
 	s.runningJobsLock.Unlock()
 
-	// 2. 加载并验证Job配置
-	jobConfig, err := s.loadAndValidateJob(ctx, jobID)
-	if err != nil {
-		// 验证失败，清理占位
+	// defer清理：如果中途失败，确保从map中移除
+	defer func() {
+		if r := recover(); r != nil {
+			s.runningJobsLock.Lock()
+			delete(s.runningJobs, jobID)
+			s.runningJobsLock.Unlock()
+			cancelFunc()
+			panic(r) // re-panic
+		}
+	}()
+
+	// 3. 加载并验证Job配置（可能被Stop取消）
+	if execCtx.Err() != nil {
 		s.runningJobsLock.Lock()
 		delete(s.runningJobs, jobID)
 		s.runningJobsLock.Unlock()
-		placeholderCancel()
+		return 0, fmt.Errorf("job: run: cancelled before load config")
+	}
+	jobConfig, err := s.loadAndValidateJob(execCtx, jobID)
+	if err != nil {
+		s.runningJobsLock.Lock()
+		delete(s.runningJobs, jobID)
+		s.runningJobsLock.Unlock()
+		cancelFunc()
 		return 0, fmt.Errorf("job: run: %w", err)
 	}
 
-	// 3. 创建TaskRun
-	taskRunID, err := s.taskRunService.Start(ctx, jobID)
+	// 4. 创建TaskRun（可能被Stop取消）
+	if execCtx.Err() != nil {
+		s.runningJobsLock.Lock()
+		delete(s.runningJobs, jobID)
+		s.runningJobsLock.Unlock()
+		return 0, fmt.Errorf("job: run: cancelled before create task_run")
+	}
+	taskRunID, err := s.taskRunService.Start(execCtx, jobID)
 	if err != nil {
 		s.runningJobsLock.Lock()
 		delete(s.runningJobs, jobID)
 		s.runningJobsLock.Unlock()
-		placeholderCancel()
+		cancelFunc()
 		return 0, fmt.Errorf("job: run: create task_run: %w", err)
 	}
 
-	// 4. 更新Job状态为running
-	if err := s.updateJobStatus(ctx, jobID, "running"); err != nil {
-		// TaskRun已创建但状态更新失败，标记为失败
-		_ = s.taskRunService.Fail(ctx, taskRunID, err)
+	// 5. 更新Job状态为running（可能被Stop取消）
+	if execCtx.Err() != nil {
+		// 已创建TaskRun但被取消，标记为cancelled
+		_ = s.taskRunService.Cancel(execCtx, taskRunID)
 		s.runningJobsLock.Lock()
 		delete(s.runningJobs, jobID)
 		s.runningJobsLock.Unlock()
-		placeholderCancel()
+		return 0, fmt.Errorf("job: run: cancelled before update status")
+	}
+	if err := s.updateJobStatus(execCtx, jobID, "running"); err != nil {
+		// TaskRun已创建但状态更新失败，标记为失败
+		_ = s.taskRunService.Fail(execCtx, taskRunID, err)
+		s.runningJobsLock.Lock()
+		delete(s.runningJobs, jobID)
+		s.runningJobsLock.Unlock()
+		cancelFunc()
 		return 0, fmt.Errorf("job: run: update job status: %w", err)
 	}
 
-	// 5. 创建执行上下文（继承父context，但可独立取消）
-	execCtx, cancelFunc := context.WithCancel(ctx)
+	// 6. 更新为真实ExecutionContext（保持同一个cancelFunc）
 	executionContext := &types.ExecutionContext{
 		JobID:      jobID,
 		TaskRunID:  taskRunID,
 		JobConfig:  jobConfig,
 		CancelFunc: cancelFunc,
 	}
-
-	// 6. 取消placeholder并更新为真实ExecutionContext
-	placeholderCancel()
 	s.runningJobsLock.Lock()
 	s.runningJobs[jobID] = executionContext
 	s.runningJobsLock.Unlock()
@@ -140,12 +169,16 @@ func (s *Service) Stop(ctx context.Context, jobID types.JobID) error {
 	}
 
 	// 2. 调用cancel函数（不持锁）
+	// 无论TaskRunID是0（初始化中）还是非0（执行中），都会取消
 	execCtx.CancelFunc()
 
-	// 3. 标记TaskRun为cancelled（不持锁）
-	if err := s.taskRunService.Cancel(ctx, execCtx.TaskRunID); err != nil {
-		return fmt.Errorf("job: stop: cancel task_run: %w", err)
+	// 3. 标记TaskRun为cancelled（仅当TaskRunID非0时）
+	if execCtx.TaskRunID != 0 {
+		if err := s.taskRunService.Cancel(ctx, execCtx.TaskRunID); err != nil {
+			return fmt.Errorf("job: stop: cancel task_run: %w", err)
+		}
 	}
+	// TaskRunID=0表示还在初始化，context已取消，Run会在检查点自行清理
 
 	return nil
 }
@@ -157,12 +190,18 @@ func (s *Service) Validate(ctx context.Context, jobID types.JobID) error {
 }
 
 // GetRunningTaskRun 获取正在运行的TaskRun ID
+// 注意：TaskRunID=0 表示Job正在初始化（已占位但TaskRun尚未创建），此时返回 (0, false, nil)
 func (s *Service) GetRunningTaskRun(ctx context.Context, jobID types.JobID) (types.TaskRunID, bool, error) {
 	s.runningJobsLock.RLock()
 	defer s.runningJobsLock.RUnlock()
 
 	execCtx, running := s.runningJobs[jobID]
 	if !running {
+		return 0, false, nil
+	}
+
+	// TaskRunID=0 表示还在初始化中，TaskRun尚未创建，对调用方来说等同于未运行
+	if execCtx.TaskRunID == 0 {
 		return 0, false, nil
 	}
 

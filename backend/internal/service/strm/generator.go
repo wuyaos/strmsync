@@ -14,14 +14,19 @@ import (
 
 // Generator strm文件生成器实现
 type Generator struct {
-	targetRoot string // 目标根路径，用于限制空目录删除范围（从JobConfig.TargetPath注入）
+	targetRoot string // 目标根路径（绝对路径），用于限制空目录删除和路径校验
 }
 
 // NewGenerator 创建strm文件生成器
-// targetRoot: 目标根路径，用于限制空目录删除范围，通常是JobConfig.TargetPath
+// targetRoot: 目标根路径，应为绝对路径，用于限制操作范围
 func NewGenerator(targetRoot string) service.StrmGenerator {
+	// 转换为绝对路径并Clean
+	absRoot, err := filepath.Abs(targetRoot)
+	if err != nil {
+		absRoot = filepath.Clean(targetRoot)
+	}
 	return &Generator{
-		targetRoot: filepath.Clean(targetRoot),
+		targetRoot: absRoot,
 	}
 }
 
@@ -52,6 +57,11 @@ func (g *Generator) Apply(ctx context.Context, items <-chan types.SyncPlanItem) 
 
 // applyItem 处理单个同步项
 func (g *Generator) applyItem(ctx context.Context, item *types.SyncPlanItem) error {
+	// 验证目标路径在targetRoot内（防止路径穿越攻击）
+	if err := g.validatePath(item.TargetStrmPath); err != nil {
+		return err
+	}
+
 	switch item.Op {
 	case types.SyncOpCreate, types.SyncOpUpdate:
 		return g.createOrUpdateStrm(ctx, item)
@@ -60,6 +70,26 @@ func (g *Generator) applyItem(ctx context.Context, item *types.SyncPlanItem) err
 	default:
 		return fmt.Errorf("unknown sync operation: %v", item.Op)
 	}
+}
+
+// validatePath 验证目标路径在targetRoot内
+func (g *Generator) validatePath(targetPath string) error {
+	if g.targetRoot == "" {
+		return nil // 未设置targetRoot，不限制
+	}
+
+	// 使用filepath.Rel检查相对路径是否以..开头
+	rel, err := filepath.Rel(g.targetRoot, targetPath)
+	if err != nil {
+		return fmt.Errorf("validate path: %w", err)
+	}
+
+	// 如果相对路径以..开头，说明targetPath在targetRoot之外
+	if strings.HasPrefix(rel, ".."+string(filepath.Separator)) || rel == ".." {
+		return fmt.Errorf("path %s is outside targetRoot %s", targetPath, g.targetRoot)
+	}
+
+	return nil
 }
 
 // createOrUpdateStrm 创建或更新strm文件
