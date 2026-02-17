@@ -213,18 +213,6 @@ func (c *Client) NewMethod(ctx context.Context, param string) (*pb.Result, error
 }
 ```
 
-## 升级历史
-
-### v0.9.24 (2026-02-18)
-
-- 从 0.6.4-beta 升级到 0.9.24
-- 新增 2FA 认证支持
-- 新增 Session 管理
-- 新增加密文件夹支持
-- SystemInfo 新增字段：SystemReady, SystemMessage, HasError
-- MountPoint 字段重构：移除 cloudName，新增 isMounted 等
-- 升级 gRPC 到 v1.79.1
-
 ## 相关文档
 
 - [CloudDrive2 官方文档](https://www.clouddrive2.com)

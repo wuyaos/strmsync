@@ -92,30 +92,6 @@ cd backend
 go mod tidy
 ```
 
-## 常见问题
-
-### Q: protoc 找不到 google/protobuf/empty.proto
-
-**A:** protoc 需要能找到标准 proto 文件。确保 protoc 正确安装。
-
-### Q: Go 版本兼容性问题
-
-**A:** 项目使用 Go 1.19，确保安装的插件版本兼容：
-- google.golang.org/protobuf@v1.28.1
-- google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2.0
-
-### Q: 权限问题
-
-**A:** 如果没有 sudo 权限，可以手动下载 protoc 二进制文件并放到 PATH 中。
-
-## 下一步
-
-生成完成后，可以运行 CloudDrive2 连接测试：
-
-```bash
-curl -X POST http://localhost:6754/api/servers/data/1/test
-```
-
 ## 参考资料
 
 - [Protocol Buffers](https://protobuf.dev/)
