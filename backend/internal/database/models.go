@@ -1,98 +1,105 @@
-// Package database contains GORM models for STRMSync.
-// Models are defined according to docs/IMPLEMENTATION_PLAN.md section 2.2.
+// Package database 包含STRMSync的GORM模型定义
+// 新架构: 配置管理(Servers) + 任务配置(Jobs) + 执行记录(TaskRuns)
 package database
 
 import "time"
 
-// Source 数据源模型
-type Source struct {
-	ID           uint       `gorm:"primaryKey" json:"id"`
-	Name         string     `gorm:"uniqueIndex;not null" json:"name"`
-	Type         string     `gorm:"index;not null" json:"type"` // local/clouddrive2/openlist
-	Enabled      bool       `gorm:"not null;default:true" json:"enabled"`
-	Config       string     `gorm:"type:text;not null" json:"config"` // JSON
-	SourcePrefix string     `gorm:"not null" json:"source_prefix"`
-	TargetPrefix string     `gorm:"not null" json:"target_prefix"`
-	Options      string     `gorm:"type:text" json:"options"` // JSON
-	Status       string     `gorm:"default:'idle'" json:"status"`
-	LastScanAt   *time.Time `json:"last_scan_at"`
-	FileCount    int        `gorm:"default:0" json:"file_count"`
-	ErrorMessage string     `gorm:"type:text" json:"error_message"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
-
-	// 关联
-	Files []File `gorm:"foreignKey:SourceID;constraint:OnDelete:CASCADE" json:"files,omitempty"`
-	Tasks []Task `gorm:"foreignKey:SourceID;constraint:OnDelete:SET NULL" json:"tasks,omitempty"`
+// DataServer 数据服务器配置模型
+// 用于配置CloudDrive2/OpenList等数据源服务器
+type DataServer struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	Name      string    `gorm:"uniqueIndex;not null" json:"name"`                  // 服务器名称
+	Type      string    `gorm:"index;not null" json:"type"`                        // 类型: clouddrive2/openlist
+	Host      string    `gorm:"not null" json:"host"`                              // 主机地址
+	Port      int       `gorm:"not null" json:"port"`                              // 端口
+	APIKey    string    `gorm:"type:text" json:"api_key"`                          // API密钥(可选)
+	Enabled   bool      `gorm:"not null;default:true" json:"enabled"`              // 是否启用
+	Options   string    `gorm:"type:text" json:"options"`                          // JSON扩展字段
+	CreatedAt time.Time `json:"created_at"`                                        // 创建时间
+	UpdatedAt time.Time `json:"updated_at"`                                        // 更新时间
 }
 
-// File 文件索引模型
-type File struct {
-	ID             uint      `gorm:"primaryKey" json:"id"`
-	SourceID       uint      `gorm:"index;not null" json:"source_id"`
-	SourcePath     string    `gorm:"index;not null" json:"source_path"`
-	TargetPath     string    `gorm:"not null" json:"target_path"`
-	STRMContent    string    `gorm:"type:text;not null" json:"strm_content"`
-	FileName       string    `gorm:"not null" json:"file_name"`
-	FileSize       int64     `gorm:"not null" json:"file_size"`
-	FileHash       string    `gorm:"index;not null" json:"file_hash"`
-	ModifiedAt     time.Time `gorm:"not null" json:"modified_at"`
-	IsDir          bool      `gorm:"not null;default:false" json:"is_dir"`
-	STRMGenerated  bool      `gorm:"default:false" json:"strm_generated"`
-	MetadataSynced bool      `gorm:"default:false" json:"metadata_synced"`
-	Notified       bool      `gorm:"default:false" json:"notified"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
-
-	// 关联
-	Source        Source         `gorm:"foreignKey:SourceID" json:"source,omitempty"`
-	MetadataFiles []MetadataFile `gorm:"foreignKey:FileID;constraint:OnDelete:CASCADE" json:"metadata_files,omitempty"`
+// MediaServer 媒体服务器配置模型
+// 用于配置Emby/Jellyfin/Plex等媒体库服务器
+type MediaServer struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	Name      string    `gorm:"uniqueIndex;not null" json:"name"`                  // 服务器名称
+	Type      string    `gorm:"index;not null" json:"type"`                        // 类型: emby/jellyfin/plex
+	Host      string    `gorm:"not null" json:"host"`                              // 主机地址
+	Port      int       `gorm:"not null" json:"port"`                              // 端口
+	APIKey    string    `gorm:"type:text" json:"api_key"`                          // API密钥
+	Enabled   bool      `gorm:"not null;default:true" json:"enabled"`              // 是否启用
+	Options   string    `gorm:"type:text" json:"options"`                          // JSON扩展字段
+	CreatedAt time.Time `json:"created_at"`                                        // 创建时间
+	UpdatedAt time.Time `json:"updated_at"`                                        // 更新时间
 }
 
-// MetadataFile 元数据文件模型
-type MetadataFile struct {
-	ID         uint      `gorm:"primaryKey" json:"id"`
-	FileID     uint      `gorm:"index;not null" json:"file_id"`
-	SourcePath string    `gorm:"not null" json:"source_path"`
-	TargetPath string    `gorm:"not null" json:"target_path"`
-	FileType   string    `gorm:"not null" json:"file_type"` // nfo/poster/fanart/subtitle
-	Synced     bool      `gorm:"index;default:false" json:"synced"`
-	CreatedAt  time.Time `json:"created_at"`
+// Job 任务配置模型
+// 用于配置STRM生成任务的所有参数
+type Job struct {
+	ID            uint       `gorm:"primaryKey" json:"id"`
+	Name          string     `gorm:"uniqueIndex;not null" json:"name"`                               // 任务名称（唯一）
+	Enabled       bool       `gorm:"not null;default:true" json:"enabled"`                           // 是否启用
+	WatchMode     string     `gorm:"not null;default:'local'" json:"watch_mode"`                     // 监控模式: local/api
+	SourcePath    string     `gorm:"not null" json:"source_path"`                                    // 监控目录
+	TargetPath    string     `gorm:"not null" json:"target_path"`                                    // 目的目录(STRM输出)
+	STRMPath      string     `gorm:"not null" json:"strm_path"`                                      // STRM文件内容路径
+	DataServerID  *uint      `gorm:"index" json:"data_server_id"`                                    // 数据服务器ID(可空)
+	MediaServerID *uint      `gorm:"index" json:"media_server_id"`                                   // 媒体服务器ID(可空)
+	Options       string     `gorm:"type:text" json:"options"`                                       // JSON扩展选项
+	Status        string     `gorm:"default:'idle'" json:"status"`                                   // 状态: idle/running/error
+	LastRunAt     *time.Time `json:"last_run_at"`                                                    // 最后执行时间
+	ErrorMessage  string     `gorm:"type:text" json:"error_message"`                                 // 错误信息
+	CreatedAt     time.Time  `gorm:"index:idx_jobs_created_at,sort:desc" json:"created_at"`          // 创建时间
+	UpdatedAt     time.Time  `json:"updated_at"`                                                     // 更新时间
 
-	// 关联
-	File File `gorm:"foreignKey:FileID" json:"file,omitempty"`
+	// 关联关系
+	DataServer  *DataServer  `gorm:"foreignKey:DataServerID" json:"data_server,omitempty"`           // 关联的数据服务器
+	MediaServer *MediaServer `gorm:"foreignKey:MediaServerID" json:"media_server,omitempty"`         // 关联的媒体服务器
+	TaskRuns    []TaskRun    `gorm:"foreignKey:JobID;constraint:OnDelete:CASCADE" json:"task_runs,omitempty"` // 执行记录列表
 }
 
-// Task 任务模型
-type Task struct {
+// TaskRun 任务执行记录模型
+// 记录每次任务执行的详细信息
+type TaskRun struct {
 	ID             uint       `gorm:"primaryKey" json:"id"`
-	Name           string     `gorm:"not null" json:"name"`
-	Type           string     `gorm:"not null" json:"type"` // scan/watch/sync/notify
-	SourceID       *uint      `gorm:"index" json:"source_id"`
-	Status         string     `gorm:"index;not null;default:'pending'" json:"status"`
-	Progress       int        `gorm:"default:0" json:"progress"`
-	TotalFiles     int        `gorm:"default:0" json:"total_files"`
-	ProcessedFiles int        `gorm:"default:0" json:"processed_files"`
-	FailedFiles    int        `gorm:"default:0" json:"failed_files"`
-	ErrorMessage   string     `gorm:"type:text" json:"error_message"`
-	StartedAt      *time.Time `json:"started_at"`
-	CompletedAt    *time.Time `json:"completed_at"`
-	CreatedAt      time.Time  `gorm:"index:idx_tasks_created_at,sort:desc" json:"created_at"`
+	JobID          uint       `gorm:"index;not null" json:"job_id"`                       // 关联任务ID
+	Status         string     `gorm:"index;not null" json:"status"`                       // 执行状态: running/completed/failed/cancelled
+	StartedAt      time.Time  `gorm:"index" json:"started_at"`                            // 开始时间
+	EndedAt        *time.Time `json:"ended_at"`                                           // 结束时间
+	Duration       int64      `gorm:"default:0" json:"duration"`                          // 执行时长(秒)
+	Progress       int        `gorm:"default:0" json:"progress"`                          // 进度(0-100)
+	TotalFiles     int        `gorm:"default:0" json:"total_files"`                       // 总文件数
+	ProcessedFiles int        `gorm:"default:0" json:"processed_files"`                   // 已处理文件数
+	FailedFiles    int        `gorm:"default:0" json:"failed_files"`                      // 失败文件数
+	ErrorMessage   string     `gorm:"type:text" json:"error_message"`                     // 错误信息
+	Payload        string     `gorm:"type:text" json:"payload"`                           // JSON执行参数
 
-	// 关联
-	Source *Source `gorm:"foreignKey:SourceID" json:"source,omitempty"`
+	// 关联关系
+	Job *Job `gorm:"foreignKey:JobID" json:"job,omitempty"`                              // 关联的任务
+}
+
+// LogEntry 日志记录模型
+type LogEntry struct {
+	ID        uint       `gorm:"primaryKey" json:"id"`
+	Level     string     `gorm:"index:idx_logs_level_created_at,priority:1;not null" json:"level"`          // 日志级别
+	Module    *string    `gorm:"index" json:"module,omitempty"`                                             // 模块名称
+	Message   string     `gorm:"type:text;not null" json:"message"`                                         // 日志消息
+	JobID     *uint      `gorm:"index" json:"job_id,omitempty"`                                             // 关联的任务ID
+	CreatedAt time.Time  `gorm:"index:idx_logs_level_created_at,priority:2;index" json:"created_at"`        // 创建时间
 }
 
 // Setting 系统设置模型
 type Setting struct {
-	Key       string    `gorm:"primaryKey" json:"key"`
-	Value     string    `gorm:"type:text;not null" json:"value"` // JSON
-	UpdatedAt time.Time `json:"updated_at"`
+	Key       string    `gorm:"primaryKey" json:"key"`       // 设置键
+	Value     string    `gorm:"type:text;not null" json:"value"` // 设置值(JSON)
+	UpdatedAt time.Time `json:"updated_at"`                  // 更新时间
 }
 
-// TableName 方法用于指定表名
-func (Source) TableName() string       { return "sources" }
-func (File) TableName() string         { return "files" }
-func (MetadataFile) TableName() string { return "metadata_files" }
-func (Task) TableName() string         { return "tasks" }
-func (Setting) TableName() string      { return "settings" }
+// TableName 指定表名
+func (DataServer) TableName() string  { return "data_servers" }
+func (MediaServer) TableName() string { return "media_servers" }
+func (Job) TableName() string         { return "jobs" }
+func (TaskRun) TableName() string     { return "task_runs" }
+func (LogEntry) TableName() string    { return "logs" }
+func (Setting) TableName() string     { return "settings" }

@@ -1,4 +1,4 @@
-// Package utils provides fast hashing helpers for file change detection.
+// Package utils 提供快速哈希计算工具用于文件变更检测
 package utils
 
 import (
@@ -11,13 +11,13 @@ import (
 
 const fastHashChunkSize = 1 << 20 // 1MB
 
-// FastFileHash computes a fast hash using:
-//   - first 1MB
-//   - last 1MB
-//   - file size
-// This is a high-performance heuristic for change detection.
+// FastFileHash 计算快速哈希，使用：
+//   - 文件开头1MB
+//   - 文件结尾1MB
+//   - 文件大小
+// 这是一种高性能的变更检测启发式方法
 //
-// Example:
+// 示例：
 //  h, err := FastFileHash("movie.mkv")
 func FastFileHash(path string) (string, error) {
 	f, err := os.Open(path)
@@ -37,7 +37,7 @@ func FastFileHash(path string) (string, error) {
 		return "", err
 	}
 
-	// Read head
+	// 读取文件头
 	headSize := min64(size, fastHashChunkSize)
 	if headSize > 0 {
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
@@ -48,7 +48,7 @@ func FastFileHash(path string) (string, error) {
 		}
 	}
 
-	// Read tail
+	// 读取文件尾
 	if size > fastHashChunkSize {
 		if _, err := f.Seek(size-fastHashChunkSize, io.SeekStart); err != nil {
 			return "", err

@@ -1,4 +1,4 @@
-// Package utils provides filesystem path helpers.
+// Package utils 提供文件系统路径处理工具
 package utils
 
 import (
@@ -7,14 +7,14 @@ import (
 	"strings"
 )
 
-// NormalizePath cleans a path, makes it absolute, and resolves symlinks when possible.
-// If EvalSymlinks fails (e.g., path does not exist), it returns the absolute cleaned path.
+// NormalizePath 清理路径，使其成为绝对路径，并尽可能解析符号链接
+// 如果EvalSymlinks失败（例如路径不存在），返回绝对清理后的路径
 //
-// Example:
+// 示例：
 //  p, err := NormalizePath("../data/../logs")
 func NormalizePath(p string) (string, error) {
 	if strings.TrimSpace(p) == "" {
-		return "", errors.New("path is empty")
+		return "", errors.New("路径为空")
 	}
 	abs, err := filepath.Abs(p)
 	if err != nil {
@@ -27,39 +27,39 @@ func NormalizePath(p string) (string, error) {
 	return abs, nil
 }
 
-// ReplacePrefix replaces sourcePrefix in path with targetPrefix if path starts with sourcePrefix.
-// It preserves path separators and avoids partial segment replacements.
+// ReplacePrefix 如果path以sourcePrefix开头，则将其替换为targetPrefix
+// 保留路径分隔符，避免部分段替换
 //
-// Example:
+// 示例：
 //  ReplacePrefix("/a/b/c.mkv", "/a", "/x") -> "/x/b/c.mkv"
 func ReplacePrefix(path string, sourcePrefix string, targetPrefix string) (string, error) {
 	if strings.TrimSpace(path) == "" {
-		return "", errors.New("path is empty")
+		return "", errors.New("路径为空")
 	}
 	if strings.TrimSpace(sourcePrefix) == "" {
-		return "", errors.New("source prefix is empty")
+		return "", errors.New("源前缀为空")
 	}
 	if strings.TrimSpace(targetPrefix) == "" {
-		return "", errors.New("target prefix is empty")
+		return "", errors.New("目标前缀为空")
 	}
 
 	cleanPath := filepath.Clean(path)
 	cleanSource := filepath.Clean(sourcePrefix)
 	cleanTarget := filepath.Clean(targetPrefix)
 
-	// Ensure prefix match on path segment boundary.
+	// 确保前缀匹配在路径段边界上
 	rel, err := filepath.Rel(cleanSource, cleanPath)
 	if err != nil || strings.HasPrefix(rel, "..") || rel == "." && cleanPath != cleanSource {
-		return "", errors.New("path does not start with source prefix")
+		return "", errors.New("路径不以源前缀开头")
 	}
 
 	return filepath.Join(cleanTarget, rel), nil
 }
 
-// IsVideoFile reports whether the path has a known video extension.
-// The check is case-insensitive.
+// IsVideoFile 判断路径是否具有已知的视频扩展名
+// 检查不区分大小写
 //
-// Example:
+// 示例：
 //  IsVideoFile("/movies/a.MKV") -> true
 func IsVideoFile(path string) bool {
 	ext := strings.ToLower(filepath.Ext(path))
@@ -71,15 +71,15 @@ func IsVideoFile(path string) bool {
 	}
 }
 
-// IsSafePath ensures target is within base, preventing path traversal.
-// It returns true if target is inside base after cleaning.
+// IsSafePath 确保target在base内部，防止路径遍历攻击
+// 清理后如果target在base内则返回true
 //
-// Example:
+// 示例：
 //  IsSafePath("/data", "/data/a/b.txt") -> true
 //  IsSafePath("/data", "/data/../etc/passwd") -> false
 func IsSafePath(base string, target string) (bool, error) {
 	if strings.TrimSpace(base) == "" || strings.TrimSpace(target) == "" {
-		return false, errors.New("base or target is empty")
+		return false, errors.New("base或target为空")
 	}
 
 	cleanBase, err := NormalizePath(base)

@@ -1,0 +1,225 @@
+// Package taskrun 实现TaskRun记录管理服务
+package taskrun
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/strmsync/strmsync/internal/database"
+	"github.com/strmsync/strmsync/internal/service"
+	"github.com/strmsync/strmsync/internal/service/types"
+	"gorm.io/gorm"
+)
+
+// Service TaskRun服务实现
+type Service struct {
+	db *gorm.DB
+}
+
+// NewService 创建TaskRun服务
+func NewService(db *gorm.DB) service.TaskRunService {
+	return &Service{
+		db: db,
+	}
+}
+
+// Start 创建并开始TaskRun
+func (s *Service) Start(ctx context.Context, jobID types.JobID) (types.TaskRunID, error) {
+	now := time.Now()
+	taskRun := &database.TaskRun{
+		JobID:     jobID,
+		Status:    "running",
+		StartedAt: now,
+	}
+
+	if err := s.db.WithContext(ctx).Create(taskRun).Error; err != nil {
+		return 0, fmt.Errorf("taskrun: start: create task_run failed: %w", err)
+	}
+
+	return taskRun.ID, nil
+}
+
+// UpdateProgress 更新进度
+func (s *Service) UpdateProgress(ctx context.Context, taskRunID types.TaskRunID, processed int, total int) error {
+	updates := map[string]interface{}{
+		"processed_count": processed,
+		"total_count":     total,
+	}
+
+	if err := s.db.WithContext(ctx).
+		Model(&database.TaskRun{}).
+		Where("id = ?", taskRunID).
+		Updates(updates).Error; err != nil {
+		return fmt.Errorf("taskrun: update_progress: %w", err)
+	}
+
+	return nil
+}
+
+// Complete 标记TaskRun完成
+func (s *Service) Complete(ctx context.Context, taskRunID types.TaskRunID, summary *types.TaskRunSummary) error {
+	if summary == nil {
+		return fmt.Errorf("taskrun: complete: summary is nil")
+	}
+
+	// 确保EndedAt已设置
+	if summary.EndedAt.IsZero() {
+		summary.EndedAt = time.Now()
+	}
+
+	// 计算duration（如果未设置）
+	if summary.Duration == 0 && !summary.StartedAt.IsZero() {
+		summary.Duration = int64(summary.EndedAt.Sub(summary.StartedAt).Seconds())
+		if summary.Duration < 0 {
+			summary.Duration = 0
+		}
+	}
+
+	updates := map[string]interface{}{
+		"status":      "completed",
+		"ended_at":    summary.EndedAt,
+		"duration":    summary.Duration,
+		"files_added": summary.CreatedCount,
+		"files_updated": summary.UpdatedCount,
+		"files_deleted": summary.DeletedCount,
+	}
+
+	var taskRun database.TaskRun
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 更新记录
+		if err := tx.Model(&database.TaskRun{}).
+			Where("id = ?", taskRunID).
+			Updates(updates).Error; err != nil {
+			return err
+		}
+
+		// 读取更新后的记录以获取关联的Job ID
+		if err := tx.First(&taskRun, taskRunID).Error; err != nil {
+			return err
+		}
+
+		// 更新Job的last_run_at
+		now := time.Now()
+		if err := tx.Model(&database.Job{}).
+			Where("id = ?", taskRun.JobID).
+			Updates(map[string]interface{}{
+				"last_run_at": &now,
+				"status":      "idle",
+			}).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("taskrun: complete: %w", err)
+	}
+
+	return nil
+}
+
+// Fail 标记TaskRun失败
+func (s *Service) Fail(ctx context.Context, taskRunID types.TaskRunID, taskErr error) error {
+	now := time.Now()
+
+	// 读取TaskRun以获取started_at
+	var taskRun database.TaskRun
+	if err := s.db.WithContext(ctx).First(&taskRun, taskRunID).Error; err != nil {
+		return fmt.Errorf("taskrun: fail: get task_run: %w", err)
+	}
+
+	// 计算duration
+	duration := int64(now.Sub(taskRun.StartedAt).Seconds())
+	if duration < 0 {
+		duration = 0
+	}
+
+	errorMsg := ""
+	if taskErr != nil {
+		errorMsg = taskErr.Error()
+	}
+
+	updates := map[string]interface{}{
+		"status":        "failed",
+		"ended_at":      &now,
+		"duration":      duration,
+		"error_message": errorMsg,
+	}
+
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 更新TaskRun
+		if err := tx.Model(&database.TaskRun{}).
+			Where("id = ?", taskRunID).
+			Updates(updates).Error; err != nil {
+			return err
+		}
+
+		// 更新Job状态为error
+		if err := tx.Model(&database.Job{}).
+			Where("id = ?", taskRun.JobID).
+			Updates(map[string]interface{}{
+				"status": "error",
+			}).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("taskrun: fail: %w", err)
+	}
+
+	return nil
+}
+
+// Cancel 标记TaskRun被取消
+func (s *Service) Cancel(ctx context.Context, taskRunID types.TaskRunID) error {
+	now := time.Now()
+
+	// 读取TaskRun以获取started_at
+	var taskRun database.TaskRun
+	if err := s.db.WithContext(ctx).First(&taskRun, taskRunID).Error; err != nil {
+		return fmt.Errorf("taskrun: cancel: get task_run: %w", err)
+	}
+
+	// 计算duration
+	duration := int64(now.Sub(taskRun.StartedAt).Seconds())
+	if duration < 0 {
+		duration = 0
+	}
+
+	updates := map[string]interface{}{
+		"status":   "cancelled",
+		"ended_at": &now,
+		"duration": duration,
+	}
+
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 更新TaskRun
+		if err := tx.Model(&database.TaskRun{}).
+			Where("id = ?", taskRunID).
+			Updates(updates).Error; err != nil {
+			return err
+		}
+
+		// 更新Job状态为idle
+		if err := tx.Model(&database.Job{}).
+			Where("id = ?", taskRun.JobID).
+			Updates(map[string]interface{}{
+				"status": "idle",
+			}).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("taskrun: cancel: %w", err)
+	}
+
+	return nil
+}
