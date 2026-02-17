@@ -175,14 +175,19 @@ func (s *Service) Fail(ctx context.Context, taskRunID types.TaskRunID, taskErr e
 	return nil
 }
 
-// Cancel 标记TaskRun被取消
+// Cancel 标记TaskRun被取消（幂等操作）
 func (s *Service) Cancel(ctx context.Context, taskRunID types.TaskRunID) error {
 	now := time.Now()
 
-	// 读取TaskRun以获取started_at
+	// 读取TaskRun以获取started_at和当前状态
 	var taskRun database.TaskRun
 	if err := s.db.WithContext(ctx).First(&taskRun, taskRunID).Error; err != nil {
 		return fmt.Errorf("taskrun: cancel: get task_run: %w", err)
+	}
+
+	// 幂等性检查：如果已经是cancelled或其他终态，直接返回成功
+	if taskRun.Status == "cancelled" || taskRun.Status == "completed" || taskRun.Status == "failed" {
+		return nil // 已经是终态，无需重复操作
 	}
 
 	// 计算duration
@@ -198,11 +203,18 @@ func (s *Service) Cancel(ctx context.Context, taskRunID types.TaskRunID) error {
 	}
 
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// 更新TaskRun
-		if err := tx.Model(&database.TaskRun{}).
-			Where("id = ?", taskRunID).
-			Updates(updates).Error; err != nil {
-			return err
+		// 原子更新：仅当status为running时才更新（防止并发冲突）
+		result := tx.Model(&database.TaskRun{}).
+			Where("id = ? AND status = ?", taskRunID, "running").
+			Updates(updates)
+
+		if result.Error != nil {
+			return result.Error
+		}
+
+		// 如果RowsAffected=0，说明状态已被其他goroutine更新，属于正常情况
+		if result.RowsAffected == 0 {
+			return nil // 幂等返回成功
 		}
 
 		// 更新Job状态为idle
