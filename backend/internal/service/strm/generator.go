@@ -78,8 +78,15 @@ func (g *Generator) validatePath(targetPath string) error {
 		return nil // 未设置targetRoot，不限制
 	}
 
+	// 将targetPath转换为绝对路径并Clean
+	absTarget, err := filepath.Abs(targetPath)
+	if err != nil {
+		return fmt.Errorf("validate path: cannot get absolute path: %w", err)
+	}
+	absTarget = filepath.Clean(absTarget)
+
 	// 使用filepath.Rel检查相对路径是否以..开头
-	rel, err := filepath.Rel(g.targetRoot, targetPath)
+	rel, err := filepath.Rel(g.targetRoot, absTarget)
 	if err != nil {
 		return fmt.Errorf("validate path: %w", err)
 	}

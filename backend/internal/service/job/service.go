@@ -98,10 +98,24 @@ func (s *Service) Run(ctx context.Context, jobID types.JobID) (types.TaskRunID, 
 		return 0, fmt.Errorf("job: run: create task_run: %w", err)
 	}
 
-	// 5. 更新Job状态为running（可能被Stop取消）
+	// 5. 立即更新为真实ExecutionContext（在更新Job status前）
+	// 这样Stop在任何时刻都能读到正确的TaskRunID并调用Cancel
+	executionContext := &types.ExecutionContext{
+		JobID:      jobID,
+		TaskRunID:  taskRunID,
+		JobConfig:  jobConfig,
+		CancelFunc: cancelFunc,
+	}
+	s.runningJobsLock.Lock()
+	s.runningJobs[jobID] = executionContext
+	s.runningJobsLock.Unlock()
+
+	// 6. 更新Job状态为running（可能被Stop取消）
 	if execCtx.Err() != nil {
-		// 已创建TaskRun但被取消，标记为cancelled
-		_ = s.taskRunService.Cancel(execCtx, taskRunID)
+		// 已创建TaskRun和ExecutionContext但被取消
+		// 如果是Stop调用，它会读到正确的TaskRunID并调用Cancel
+		// 如果是父context取消，我们需要自己清理
+		_ = s.taskRunService.Cancel(context.Background(), taskRunID)
 		s.runningJobsLock.Lock()
 		delete(s.runningJobs, jobID)
 		s.runningJobsLock.Unlock()
@@ -117,17 +131,6 @@ func (s *Service) Run(ctx context.Context, jobID types.JobID) (types.TaskRunID, 
 		return 0, fmt.Errorf("job: run: update job status: %w", err)
 	}
 
-	// 6. 更新为真实ExecutionContext（保持同一个cancelFunc）
-	executionContext := &types.ExecutionContext{
-		JobID:      jobID,
-		TaskRunID:  taskRunID,
-		JobConfig:  jobConfig,
-		CancelFunc: cancelFunc,
-	}
-	s.runningJobsLock.Lock()
-	s.runningJobs[jobID] = executionContext
-	s.runningJobsLock.Unlock()
-
 	// 7. 异步执行任务
 	go func() {
 		defer func() {
@@ -140,21 +143,42 @@ func (s *Service) Run(ctx context.Context, jobID types.JobID) (types.TaskRunID, 
 		// 执行任务
 		summary, err := s.taskExecutor.Execute(execCtx, executionContext)
 
-		// 检查是否被取消
+		// 处理执行结果
 		if err != nil {
 			if execCtx.Err() == context.Canceled {
-				// 任务被主动取消，不标记为failed（已在Stop中标记为cancelled）
+				// 任务被主动取消
+				// Stop应该已经调用了taskRunService.Cancel更新状态
+				// 但为了防御，我们检查TaskRun状态，如果不是cancelled，手动更新
+				// 使用background context避免已取消的context导致DB操作失败
+				_ = s.ensureTaskRunCancelled(context.Background(), taskRunID)
 				return
 			}
 			// 其他错误，标记为failed
-			_ = s.taskRunService.Fail(execCtx, taskRunID, err)
-			_ = s.updateJobStatus(execCtx, jobID, "error")
+			_ = s.taskRunService.Fail(context.Background(), taskRunID, err)
+			_ = s.updateJobStatus(context.Background(), jobID, "error")
 		} else {
-			_ = s.taskRunService.Complete(execCtx, taskRunID, summary)
+			_ = s.taskRunService.Complete(context.Background(), taskRunID, summary)
 		}
 	}()
 
 	return taskRunID, nil
+}
+
+// ensureTaskRunCancelled 确保TaskRun被标记为cancelled（防御性检查）
+func (s *Service) ensureTaskRunCancelled(ctx context.Context, taskRunID types.TaskRunID) error {
+	// 检查TaskRun当前状态
+	var taskRun database.TaskRun
+	if err := s.db.WithContext(ctx).First(&taskRun, taskRunID).Error; err != nil {
+		return err
+	}
+
+	// 如果已经是cancelled，无需重复操作
+	if taskRun.Status == "cancelled" {
+		return nil
+	}
+
+	// 如果不是cancelled，调用Cancel确保状态正确
+	return s.taskRunService.Cancel(ctx, taskRunID)
 }
 
 // Stop 停止任务
