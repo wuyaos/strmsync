@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/strmsync/strmsync/internal/clients/clouddrive2/pb;pb";
+option go_package = "github.com/strmsync/strmsync/filesystem/clouddrive2_proto;clouddrive2_proto";
 
 package clouddrive;
 

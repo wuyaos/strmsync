@@ -73,7 +73,7 @@ func LoadFromEnv() (*Config, error) {
 			Host: getEnv("HOST", "0.0.0.0"),
 		},
 		Database: DatabaseConfig{
-			Path: getEnv("DB_PATH", "data/strmsync.db"),
+			Path: getEnv("DB_PATH", "data.db"),
 		},
 		Log: LogConfig{
 			Level: getEnv("LOG_LEVEL", "info"),

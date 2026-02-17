@@ -21,13 +21,14 @@ help:
 # 编译
 build:
 	@echo "Building STRMSync..."
-	@cd backend && CGO_ENABLED=1 go build -o ../strmsync ./cmd/server
-	@echo "Build complete: ./strmsync"
+	@mkdir -p tests
+	@cd backend && CGO_ENABLED=1 go build -o ../tests/strmsync .
+	@echo "Build complete: ./tests/strmsync"
 
 # 运行
 run:
 	@echo "Running STRMSync..."
-	@cd backend && go run ./cmd/server
+	@cd backend && go run .
 
 # 测试
 test:

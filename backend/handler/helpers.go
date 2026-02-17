@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -278,8 +279,12 @@ func classifyIP(ip net.IP) (allowed bool, isPrivate bool, message string) {
 		privateIPv6ULA = net.IPNet{IP: net.ParseIP("fc00::"), Mask: net.CIDRMask(7, 128)}
 	)
 
-	// 检查回环地址（拒绝）
+	// 检查回环地址（拒绝，除非在测试模式下）
 	if loopbackIPv4.Contains(ip) || loopbackIPv6.Contains(ip) {
+		// 测试模式下允许回环地址
+		if os.Getenv("ALLOW_LOOPBACK") == "true" {
+			return true, true, ""
+		}
 		return false, true, "不允许访问回环地址"
 	}
 

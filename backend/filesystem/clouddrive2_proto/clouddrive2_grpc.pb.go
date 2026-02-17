@@ -4,7 +4,7 @@
 // - protoc             v3.21.12
 // source: clouddrive2.proto
 
-package pb
+package clouddrive2_proto
 
 import (
 	context "context"
