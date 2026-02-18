@@ -471,7 +471,9 @@ func testJellyfinConnection(server model.MediaServer, logger *zap.Logger) Connec
 	}
 
 	if server.APIKey != "" {
-		req.Header.Set("X-Emby-Token", server.APIKey)
+		// Jellyfin支持两种认证方式，为了兼容性同时设置
+		req.Header.Set("X-MediaBrowser-Token", server.APIKey)
+		req.Header.Set("Authorization", fmt.Sprintf(`MediaBrowser Token="%s"`, server.APIKey))
 	}
 
 	client := &http.Client{Timeout: 10 * time.Second}
