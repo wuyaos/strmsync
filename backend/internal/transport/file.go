@@ -14,7 +14,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	filesvc "github.com/strmsync/strmsync/internal/app/file"
-	"github.com/strmsync/strmsync/internal/app/service"
+	"github.com/strmsync/strmsync/internal/app/ports"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -22,7 +22,7 @@ import (
 type FileHandler struct {
 	db      *gorm.DB
 	logger  *zap.Logger
-	fileSvc service.FileService
+	fileSvc ports.FileService
 }
 
 func NewFileHandler(db *gorm.DB, logger *zap.Logger) *FileHandler {
@@ -288,7 +288,7 @@ func (h *FileHandler) ListFiles(c *gin.Context) {
 	}
 
 	// 调用service层
-	files, err := h.fileSvc.List(c.Request.Context(), service.FileListRequest{
+	files, err := h.fileSvc.List(c.Request.Context(), ports.FileListRequest{
 		ServerID:  req.ServerID,
 		Path:      req.Path,
 		Recursive: req.Recursive,

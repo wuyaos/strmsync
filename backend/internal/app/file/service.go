@@ -1,4 +1,4 @@
-// Package service implements file list service.
+// Package service implements file list ports.
 package service
 
 import (
@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/strmsync/strmsync/internal/app/service"
+	"github.com/strmsync/strmsync/internal/app/ports"
 	"github.com/strmsync/strmsync/internal/domain/model"
-	"github.com/strmsync/strmsync/internal/filesystem"
+	"github.com/strmsync/strmsync/internal/infra/filesystem"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -42,14 +42,14 @@ type fileService struct {
 }
 
 // NewFileService 创建FileService实例
-func NewFileService(db *gorm.DB, logger *zap.Logger) service.FileService {
+func NewFileService(db *gorm.DB, logger *zap.Logger) ports.FileService {
 	return &fileService{
 		db:     db,
 		logger: logger,
 	}
 }
 
-func (s *fileService) List(ctx context.Context, req service.FileListRequest) ([]filesystem.RemoteFile, error) {
+func (s *fileService) List(ctx context.Context, req ports.FileListRequest) ([]filesystem.RemoteFile, error) {
 	if req.ServerID == 0 {
 		return nil, fmt.Errorf("server_id is required")
 	}

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/strmsync/strmsync/internal/app/service"
+	"github.com/strmsync/strmsync/internal/app/ports"
 	"github.com/strmsync/strmsync/internal/domain/model"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -17,24 +17,24 @@ import (
 // Service Job服务实现
 type jobService struct {
 	db              *gorm.DB
-	taskRunService  service.TaskRunService
-	taskExecutor    service.TaskExecutor
-	runningJobs     map[service.JobID]*service.ExecutionContext
+	taskRunService  ports.TaskRunService
+	taskExecutor    ports.TaskExecutor
+	runningJobs     map[ports.JobID]*ports.ExecutionContext
 	runningJobsLock sync.RWMutex
 }
 
 // NewService 创建Job服务
-func NewJobService(db *gorm.DB, taskRunService service.TaskRunService, taskExecutor service.TaskExecutor) service.JobService {
+func NewJobService(db *gorm.DB, taskRunService ports.TaskRunService, taskExecutor ports.TaskExecutor) ports.JobService {
 	return &jobService{
 		db:             db,
 		taskRunService: taskRunService,
 		taskExecutor:   taskExecutor,
-		runningJobs:    make(map[service.JobID]*service.ExecutionContext),
+		runningJobs:    make(map[ports.JobID]*ports.ExecutionContext),
 	}
 }
 
 // Run 运行任务
-func (s *jobService) Run(ctx context.Context, jobID service.JobID) (service.TaskRunID, error) {
+func (s *jobService) Run(ctx context.Context, jobID ports.JobID) (ports.TaskRunID, error) {
 	// 1. 创建执行context（在锁外创建，整个Run过程共享同一个cancel）
 	execCtx, cancelFunc := context.WithCancel(ctx)
 
@@ -46,7 +46,7 @@ func (s *jobService) Run(ctx context.Context, jobID service.JobID) (service.Task
 		return 0, fmt.Errorf("job: run: job %d is already running", jobID)
 	}
 	// 注册placeholder（TaskRunID=0表示初始化中，使用统一的cancelFunc）
-	placeholder := &service.ExecutionContext{
+	placeholder := &ports.ExecutionContext{
 		JobID:      jobID,
 		TaskRunID:  0, // 0表示占位状态
 		CancelFunc: cancelFunc,
@@ -99,7 +99,7 @@ func (s *jobService) Run(ctx context.Context, jobID service.JobID) (service.Task
 
 	// 5. 立即更新为真实ExecutionContext（在更新Job status前）
 	// 这样Stop在任何时刻都能读到正确的TaskRunID并调用Cancel
-	executionContext := &service.ExecutionContext{
+	executionContext := &ports.ExecutionContext{
 		JobID:      jobID,
 		TaskRunID:  taskRunID,
 		JobConfig:  jobConfig,
@@ -164,7 +164,7 @@ func (s *jobService) Run(ctx context.Context, jobID service.JobID) (service.Task
 }
 
 // ensureTaskRunCancelled 确保TaskRun被标记为cancelled（防御性检查）
-func (s *jobService) ensureTaskRunCancelled(ctx context.Context, taskRunID service.TaskRunID) error {
+func (s *jobService) ensureTaskRunCancelled(ctx context.Context, taskRunID ports.TaskRunID) error {
 	// 检查TaskRun当前状态
 	var taskRun model.TaskRun
 	if err := s.db.WithContext(ctx).First(&taskRun, taskRunID).Error; err != nil {
@@ -181,7 +181,7 @@ func (s *jobService) ensureTaskRunCancelled(ctx context.Context, taskRunID servi
 }
 
 // Stop 停止任务
-func (s *jobService) Stop(ctx context.Context, jobID service.JobID) error {
+func (s *jobService) Stop(ctx context.Context, jobID ports.JobID) error {
 	// 1. 获取ExecutionContext（快速获取后释放锁）
 	s.runningJobsLock.RLock()
 	execCtx, running := s.runningJobs[jobID]
@@ -207,14 +207,14 @@ func (s *jobService) Stop(ctx context.Context, jobID service.JobID) error {
 }
 
 // Validate 验证Job配置
-func (s *jobService) Validate(ctx context.Context, jobID service.JobID) error {
+func (s *jobService) Validate(ctx context.Context, jobID ports.JobID) error {
 	_, err := s.loadAndValidateJob(ctx, jobID)
 	return err
 }
 
 // GetRunningTaskRun 获取正在运行的TaskRun ID
 // 注意：TaskRunID=0 表示Job正在初始化（已占位但TaskRun尚未创建），此时返回 (0, false, nil)
-func (s *jobService) GetRunningTaskRun(ctx context.Context, jobID service.JobID) (service.TaskRunID, bool, error) {
+func (s *jobService) GetRunningTaskRun(ctx context.Context, jobID ports.JobID) (ports.TaskRunID, bool, error) {
 	s.runningJobsLock.RLock()
 	defer s.runningJobsLock.RUnlock()
 
@@ -232,7 +232,7 @@ func (s *jobService) GetRunningTaskRun(ctx context.Context, jobID service.JobID)
 }
 
 // loadAndValidateJob 加载并验证Job配置
-func (s *jobService) loadAndValidateJob(ctx context.Context, jobID service.JobID) (*service.JobConfig, error) {
+func (s *jobService) loadAndValidateJob(ctx context.Context, jobID ports.JobID) (*ports.JobConfig, error) {
 	// 1. 加载Job（使用行锁）
 	var job model.Job
 	if err := s.db.WithContext(ctx).
@@ -258,10 +258,10 @@ func (s *jobService) loadAndValidateJob(ctx context.Context, jobID service.JobID
 	}
 
 	// 4. 构建JobConfig
-	config := &service.JobConfig{
+	config := &ports.JobConfig{
 		ID:            job.ID,
 		Name:          job.Name,
-		WatchMode:     service.WatchMode(job.WatchMode),
+		WatchMode:     ports.WatchMode(job.WatchMode),
 		SourcePath:    job.SourcePath,
 		TargetPath:    job.TargetPath,
 		Enabled:       job.Enabled,
@@ -278,7 +278,7 @@ func (s *jobService) loadAndValidateJob(ctx context.Context, jobID service.JobID
 
 	// 6. 根据WatchMode加载关联的Server
 	switch config.WatchMode {
-	case service.WatchModeAPI:
+	case ports.WatchModeAPI:
 		// API模式必须有data_server_id
 		if job.DataServerID == nil {
 			return nil, fmt.Errorf("watch_mode=api requires data_server_id")
@@ -294,7 +294,7 @@ func (s *jobService) loadAndValidateJob(ctx context.Context, jobID service.JobID
 			return nil, fmt.Errorf("load data_server: %w", err)
 		}
 
-	case service.WatchModeLocal:
+	case ports.WatchModeLocal:
 		// Local模式不需要data_server_id
 		config.DataServerID = 0
 	}
@@ -324,7 +324,7 @@ func (s *jobService) loadAndValidateJob(ctx context.Context, jobID service.JobID
 }
 
 // updateJobStatus 更新Job状态
-func (s *jobService) updateJobStatus(ctx context.Context, jobID service.JobID, status string) error {
+func (s *jobService) updateJobStatus(ctx context.Context, jobID ports.JobID, status string) error {
 	if err := s.db.WithContext(ctx).
 		Model(&model.Job{}).
 		Where("id = ?", jobID).

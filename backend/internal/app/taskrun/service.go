@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/strmsync/strmsync/internal/app/service"
+	"github.com/strmsync/strmsync/internal/app/ports"
 	"github.com/strmsync/strmsync/internal/domain/model"
 	"gorm.io/gorm"
 )
@@ -17,14 +17,14 @@ type taskRunService struct {
 }
 
 // NewService 创建TaskRun服务
-func NewTaskRunService(db *gorm.DB) service.TaskRunService {
+func NewTaskRunService(db *gorm.DB) ports.TaskRunService {
 	return &taskRunService{
 		db: db,
 	}
 }
 
 // Start 创建并开始TaskRun
-func (s *taskRunService) Start(ctx context.Context, jobID service.JobID) (service.TaskRunID, error) {
+func (s *taskRunService) Start(ctx context.Context, jobID ports.JobID) (ports.TaskRunID, error) {
 	now := time.Now()
 	taskRun := &model.TaskRun{
 		JobID:     jobID,
@@ -40,7 +40,7 @@ func (s *taskRunService) Start(ctx context.Context, jobID service.JobID) (servic
 }
 
 // UpdateProgress 更新进度
-func (s *taskRunService) UpdateProgress(ctx context.Context, taskRunID service.TaskRunID, processed int, total int) error {
+func (s *taskRunService) UpdateProgress(ctx context.Context, taskRunID ports.TaskRunID, processed int, total int) error {
 	updates := map[string]interface{}{
 		"processed_count": processed,
 		"total_count":     total,
@@ -57,7 +57,7 @@ func (s *taskRunService) UpdateProgress(ctx context.Context, taskRunID service.T
 }
 
 // Complete 标记TaskRun完成
-func (s *taskRunService) Complete(ctx context.Context, taskRunID service.TaskRunID, summary *service.TaskRunSummary) error {
+func (s *taskRunService) Complete(ctx context.Context, taskRunID ports.TaskRunID, summary *ports.TaskRunSummary) error {
 	if summary == nil {
 		return fmt.Errorf("taskrun: complete: summary is nil")
 	}
@@ -120,7 +120,7 @@ func (s *taskRunService) Complete(ctx context.Context, taskRunID service.TaskRun
 }
 
 // Fail 标记TaskRun失败
-func (s *taskRunService) Fail(ctx context.Context, taskRunID service.TaskRunID, taskErr error) error {
+func (s *taskRunService) Fail(ctx context.Context, taskRunID ports.TaskRunID, taskErr error) error {
 	now := time.Now()
 
 	// 读取TaskRun以获取started_at
@@ -175,7 +175,7 @@ func (s *taskRunService) Fail(ctx context.Context, taskRunID service.TaskRunID, 
 }
 
 // Cancel 标记TaskRun被取消（幂等操作）
-func (s *taskRunService) Cancel(ctx context.Context, taskRunID service.TaskRunID) error {
+func (s *taskRunService) Cancel(ctx context.Context, taskRunID ports.TaskRunID) error {
 	now := time.Now()
 
 	// 读取TaskRun以获取started_at和当前状态

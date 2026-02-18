@@ -226,7 +226,7 @@ const (
 	CloudDriveFileSrv_GenerateSelfSignedCert_FullMethodName          = "/clouddrive.CloudDriveFileSrv/GenerateSelfSignedCert"
 )
 
-// CloudDriveFileSrvClient is the client API for CloudDriveFileSrv service.
+// CloudDriveFileSrvClient is the client API for CloudDriveFileSrv ports.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CloudDriveFileSrvClient interface {
@@ -2796,7 +2796,7 @@ func (c *cloudDriveFileSrvClient) GenerateSelfSignedCert(ctx context.Context, in
 	return out, nil
 }
 
-// CloudDriveFileSrvServer is the server API for CloudDriveFileSrv service.
+// CloudDriveFileSrvServer is the server API for CloudDriveFileSrv ports.
 // All implementations must embed UnimplementedCloudDriveFileSrvServer
 // for forward compatibility.
 type CloudDriveFileSrvServer interface {
@@ -3848,7 +3848,7 @@ func (UnimplementedCloudDriveFileSrvServer) GenerateSelfSignedCert(context.Conte
 func (UnimplementedCloudDriveFileSrvServer) mustEmbedUnimplementedCloudDriveFileSrvServer() {}
 func (UnimplementedCloudDriveFileSrvServer) testEmbeddedByValue()                           {}
 
-// UnsafeCloudDriveFileSrvServer may be embedded to opt out of forward compatibility for this service.
+// UnsafeCloudDriveFileSrvServer may be embedded to opt out of forward compatibility for this ports.
 // Use of this interface is not recommended, as added methods to CloudDriveFileSrvServer will
 // result in compilation errors.
 type UnsafeCloudDriveFileSrvServer interface {
@@ -7457,7 +7457,7 @@ func _CloudDriveFileSrv_GenerateSelfSignedCert_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
-// CloudDriveFileSrv_ServiceDesc is the grpc.ServiceDesc for CloudDriveFileSrv service.
+// CloudDriveFileSrv_ServiceDesc is the grpc.ServiceDesc for CloudDriveFileSrv ports.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var CloudDriveFileSrv_ServiceDesc = grpc.ServiceDesc{

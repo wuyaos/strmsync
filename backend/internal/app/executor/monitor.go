@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/strmsync/strmsync/internal/app/service"
+	"github.com/strmsync/strmsync/internal/app/ports"
 	"github.com/strmsync/strmsync/internal/pkg/logger"
 	"github.com/fsnotify/fsnotify"
 	"go.uber.org/zap"
@@ -42,7 +42,7 @@ func WithLogger(logger *zap.Logger) Option {
 }
 
 // NewMonitor 创建文件监控器
-func NewMonitor(opts ...Option) service.FileMonitor {
+func NewMonitor(opts ...Option) ports.FileMonitor {
 	m := &Monitor{
 		logger: logger.L(),
 		// 临时文件扩展名（小写）
@@ -80,8 +80,8 @@ func NewMonitor(opts ...Option) service.FileMonitor {
 }
 
 // Watch 监控文件变化（返回事件通道和错误通道，ctx取消时停止并关闭通道）
-func (m *Monitor) Watch(ctx context.Context, config *service.JobConfig) (<-chan service.FileEvent, <-chan error) {
-	eventCh := make(chan service.FileEvent, eventBufferSize)
+func (m *Monitor) Watch(ctx context.Context, config *ports.JobConfig) (<-chan ports.FileEvent, <-chan error) {
+	eventCh := make(chan ports.FileEvent, eventBufferSize)
 	errCh := make(chan error, errorBufferSize)
 
 	// 输入验证失败：立即返回并发送错误
@@ -105,7 +105,7 @@ func (m *Monitor) Watch(ctx context.Context, config *service.JobConfig) (<-chan 
 }
 
 // runWatch 执行监控逻辑（在独立goroutine中运行）
-func (m *Monitor) runWatch(ctx context.Context, config *service.JobConfig, eventCh chan service.FileEvent, errCh chan error) {
+func (m *Monitor) runWatch(ctx context.Context, config *ports.JobConfig, eventCh chan ports.FileEvent, errCh chan error) {
 	defer close(eventCh)
 	defer close(errCh)
 
@@ -238,10 +238,10 @@ func (m *Monitor) runWatch(ctx context.Context, config *service.JobConfig, event
 func (m *Monitor) handleEvent(
 	ctx context.Context,
 	ev fsnotify.Event,
-	config *service.JobConfig,
+	config *ports.JobConfig,
 	rootAbs string,
 	extSet map[string]struct{},
-	eventCh chan service.FileEvent,
+	eventCh chan ports.FileEvent,
 	watchedDirs map[string]struct{},
 	addWatch func(string),
 	removeWatch func(string),
@@ -307,7 +307,7 @@ func (m *Monitor) handleEvent(
 	}
 
 	// 构造事件
-	fileEvent := service.FileEvent{
+	fileEvent := ports.FileEvent{
 		Type:    eventType,
 		Path:    relPath,
 		AbsPath: absPath,
@@ -321,7 +321,7 @@ func (m *Monitor) handleEvent(
 }
 
 // Scan 执行一次性扫描
-func (m *Monitor) Scan(ctx context.Context, config *service.JobConfig) ([]service.FileEvent, error) {
+func (m *Monitor) Scan(ctx context.Context, config *ports.JobConfig) ([]ports.FileEvent, error) {
 	// 输入验证
 	if config == nil {
 		return nil, fmt.Errorf("filemonitor: config is nil")
@@ -352,7 +352,7 @@ func (m *Monitor) Scan(ctx context.Context, config *service.JobConfig) ([]servic
 		zap.String("path", rootAbs),
 		zap.Bool("recursive", config.Recursive))
 
-	var results []service.FileEvent
+	var results []ports.FileEvent
 
 	// 遍历目录
 	walkErr := filepath.WalkDir(rootAbs, func(path string, d fs.DirEntry, walkErr error) error {
@@ -402,8 +402,8 @@ func (m *Monitor) Scan(ctx context.Context, config *service.JobConfig) ([]servic
 		}
 
 		// 添加到结果
-		results = append(results, service.FileEvent{
-			Type:    service.FileEventCreate,
+		results = append(results, ports.FileEvent{
+			Type:    ports.FileEventCreate,
 			Path:    relPath(rootAbs, path),
 			AbsPath: path,
 			ModTime: info.ModTime(),
@@ -494,14 +494,14 @@ func matchesExtension(path string, extSet map[string]struct{}) bool {
 }
 
 // mapEventType 将 fsnotify 事件类型映射到 FileEventType
-func mapEventType(op fsnotify.Op) (service.FileEventType, bool) {
+func mapEventType(op fsnotify.Op) (ports.FileEventType, bool) {
 	switch {
 	case op&fsnotify.Create != 0:
-		return service.FileEventCreate, true
+		return ports.FileEventCreate, true
 	case op&fsnotify.Write != 0:
-		return service.FileEventUpdate, true
+		return ports.FileEventUpdate, true
 	case op&(fsnotify.Remove|fsnotify.Rename) != 0:
-		return service.FileEventDelete, true
+		return ports.FileEventDelete, true
 	default:
 		return 0, false
 	}
@@ -530,7 +530,7 @@ func sendErr(errCh chan<- error, err error) {
 }
 
 // sendEvent 非阻塞发送事件
-func sendEvent(ctx context.Context, eventCh chan<- service.FileEvent, ev service.FileEvent) {
+func sendEvent(ctx context.Context, eventCh chan<- ports.FileEvent, ev ports.FileEvent) {
 	select {
 	case <-ctx.Done():
 		return

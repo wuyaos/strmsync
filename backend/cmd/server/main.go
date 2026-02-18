@@ -16,8 +16,8 @@ import (
 	"github.com/strmsync/strmsync/internal/domain/model"
 	"github.com/strmsync/strmsync/internal/pkg/logger"
 	"github.com/strmsync/strmsync/internal/pkg/requestid"
-	dbpkg "github.com/strmsync/strmsync/internal/app/db"
-	"github.com/strmsync/strmsync/internal/app/db/repository"
+	dbpkg "github.com/strmsync/strmsync/internal/infra/db"
+	"github.com/strmsync/strmsync/internal/infra/db/repository"
 	httphandlers "github.com/strmsync/strmsync/internal/transport"
 	"github.com/strmsync/strmsync/internal/scheduler"
 	"github.com/strmsync/strmsync/internal/queue"
@@ -26,9 +26,9 @@ import (
 	"gorm.io/gorm"
 
 	// 导入filesystem provider实现以触发注册
-	_ "github.com/strmsync/strmsync/internal/filesystem/clouddrive2"
-	_ "github.com/strmsync/strmsync/internal/filesystem/local"
-	_ "github.com/strmsync/strmsync/internal/filesystem/openlist"
+	_ "github.com/strmsync/strmsync/internal/infra/filesystem/clouddrive2"
+	_ "github.com/strmsync/strmsync/internal/infra/filesystem/local"
+	_ "github.com/strmsync/strmsync/internal/infra/filesystem/openlist"
 )
 
 func main() {

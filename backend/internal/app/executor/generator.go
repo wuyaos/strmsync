@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/strmsync/strmsync/internal/app/service"
+	"github.com/strmsync/strmsync/internal/app/ports"
 )
 
 // Generator strm文件生成器实现
@@ -18,7 +18,7 @@ type Generator struct {
 
 // NewGenerator 创建strm文件生成器
 // targetRoot: 目标根路径，应为绝对路径，用于限制操作范围
-func NewGenerator(targetRoot string) service.StrmGenerator {
+func NewGenerator(targetRoot string) ports.StrmGenerator {
 	// 转换为绝对路径并Clean
 	absRoot, err := filepath.Abs(targetRoot)
 	if err != nil {
@@ -30,7 +30,7 @@ func NewGenerator(targetRoot string) service.StrmGenerator {
 }
 
 // Apply 执行同步计划
-func (g *Generator) Apply(ctx context.Context, items <-chan service.SyncPlanItem) (succeeded int, failed int, err error) {
+func (g *Generator) Apply(ctx context.Context, items <-chan ports.SyncPlanItem) (succeeded int, failed int, err error) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -55,16 +55,16 @@ func (g *Generator) Apply(ctx context.Context, items <-chan service.SyncPlanItem
 }
 
 // applyItem 处理单个同步项
-func (g *Generator) applyItem(ctx context.Context, item *service.SyncPlanItem) error {
+func (g *Generator) applyItem(ctx context.Context, item *ports.SyncPlanItem) error {
 	// 验证目标路径在targetRoot内（防止路径穿越攻击）
 	if err := g.validatePath(item.TargetStrmPath); err != nil {
 		return err
 	}
 
 	switch item.Op {
-	case service.SyncOpCreate, service.SyncOpUpdate:
+	case ports.SyncOpCreate, ports.SyncOpUpdate:
 		return g.createOrUpdateStrm(ctx, item)
-	case service.SyncOpDelete:
+	case ports.SyncOpDelete:
 		return g.deleteStrm(ctx, item)
 	default:
 		return fmt.Errorf("unknown sync operation: %v", item.Op)
@@ -99,7 +99,7 @@ func (g *Generator) validatePath(targetPath string) error {
 }
 
 // createOrUpdateStrm 创建或更新strm文件
-func (g *Generator) createOrUpdateStrm(ctx context.Context, item *service.SyncPlanItem) error {
+func (g *Generator) createOrUpdateStrm(ctx context.Context, item *ports.SyncPlanItem) error {
 	// 1. 确保目标目录存在
 	targetDir := filepath.Dir(item.TargetStrmPath)
 	if err := os.MkdirAll(targetDir, 0o755); err != nil {
@@ -123,7 +123,7 @@ func (g *Generator) createOrUpdateStrm(ctx context.Context, item *service.SyncPl
 }
 
 // deleteStrm 删除strm文件
-func (g *Generator) deleteStrm(ctx context.Context, item *service.SyncPlanItem) error {
+func (g *Generator) deleteStrm(ctx context.Context, item *ports.SyncPlanItem) error {
 	// 1. 检查文件是否存在
 	if _, err := os.Stat(item.TargetStrmPath); os.IsNotExist(err) {
 		// 文件不存在，认为是成功（幂等性）

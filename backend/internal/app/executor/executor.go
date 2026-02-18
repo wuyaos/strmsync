@@ -6,26 +6,26 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/strmsync/strmsync/internal/app/service"
+	"github.com/strmsync/strmsync/internal/app/ports"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
 
 // Executor 任务执行器实现
 type Executor struct {
-	fileMonitor   service.FileMonitor
-	syncPlanner   service.SyncPlanner
-	strmGenerator service.StrmGenerator
+	fileMonitor   ports.FileMonitor
+	syncPlanner   ports.SyncPlanner
+	strmGenerator ports.StrmGenerator
 	logger        *zap.Logger
 }
 
 // NewExecutor 创建任务执行器
 func NewExecutor(
-	fileMonitor service.FileMonitor,
-	syncPlanner service.SyncPlanner,
-	strmGenerator service.StrmGenerator,
+	fileMonitor ports.FileMonitor,
+	syncPlanner ports.SyncPlanner,
+	strmGenerator ports.StrmGenerator,
 	logger *zap.Logger,
-) service.TaskExecutor {
+) ports.TaskExecutor {
 	return &Executor{
 		fileMonitor:   fileMonitor,
 		syncPlanner:   syncPlanner,
@@ -36,7 +36,7 @@ func NewExecutor(
 
 // Execute 执行任务
 // 使用errgroup确保所有goroutine正常完成，避免死锁
-func (e *Executor) Execute(ctx context.Context, execCtx *service.ExecutionContext) (*service.TaskRunSummary, error) {
+func (e *Executor) Execute(ctx context.Context, execCtx *ports.ExecutionContext) (*ports.TaskRunSummary, error) {
 	startTime := time.Now()
 
 	e.logger.Info("开始执行任务",
@@ -45,7 +45,7 @@ func (e *Executor) Execute(ctx context.Context, execCtx *service.ExecutionContex
 		zap.String("job_name", execCtx.JobConfig.Name))
 
 	// 创建摘要
-	summary := &service.TaskRunSummary{
+	summary := &ports.TaskRunSummary{
 		StartedAt: startTime,
 	}
 

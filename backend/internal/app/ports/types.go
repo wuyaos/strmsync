@@ -1,5 +1,5 @@
 // Package types 定义Service层的核心类型
-package service
+package ports
 
 import "time"
 
