@@ -1,5 +1,5 @@
 // Package taskrun 实现TaskRun记录管理服务
-package service
+package taskrun
 
 import (
 	"context"

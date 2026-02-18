@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	filesvc "github.com/strmsync/strmsync/internal/app/file"
+	"github.com/strmsync/strmsync/internal/app/file"
 	"github.com/strmsync/strmsync/internal/app/ports"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -29,7 +29,7 @@ func NewFileHandler(db *gorm.DB, logger *zap.Logger) *FileHandler {
 	return &FileHandler{
 		db:      db,
 		logger:  logger,
-		fileSvc: filesvc.NewFileService(db, logger),
+		fileSvc: file.NewFileService(db, logger),
 	}
 }
 
@@ -302,9 +302,9 @@ func (h *FileHandler) ListFiles(c *gin.Context) {
 			zap.Error(err))
 
 		statusCode := http.StatusInternalServerError
-		if errors.Is(err, filesvc.ErrDataServerNotFound) {
+		if errors.Is(err, file.ErrDataServerNotFound) {
 			statusCode = http.StatusNotFound
-		} else if errors.Is(err, filesvc.ErrDataServerDisabled) {
+		} else if errors.Is(err, file.ErrDataServerDisabled) {
 			statusCode = http.StatusForbidden
 		}
 

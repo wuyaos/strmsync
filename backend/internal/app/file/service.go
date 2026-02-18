@@ -1,5 +1,5 @@
-// Package service implements file list ports.
-package service
+// Package file 实现文件服务
+package file
 
 import (
 	"context"

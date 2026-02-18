@@ -1,5 +1,5 @@
 // Package job 实现Job业务逻辑服务
-package service
+package job
 
 import (
 	"context"
