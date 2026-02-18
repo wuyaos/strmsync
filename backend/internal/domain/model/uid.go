@@ -130,6 +130,11 @@ func normalizeJSON(jsonStr string) (string, error) {
 	// 归一化
 	normalized := normalizeValue(data)
 
+	// nil结果（空对象或全部值被过滤）统一视为空配置，与空字符串输入保持一致
+	if normalized == nil {
+		return "{}", nil
+	}
+
 	// 序列化（稳定 JSON）
 	result, err := json.Marshal(normalized)
 	if err != nil {

@@ -3,6 +3,7 @@ package filesystem
 
 import (
 	"context"
+	"io"
 	"testing"
 	"time"
 
@@ -49,6 +50,10 @@ func (p *testLocalProvider) BuildStrmInfo(ctx context.Context, req syncengine.Bu
 		BaseURL: nil,
 		Path:    p.config.MountPath + "/" + req.RemotePath,
 	}, nil
+}
+
+func (p *testLocalProvider) Download(_ context.Context, _ string, _ io.Writer) error {
+	return ErrNotSupported
 }
 
 // TestAdapterBasicWorkflow 测试适配器基本工作流程
