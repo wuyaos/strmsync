@@ -1,5 +1,5 @@
-// Package executor 实现任务执行器
-package executor
+// Package sync 实现STRM同步服务
+package sync
 
 import (
 	"context"

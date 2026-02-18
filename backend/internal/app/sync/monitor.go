@@ -1,5 +1,5 @@
-// Package filemonitor 实现本地文件系统监控器
-package executor
+// Package sync 实现STRM同步服务
+package sync
 
 import (
 	"context"
