@@ -1,5 +1,5 @@
-// Package handlers 提供HTTP API处理器
-package handlers
+// Package http 提供HTTP API处理器
+package http
 
 import (
 	"fmt"

@@ -1,4 +1,4 @@
-package handlers
+package http
 
 import (
 	"encoding/json"
@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/strmsync/strmsync/service"
+	"github.com/strmsync/strmsync/internal/app/service"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )

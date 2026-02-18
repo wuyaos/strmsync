@@ -18,7 +18,7 @@ import (
 	"github.com/strmsync/strmsync/internal/pkg/requestid"
 	"github.com/strmsync/strmsync/internal/infra/persistence"
 	"github.com/strmsync/strmsync/internal/infra/persistence/repository"
-	handlers "github.com/strmsync/strmsync/handler"
+	httphandlers "github.com/strmsync/strmsync/internal/transport/http"
 	"github.com/strmsync/strmsync/internal/scheduler"
 	"github.com/strmsync/strmsync/internal/queue"
 	"github.com/strmsync/strmsync/internal/worker"
@@ -197,7 +197,7 @@ func main() {
 }
 
 // setupRouter 配置路由 (最小可用版本)
-func setupRouter(db *gorm.DB, scheduler handlers.JobScheduler, queue handlers.TaskQueue) *gin.Engine {
+func setupRouter(db *gorm.DB, scheduler httphandlers.JobScheduler, queue httphandlers.TaskQueue) *gin.Engine {
 	router := gin.New()
 
 	// 中间件
@@ -209,13 +209,13 @@ func setupRouter(db *gorm.DB, scheduler handlers.JobScheduler, queue handlers.Ta
 	logger := logger.With(zap.String("module", "api"))
 
 	// 创建处理器
-	logHandler := handlers.NewLogHandler(db, logger)
-	settingHandler := handlers.NewSettingHandler(db, logger)
-	fileHandler := handlers.NewFileHandler(db, logger)
-	dataServerHandler := handlers.NewDataServerHandler(db, logger)
-	mediaServerHandler := handlers.NewMediaServerHandler(db, logger)
-	jobHandler := handlers.NewJobHandler(db, logger, scheduler, queue)
-	taskRunHandler := handlers.NewTaskRunHandler(db, logger)
+	logHandler := httphandlers.NewLogHandler(db, logger)
+	settingHandler := httphandlers.NewSettingHandler(db, logger)
+	fileHandler := httphandlers.NewFileHandler(db, logger)
+	dataServerHandler := httphandlers.NewDataServerHandler(db, logger)
+	mediaServerHandler := httphandlers.NewMediaServerHandler(db, logger)
+	jobHandler := httphandlers.NewJobHandler(db, logger, scheduler, queue)
+	taskRunHandler := httphandlers.NewTaskRunHandler(db, logger)
 
 	// API路由组
 	api := router.Group("/api")

@@ -1,5 +1,5 @@
-// Package handlers 提供HTTP处理器和辅助函数
-package handlers
+// Package http 提供HTTP处理器和辅助函数
+package http
 
 import (
 	"encoding/json"
