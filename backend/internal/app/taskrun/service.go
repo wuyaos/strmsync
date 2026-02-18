@@ -41,9 +41,31 @@ func (s *taskRunService) Start(ctx context.Context, jobID ports.JobID) (ports.Ta
 
 // UpdateProgress 更新进度
 func (s *taskRunService) UpdateProgress(ctx context.Context, taskRunID ports.TaskRunID, processed int, total int) error {
+	// 防护：确保值非负
+	if processed < 0 {
+		processed = 0
+	}
+	if total < 0 {
+		total = 0
+	}
+
+	// 防护：processed 不应超过 total
+	if processed > total {
+		total = processed
+	}
+
+	progress := 0
+	if total > 0 {
+		progress = int(float64(processed) / float64(total) * 100)
+		if progress > 100 {
+			progress = 100
+		}
+	}
+
 	updates := map[string]interface{}{
-		"processed_count": processed,
-		"total_count":     total,
+		"processed_files": processed,
+		"total_files":     total,
+		"progress":        progress,
 	}
 
 	if err := s.db.WithContext(ctx).
@@ -75,13 +97,22 @@ func (s *taskRunService) Complete(ctx context.Context, taskRunID ports.TaskRunID
 		}
 	}
 
+	// 汇总统计信息到 model.TaskRun 字段
+	processedFiles := summary.CreatedCount + summary.UpdatedCount + summary.DeletedCount
+	totalFiles := processedFiles + summary.FailedCount
+	progress := 0
+	if totalFiles > 0 {
+		progress = 100 // 完成状态下进度为100%
+	}
+
 	updates := map[string]interface{}{
-		"status":      "completed",
-		"ended_at":    summary.EndedAt,
-		"duration":    summary.Duration,
-		"files_added": summary.CreatedCount,
-		"files_updated": summary.UpdatedCount,
-		"files_deleted": summary.DeletedCount,
+		"status":          "completed",
+		"ended_at":        summary.EndedAt,
+		"duration":        summary.Duration,
+		"processed_files": processedFiles,
+		"total_files":     totalFiles,
+		"failed_files":    summary.FailedCount,
+		"progress":        progress,
 	}
 
 	var taskRun model.TaskRun

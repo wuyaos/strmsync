@@ -66,6 +66,24 @@ func main() {
 		os.Exit(1)
 	}
 
+	// 回填服务器 UID（历史数据迁移）
+	backfillLogger := logger.With(zap.String("component", "backfill"))
+	if stats, err := dbpkg.BackfillServerUIDs(context.Background(), db, backfillLogger); err != nil {
+		logger.LogError("回填服务器 UID 失败", zap.Error(err))
+		// 参数校验失败时中断启动
+		os.Exit(1)
+	} else if stats != nil {
+		// 检查是否有冲突或失败
+		totalFailures := stats.DataServersGenFailed + stats.DataServersUpdateFailed + stats.DataServersConflict +
+			stats.MediaServersGenFailed + stats.MediaServersUpdateFailed + stats.MediaServersConflict
+		if totalFailures > 0 || stats.DataServersQueryFailed > 0 || stats.MediaServersQueryFailed > 0 {
+			logger.LogWarn("回填服务器 UID 部分失败",
+				zap.Int("total_failures", totalFailures),
+				zap.Int("data_servers_conflict", stats.DataServersConflict),
+				zap.Int("media_servers_conflict", stats.MediaServersConflict))
+		}
+	}
+
 	// 配置日志写入数据库（如果启用）
 	if cfg.Log.ToDB {
 		logger.SetLogToDBEnabled(true, 1024)
