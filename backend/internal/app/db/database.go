@@ -1,5 +1,5 @@
 // Package database 提供SQLite连接设置和迁移工具
-package persistence
+package db
 
 import (
 	"errors"

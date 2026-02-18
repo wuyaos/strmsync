@@ -5,7 +5,7 @@
 // imported for side effects (provider registration).
 //
 // Usage:
-//   import _ "github.com/strmsync/strmsync/internal/infra/filesystem/clouddrive2"
+//   import _ "github.com/strmsync/strmsync/internal/filesystem/clouddrive2"
 //
 // The CloudDrive2 provider uses gRPC to communicate with CloudDrive2 server.
 // It supports both streaming and HTTP STRM modes.
@@ -14,7 +14,7 @@
 //   - NewCloudDrive2Provider: Creates a Provider implementation (used by registration)
 //
 // Note: The gRPC client is available in a separate subpackage:
-//   github.com/strmsync/strmsync/internal/infra/filesystem/clouddrive2/grpc
+//   github.com/strmsync/strmsync/internal/filesystem/clouddrive2/grpc
 package filesystem
 
 import (
@@ -26,7 +26,7 @@ import (
 	"time"
 
 	syncengine "github.com/strmsync/strmsync/internal/engine"
-	"github.com/strmsync/strmsync/internal/infra/filesystem"
+	"github.com/strmsync/strmsync/internal/filesystem"
 	cd2sdk "github.com/strmsync/strmsync/internal/pkg/sdk/clouddrive2"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"

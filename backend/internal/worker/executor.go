@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/strmsync/strmsync/internal/domain/model"
-	"github.com/strmsync/strmsync/internal/infra/filesystem"
-	"github.com/strmsync/strmsync/internal/infra/strmwriter"
+	"github.com/strmsync/strmsync/internal/filesystem"
+	"github.com/strmsync/strmsync/internal/strmwriter"
 	"github.com/strmsync/strmsync/internal/engine"
 	"github.com/strmsync/strmsync/internal/queue"
 	"github.com/strmsync/strmsync/internal/pkg/logger"

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/strmsync/strmsync/internal/infra/filesystem"
+	"github.com/strmsync/strmsync/internal/filesystem"
 )
 
 // Planner 同步计划器实现

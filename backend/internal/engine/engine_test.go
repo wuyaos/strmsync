@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/strmsync/strmsync/internal/infra/filesystem"
-	"github.com/strmsync/strmsync/internal/infra/strmwriter"
+	"github.com/strmsync/strmsync/internal/filesystem"
+	"github.com/strmsync/strmsync/internal/strmwriter"
 	"github.com/strmsync/strmsync/internal/engine"
 	"go.uber.org/zap"
 
 	// 注册 filesystem providers
-	_ "github.com/strmsync/strmsync/internal/infra/filesystem/local"
+	_ "github.com/strmsync/strmsync/internal/filesystem/local"
 )
 
 // TestEngineBasic 测试引擎基本功能

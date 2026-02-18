@@ -16,9 +16,9 @@ import (
 	"github.com/strmsync/strmsync/internal/domain/model"
 	"github.com/strmsync/strmsync/internal/pkg/logger"
 	"github.com/strmsync/strmsync/internal/pkg/requestid"
-	"github.com/strmsync/strmsync/internal/infra/persistence"
-	"github.com/strmsync/strmsync/internal/infra/persistence/repository"
-	httphandlers "github.com/strmsync/strmsync/internal/transport/http"
+	dbpkg "github.com/strmsync/strmsync/internal/app/db"
+	"github.com/strmsync/strmsync/internal/app/db/repository"
+	httphandlers "github.com/strmsync/strmsync/internal/transport"
 	"github.com/strmsync/strmsync/internal/scheduler"
 	"github.com/strmsync/strmsync/internal/queue"
 	"github.com/strmsync/strmsync/internal/worker"
@@ -26,14 +26,14 @@ import (
 	"gorm.io/gorm"
 
 	// 导入filesystem provider实现以触发注册
-	_ "github.com/strmsync/strmsync/internal/infra/filesystem/clouddrive2"
-	_ "github.com/strmsync/strmsync/internal/infra/filesystem/local"
-	_ "github.com/strmsync/strmsync/internal/infra/filesystem/openlist"
+	_ "github.com/strmsync/strmsync/internal/filesystem/clouddrive2"
+	_ "github.com/strmsync/strmsync/internal/filesystem/local"
+	_ "github.com/strmsync/strmsync/internal/filesystem/openlist"
 )
 
 func main() {
 	// 从环境变量加载配置
-	cfg, err := persistence.LoadFromEnv()
+	cfg, err := dbpkg.LoadFromEnv()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "配置加载失败: %v\n", err)
 		os.Exit(1)
@@ -51,16 +51,16 @@ func main() {
 		zap.Int("port", cfg.Server.Port))
 
 	// 初始化数据库
-	if err := persistence.Init(cfg.Database.Path); err != nil {
+	if err := dbpkg.Init(cfg.Database.Path); err != nil {
 		logger.LogError("数据库初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
-	defer persistence.Close()
+	defer dbpkg.Close()
 
 	logger.LogInfo("数据库初始化成功", zap.String("path", cfg.Database.Path))
 
 	// 获取数据库连接
-	db, err := persistence.GetDB()
+	db, err := dbpkg.GetDB()
 	if err != nil {
 		logger.LogError("获取数据库连接失败", zap.Error(err))
 		os.Exit(1)
@@ -382,7 +382,7 @@ func ginLogger(db *gorm.DB) gin.HandlerFunc {
 // healthCheckHandler 健康检查处理器
 func healthCheckHandler(c *gin.Context) {
 	// 检查数据库连接
-	db, err := persistence.GetDB()
+	db, err := dbpkg.GetDB()
 	dbStatus := "ok"
 	if err != nil {
 		dbStatus = "error"

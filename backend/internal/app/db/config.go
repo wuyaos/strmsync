@@ -1,7 +1,7 @@
 // Package config 提供STRMSync的集中配置管理
 // 仅从环境变量加载配置（无配置文件）
 // 所有配置使用 STRMSYNC_ 前缀，支持Docker部署
-package persistence
+package db
 
 import (
 	"errors"

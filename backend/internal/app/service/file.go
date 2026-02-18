@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/strmsync/strmsync/internal/domain/model"
-	"github.com/strmsync/strmsync/internal/infra/filesystem"
+	"github.com/strmsync/strmsync/internal/filesystem"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )

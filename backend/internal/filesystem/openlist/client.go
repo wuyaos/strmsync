@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/strmsync/strmsync/internal/engine"
-	"github.com/strmsync/strmsync/internal/infra/filesystem"
+	"github.com/strmsync/strmsync/internal/filesystem"
 	openlistsdk "github.com/strmsync/strmsync/internal/pkg/sdk/openlist"
 	"go.uber.org/zap"
 )

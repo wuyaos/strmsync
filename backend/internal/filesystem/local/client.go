@@ -5,7 +5,7 @@
 // imported for side effects (provider registration).
 //
 // Usage:
-//   import _ "github.com/strmsync/strmsync/internal/infra/filesystem/local"
+//   import _ "github.com/strmsync/strmsync/internal/filesystem/local"
 //
 // The Local provider accesses files directly from the local filesystem.
 // It only supports mount-based STRM mode (no HTTP streaming).
@@ -25,7 +25,7 @@ import (
 
 	"github.com/strmsync/strmsync/internal/engine"
 	"go.uber.org/zap"
-	"github.com/strmsync/strmsync/internal/infra/filesystem"
+	"github.com/strmsync/strmsync/internal/filesystem"
 )
 
 // localProvider 本地文件系统实现

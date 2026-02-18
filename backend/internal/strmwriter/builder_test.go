@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/strmsync/strmsync/internal/infra/strmwriter"
+	"github.com/strmsync/strmsync/internal/strmwriter"
 )
 
 // TestLocalBuilder 测试LocalBuilder基本功能

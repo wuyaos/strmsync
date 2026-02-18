@@ -19413,7 +19413,7 @@ const file_clouddrive2_proto_rawDesc = "" +
 	"\x12GetWebServerConfig\x12\x16.google.protobuf.Empty\x1a\x1b.clouddrive.WebServerConfig\"\x00\x12U\n" +
 	"\x12SetWebServerConfig\x12%.clouddrive.SetWebServerConfigRequest\x1a\x16.google.protobuf.Empty\"\x00\x12]\n" +
 	"\x16GenerateSelfSignedCert\x12).clouddrive.GenerateSelfSignedCertRequest\x1a\x16.google.protobuf.Empty\"\x00:8\n" +
-	"\aversion\x12\x1c.google.protobuf.FileOptions\x18ц\x03 \x01(\tR\aversionBn\x8a\xb5\x18\x060.9.24ZKgithub.com/strmsync/strmsync/internal/infra/filesystem/clouddrive2_proto;clouddrive2_proto\xaa\x02\x14CloudDriveSrv.Protosb\x06proto3"
+	"\aversion\x12\x1c.google.protobuf.FileOptions\x18ц\x03 \x01(\tR\aversionBn\x8a\xb5\x18\x060.9.24ZKgithub.com/strmsync/strmsync/internal/filesystem/clouddrive2_proto;clouddrive2_proto\xaa\x02\x14CloudDriveSrv.Protosb\x06proto3"
 
 var (
 	file_clouddrive2_proto_rawDescOnce sync.Once

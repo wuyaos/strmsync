@@ -4,7 +4,7 @@ package service
 import (
 	"context"
 
-	"github.com/strmsync/strmsync/internal/infra/filesystem"
+	"github.com/strmsync/strmsync/internal/filesystem"
 )
 
 // FileService 文件服务接口
