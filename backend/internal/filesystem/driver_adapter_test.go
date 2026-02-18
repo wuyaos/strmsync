@@ -9,6 +9,48 @@ import (
 	"github.com/strmsync/strmsync/internal/engine"
 )
 
+func init() {
+	// 手动注册local Provider以避免循环导入
+	// 注意：这是测试专用的临时方案
+	RegisterProvider(TypeLocal, func(c *ClientImpl) (Provider, error) {
+		// 导入local包会造成循环依赖，这里直接使用测试桩
+		return &testLocalProvider{config: c.Config}, nil
+	})
+}
+
+// testLocalProvider 测试用的简单local provider桩
+type testLocalProvider struct {
+	config Config
+}
+
+func (p *testLocalProvider) List(ctx context.Context, path string, recursive bool, maxDepth int) ([]RemoteFile, error) {
+	return []RemoteFile{}, nil
+}
+
+func (p *testLocalProvider) Watch(ctx context.Context, path string) (<-chan FileEvent, error) {
+	return nil, ErrNotSupported
+}
+
+func (p *testLocalProvider) TestConnection(ctx context.Context) error {
+	return nil
+}
+
+func (p *testLocalProvider) Stat(ctx context.Context, path string) (RemoteFile, error) {
+	return RemoteFile{
+		Path:  path,
+		Name:  "test",
+		IsDir: false,
+	}, nil
+}
+
+func (p *testLocalProvider) BuildStrmInfo(ctx context.Context, req syncengine.BuildStrmRequest) (syncengine.StrmInfo, error) {
+	return syncengine.StrmInfo{
+		RawURL:  p.config.MountPath + "/" + req.RemotePath,
+		BaseURL: nil,
+		Path:    p.config.MountPath + "/" + req.RemotePath,
+	}, nil
+}
+
 // TestAdapterBasicWorkflow 测试适配器基本工作流程
 func TestAdapterBasicWorkflow(t *testing.T) {
 	// 创建本地文件系统客户端（用于测试）
