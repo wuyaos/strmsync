@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/strmsync/strmsync/internal/app/service"
 	"github.com/strmsync/strmsync/internal/pkg/logger"
 	"github.com/fsnotify/fsnotify"
 	"go.uber.org/zap"
@@ -41,7 +42,7 @@ func WithLogger(logger *zap.Logger) Option {
 }
 
 // NewMonitor 创建文件监控器
-func NewMonitor(opts ...Option) FileMonitor {
+func NewMonitor(opts ...Option) service.FileMonitor {
 	m := &Monitor{
 		logger: logger.L(),
 		// 临时文件扩展名（小写）
@@ -79,8 +80,8 @@ func NewMonitor(opts ...Option) FileMonitor {
 }
 
 // Watch 监控文件变化（返回事件通道和错误通道，ctx取消时停止并关闭通道）
-func (m *Monitor) Watch(ctx context.Context, config *JobConfig) (<-chan FileEvent, <-chan error) {
-	eventCh := make(chan FileEvent, eventBufferSize)
+func (m *Monitor) Watch(ctx context.Context, config *service.JobConfig) (<-chan service.FileEvent, <-chan error) {
+	eventCh := make(chan service.FileEvent, eventBufferSize)
 	errCh := make(chan error, errorBufferSize)
 
 	// 输入验证失败：立即返回并发送错误
@@ -104,7 +105,7 @@ func (m *Monitor) Watch(ctx context.Context, config *JobConfig) (<-chan FileEven
 }
 
 // runWatch 执行监控逻辑（在独立goroutine中运行）
-func (m *Monitor) runWatch(ctx context.Context, config *JobConfig, eventCh chan FileEvent, errCh chan error) {
+func (m *Monitor) runWatch(ctx context.Context, config *service.JobConfig, eventCh chan service.FileEvent, errCh chan error) {
 	defer close(eventCh)
 	defer close(errCh)
 
@@ -237,10 +238,10 @@ func (m *Monitor) runWatch(ctx context.Context, config *JobConfig, eventCh chan 
 func (m *Monitor) handleEvent(
 	ctx context.Context,
 	ev fsnotify.Event,
-	config *JobConfig,
+	config *service.JobConfig,
 	rootAbs string,
 	extSet map[string]struct{},
-	eventCh chan FileEvent,
+	eventCh chan service.FileEvent,
 	watchedDirs map[string]struct{},
 	addWatch func(string),
 	removeWatch func(string),
@@ -306,7 +307,7 @@ func (m *Monitor) handleEvent(
 	}
 
 	// 构造事件
-	fileEvent := FileEvent{
+	fileEvent := service.FileEvent{
 		Type:    eventType,
 		Path:    relPath,
 		AbsPath: absPath,
@@ -320,7 +321,7 @@ func (m *Monitor) handleEvent(
 }
 
 // Scan 执行一次性扫描
-func (m *Monitor) Scan(ctx context.Context, config *JobConfig) ([]FileEvent, error) {
+func (m *Monitor) Scan(ctx context.Context, config *service.JobConfig) ([]service.FileEvent, error) {
 	// 输入验证
 	if config == nil {
 		return nil, fmt.Errorf("filemonitor: config is nil")
@@ -351,7 +352,7 @@ func (m *Monitor) Scan(ctx context.Context, config *JobConfig) ([]FileEvent, err
 		zap.String("path", rootAbs),
 		zap.Bool("recursive", config.Recursive))
 
-	var results []FileEvent
+	var results []service.FileEvent
 
 	// 遍历目录
 	walkErr := filepath.WalkDir(rootAbs, func(path string, d fs.DirEntry, walkErr error) error {
@@ -401,8 +402,8 @@ func (m *Monitor) Scan(ctx context.Context, config *JobConfig) ([]FileEvent, err
 		}
 
 		// 添加到结果
-		results = append(results, FileEvent{
-			Type:    FileEventCreate,
+		results = append(results, service.FileEvent{
+			Type:    service.FileEventCreate,
 			Path:    relPath(rootAbs, path),
 			AbsPath: path,
 			ModTime: info.ModTime(),
@@ -493,14 +494,14 @@ func matchesExtension(path string, extSet map[string]struct{}) bool {
 }
 
 // mapEventType 将 fsnotify 事件类型映射到 FileEventType
-func mapEventType(op fsnotify.Op) (FileEventType, bool) {
+func mapEventType(op fsnotify.Op) (service.FileEventType, bool) {
 	switch {
 	case op&fsnotify.Create != 0:
-		return FileEventCreate, true
+		return service.FileEventCreate, true
 	case op&fsnotify.Write != 0:
-		return FileEventUpdate, true
+		return service.FileEventUpdate, true
 	case op&(fsnotify.Remove|fsnotify.Rename) != 0:
-		return FileEventDelete, true
+		return service.FileEventDelete, true
 	default:
 		return 0, false
 	}
@@ -529,7 +530,7 @@ func sendErr(errCh chan<- error, err error) {
 }
 
 // sendEvent 非阻塞发送事件
-func sendEvent(ctx context.Context, eventCh chan<- FileEvent, ev FileEvent) {
+func sendEvent(ctx context.Context, eventCh chan<- service.FileEvent, ev service.FileEvent) {
 	select {
 	case <-ctx.Done():
 		return

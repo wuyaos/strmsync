@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/strmsync/strmsync/internal/app/service"
 	"github.com/strmsync/strmsync/internal/filesystem"
 )
 
@@ -16,15 +17,15 @@ type Planner struct {
 }
 
 // NewPlanner 创建同步计划器
-func NewPlanner(dataServerClient filesystem.Client) SyncPlanner {
+func NewPlanner(dataServerClient filesystem.Client) service.SyncPlanner {
 	return &Planner{
 		dataServerClient: dataServerClient,
 	}
 }
 
 // Plan 根据文件事件生成同步计划
-func (p *Planner) Plan(ctx context.Context, config *JobConfig, events <-chan FileEvent) (<-chan SyncPlanItem, <-chan error) {
-	itemCh := make(chan SyncPlanItem)
+func (p *Planner) Plan(ctx context.Context, config *service.JobConfig, events <-chan service.FileEvent) (<-chan service.SyncPlanItem, <-chan error) {
+	itemCh := make(chan service.SyncPlanItem)
 	errCh := make(chan error, 1)
 
 	go func() {
@@ -66,7 +67,7 @@ func (p *Planner) Plan(ctx context.Context, config *JobConfig, events <-chan Fil
 }
 
 // planItem 处理单个文件事件，生成同步计划项
-func (p *Planner) planItem(ctx context.Context, config *JobConfig, event *FileEvent) (*SyncPlanItem, error) {
+func (p *Planner) planItem(ctx context.Context, config *service.JobConfig, event *service.FileEvent) (*service.SyncPlanItem, error) {
 	// 1. 过滤目录（strm文件只对应实际文件）
 	if event.IsDir {
 		return nil, fmt.Errorf("skip directory: %s", event.Path)
@@ -78,14 +79,14 @@ func (p *Planner) planItem(ctx context.Context, config *JobConfig, event *FileEv
 	}
 
 	// 3. 确定同步操作类型
-	var op SyncOperation
+	var op service.SyncOperation
 	switch event.Type {
-	case FileEventCreate:
-		op = SyncOpCreate
-	case FileEventUpdate:
-		op = SyncOpUpdate
-	case FileEventDelete:
-		op = SyncOpDelete
+	case service.FileEventCreate:
+		op = service.SyncOpCreate
+	case service.FileEventUpdate:
+		op = service.SyncOpUpdate
+	case service.FileEventDelete:
+		op = service.SyncOpDelete
 	default:
 		return nil, fmt.Errorf("unknown event type: %v", event.Type)
 	}
@@ -98,7 +99,7 @@ func (p *Planner) planItem(ctx context.Context, config *JobConfig, event *FileEv
 
 	// 5. 构建流媒体URL（仅对create/update操作）
 	var streamURL string
-	if op != SyncOpDelete {
+	if op != service.SyncOpDelete {
 		// 使用AbsPath（完整的CloudDrive2路径）构建URL
 		streamURL, err = p.dataServerClient.BuildStreamURL(ctx, config.DataServerID, event.AbsPath)
 		if err != nil {
@@ -107,7 +108,7 @@ func (p *Planner) planItem(ctx context.Context, config *JobConfig, event *FileEv
 	}
 
 	// 6. 构建同步计划项
-	item := &SyncPlanItem{
+	item := &service.SyncPlanItem{
 		Op:             op,
 		SourcePath:     event.AbsPath,
 		TargetStrmPath: targetStrmPath,

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/strmsync/strmsync/internal/app/service"
 	"github.com/strmsync/strmsync/internal/domain/model"
 	"github.com/strmsync/strmsync/internal/filesystem"
 	"go.uber.org/zap"
@@ -41,14 +42,14 @@ type fileService struct {
 }
 
 // NewFileService 创建FileService实例
-func NewFileService(db *gorm.DB, logger *zap.Logger) FileService {
+func NewFileService(db *gorm.DB, logger *zap.Logger) service.FileService {
 	return &fileService{
 		db:     db,
 		logger: logger,
 	}
 }
 
-func (s *fileService) List(ctx context.Context, req FileListRequest) ([]filesystem.RemoteFile, error) {
+func (s *fileService) List(ctx context.Context, req service.FileListRequest) ([]filesystem.RemoteFile, error) {
 	if req.ServerID == 0 {
 		return nil, fmt.Errorf("server_id is required")
 	}
