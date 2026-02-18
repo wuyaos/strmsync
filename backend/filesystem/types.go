@@ -7,11 +7,13 @@ import "time"
 type Type string
 
 const (
+	// TypeCloudDrive2 表示CloudDrive2数据服务器
+	TypeCloudDrive2 Type = "clouddrive2"
 	// TypeOpenList 表示OpenList数据服务器
 	TypeOpenList Type = "openlist"
 	// TypeLocal 表示本地文件系统
 	TypeLocal Type = "local"
-	// 未来可扩展: TypeAList, TypeCloudDrive2 等
+	// 未来可扩展: TypeAList 等
 )
 
 // String 返回字符串表示
@@ -22,7 +24,7 @@ func (t Type) String() string {
 // IsValid 验证Type是否有效
 func (t Type) IsValid() bool {
 	switch t {
-	case TypeOpenList, TypeLocal:
+	case TypeCloudDrive2, TypeOpenList, TypeLocal:
 		return true
 	default:
 		return false

@@ -48,6 +48,8 @@ func InitLogger(level string, dir string) error {
 
 	encoderCfg := zap.NewProductionEncoderConfig()
 	encoderCfg.TimeKey = "ts"
+	encoderCfg.CallerKey = "caller"
+	encoderCfg.EncodeCaller = zapcore.ShortCallerEncoder
 	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
 	encoderCfg.EncodeLevel = zapcore.LowercaseLevelEncoder // 统一使用小写level
 
@@ -71,7 +73,12 @@ func InitLogger(level string, dir string) error {
 		),
 	)
 
-	l := zap.New(core)
+	l := zap.New(
+		core,
+		zap.AddCaller(),
+		zap.AddCallerSkip(1),
+		zap.AddStacktrace(zapcore.ErrorLevel),
+	)
 
 	mu.Lock()
 	instance = l

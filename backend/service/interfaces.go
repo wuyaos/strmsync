@@ -3,7 +3,15 @@ package service
 
 import (
 	"context"
+
+	"github.com/strmsync/strmsync/filesystem"
 )
+
+// FileService 文件服务接口
+type FileService interface {
+	// List 获取文件列表
+	List(ctx context.Context, req FileListRequest) ([]filesystem.RemoteFile, error)
+}
 
 // JobService Job业务逻辑服务
 type JobService interface {

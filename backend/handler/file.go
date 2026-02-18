@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,12 +13,23 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/strmsync/strmsync/service"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
-type FileHandler struct{}
+type FileHandler struct {
+	db      *gorm.DB
+	logger  *zap.Logger
+	fileSvc service.FileService
+}
 
-func NewFileHandler() *FileHandler {
-	return &FileHandler{}
+func NewFileHandler(db *gorm.DB, logger *zap.Logger) *FileHandler {
+	return &FileHandler{
+		db:      db,
+		logger:  logger,
+		fileSvc: service.NewFileService(db, logger),
+	}
 }
 
 // ListDirectories 列出指定路径下的目录
@@ -233,5 +245,78 @@ func (h *FileHandler) listOpenListDirectories(c *gin.Context, path, host, port s
 	c.JSON(http.StatusOK, gin.H{
 		"path":        path,
 		"directories": directories,
+	})
+}
+
+// ListFiles 列出数据服务器文件（新架构API）
+// POST /api/files/list
+// 请求体: {"server_id": 1, "path": "/", "recursive": false, "max_depth": 5}
+// max_depth: 递归最大深度（可选），默认5，上限50，0表示非递归
+func (h *FileHandler) ListFiles(c *gin.Context) {
+	const (
+		defaultListMaxDepth = 5  // 默认最大递归深度
+		maxListMaxDepth     = 50 // 最大允许的递归深度
+	)
+
+	var req struct {
+		ServerID  uint   `json:"server_id" binding:"required"`
+		Path      string `json:"path"`
+		Recursive bool   `json:"recursive"`
+		MaxDepth  *int   `json:"max_depth"` // 使用指针类型以区分"未传"和"传0"
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的请求参数: " + err.Error()})
+		return
+	}
+
+	// 校验 max_depth 参数
+	if req.MaxDepth != nil {
+		if *req.MaxDepth < 0 || *req.MaxDepth > maxListMaxDepth {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("max_depth 必须在 0 到 %d 之间", maxListMaxDepth),
+			})
+			return
+		}
+	}
+
+	// 递归模式下设置默认深度
+	if req.Recursive && req.MaxDepth == nil {
+		defaultDepth := defaultListMaxDepth
+		req.MaxDepth = &defaultDepth
+	}
+
+	// 调用service层
+	files, err := h.fileSvc.List(c.Request.Context(), service.FileListRequest{
+		ServerID:  req.ServerID,
+		Path:      req.Path,
+		Recursive: req.Recursive,
+		MaxDepth:  req.MaxDepth,
+	})
+
+	if err != nil {
+		h.logger.Error("列出文件失败",
+			zap.Uint("server_id", req.ServerID),
+			zap.String("path", req.Path),
+			zap.Error(err))
+
+		statusCode := http.StatusInternalServerError
+		if errors.Is(err, service.ErrDataServerNotFound) {
+			statusCode = http.StatusNotFound
+		} else if errors.Is(err, service.ErrDataServerDisabled) {
+			statusCode = http.StatusForbidden
+		}
+
+		c.JSON(statusCode, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 返回结果
+	c.JSON(http.StatusOK, gin.H{
+		"server_id": req.ServerID,
+		"path":      req.Path,
+		"recursive": req.Recursive,
+		"count":     len(files),
+		"files":     files,
 	})
 }

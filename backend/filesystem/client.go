@@ -29,7 +29,7 @@ var (
 
 // provider 定义具体文件系统的行为
 type provider interface {
-	List(ctx context.Context, path string, recursive bool) ([]RemoteFile, error)
+	List(ctx context.Context, path string, recursive bool, maxDepth int) ([]RemoteFile, error)
 	Watch(ctx context.Context, path string) (<-chan FileEvent, error)
 	TestConnection(ctx context.Context) error
 }
@@ -37,8 +37,9 @@ type provider interface {
 type providerFactory func(*clientImpl) (provider, error)
 
 var providerRegistry = map[Type]providerFactory{
-	TypeOpenList: newOpenListProvider,
-	TypeLocal:    newLocalProvider,
+	TypeCloudDrive2: newCloudDrive2Provider,
+	TypeOpenList:    newOpenListProvider,
+	TypeLocal:       newLocalProvider,
 }
 
 // clientImpl 文件系统客户端实现
@@ -161,7 +162,7 @@ func newProvider(t Type, client *clientImpl) (provider, error) {
 }
 
 // List 列出目录内容
-func (c *clientImpl) List(ctx context.Context, listPath string, recursive bool) ([]RemoteFile, error) {
+func (c *clientImpl) List(ctx context.Context, listPath string, recursive bool, maxDepth int) ([]RemoteFile, error) {
 	// 防御 nil context
 	if ctx == nil {
 		ctx = context.Background()
@@ -175,7 +176,7 @@ func (c *clientImpl) List(ctx context.Context, listPath string, recursive bool) 
 	if c.provider == nil {
 		return nil, fmt.Errorf("filesystem: provider not initialized")
 	}
-	return c.provider.List(ctx, listPath, recursive)
+	return c.provider.List(ctx, listPath, recursive, maxDepth)
 }
 
 // Watch 监控目录变化

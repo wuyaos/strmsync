@@ -38,7 +38,7 @@ func newLocalProvider(c *clientImpl) (provider, error) {
 }
 
 // List 列出本地目录内容
-func (p *localProvider) List(ctx context.Context, listPath string, recursive bool) ([]RemoteFile, error) {
+func (p *localProvider) List(ctx context.Context, listPath string, recursive bool, maxDepth int) ([]RemoteFile, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -62,7 +62,9 @@ func (p *localProvider) List(ctx context.Context, listPath string, recursive boo
 	var results []RemoteFile
 
 	if recursive {
-		// 递归遍历
+		// 递归遍历（带深度控制）
+		rootDepth := strings.Count(fullPath, string(filepath.Separator))
+
 		err := filepath.WalkDir(fullPath, func(filePath string, d fs.DirEntry, err error) error {
 			if err != nil {
 				p.logger.Warn("访问路径失败", zap.String("path", filePath), zap.Error(err))
@@ -74,10 +76,8 @@ func (p *localProvider) List(ctx context.Context, listPath string, recursive boo
 				return ctx.Err()
 			}
 
-			// 跳过目录本身
-			if d.IsDir() {
-				return nil
-			}
+			// 计算当前深度（相对于fullPath）
+			currentDepth := strings.Count(filePath, string(filepath.Separator)) - rootDepth
 
 			// 获取文件信息
 			info, err := d.Info()
@@ -94,13 +94,19 @@ func (p *localProvider) List(ctx context.Context, listPath string, recursive boo
 			relPath = filepath.ToSlash(relPath) // 转换为 Unix 路径
 			virtualPath := path.Clean("/" + relPath)
 
+			// 记录当前文件/目录
 			results = append(results, RemoteFile{
 				Path:    virtualPath,
 				Name:    info.Name(),
 				Size:    info.Size(),
 				ModTime: info.ModTime(),
-				IsDir:   false,
+				IsDir:   d.IsDir(),
 			})
+
+			// 深度控制：如果是目录且已达最大深度，跳过其子项（但目录本身已被记录）
+			if d.IsDir() && currentDepth >= maxDepth && filePath != fullPath {
+				return fs.SkipDir
+			}
 
 			return nil
 		})
@@ -121,11 +127,6 @@ func (p *localProvider) List(ctx context.Context, listPath string, recursive boo
 				return nil, ctx.Err()
 			}
 
-			// 跳过目录
-			if entry.IsDir() {
-				continue
-			}
-
 			info, err := entry.Info()
 			if err != nil {
 				p.logger.Warn("获取文件信息失败", zap.String("name", entry.Name()), zap.Error(err))
@@ -140,7 +141,7 @@ func (p *localProvider) List(ctx context.Context, listPath string, recursive boo
 				Name:    info.Name(),
 				Size:    info.Size(),
 				ModTime: info.ModTime(),
-				IsDir:   false,
+				IsDir:   entry.IsDir(),
 			})
 		}
 	}
@@ -180,7 +181,8 @@ func (p *localProvider) TestConnection(ctx context.Context) error {
 
 // normalizeListPath 规范化listPath为相对路径，防止路径逃逸
 func normalizeListPath(listPath string) (string, error) {
-	if listPath == "" {
+	// 空字符串或 "/" 都表示根目录
+	if listPath == "" || listPath == "/" {
 		return "", nil
 	}
 

@@ -7,13 +7,16 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"time"
 
 	pb "github.com/strmsync/strmsync/filesystem/clouddrive2_proto"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Client CloudDrive2 gRPC 客户端，封装连接管理和认证
@@ -367,4 +370,144 @@ func (c *CloudDrive2Client) GetMountPoints(ctx context.Context) (*pb.GetMountPoi
 	}
 
 	return resp, nil
+}
+
+// ---------- CloudDrive2 Provider Implementation ----------
+
+// cloudDrive2Provider CloudDrive2文件系统实现
+type cloudDrive2Provider struct {
+	config Config
+	logger *zap.Logger
+	client *CloudDrive2Client
+}
+
+// newCloudDrive2Provider 创建CloudDrive2 provider
+func newCloudDrive2Provider(c *clientImpl) (provider, error) {
+	// 从 BaseURL 解析 host:port
+	if c.baseURL == nil {
+		return nil, fmt.Errorf("filesystem: baseURL is required for CloudDrive2")
+	}
+
+	target := c.baseURL.Host
+	if target == "" {
+		return nil, fmt.Errorf("filesystem: invalid baseURL host for CloudDrive2")
+	}
+
+	// 创建CloudDrive2客户端（Password字段存储API Token）
+	client := NewCloudDrive2Client(target, c.config.Password, WithTimeout(c.config.Timeout))
+
+	return &cloudDrive2Provider{
+		config: c.config,
+		logger: c.logger,
+		client: client,
+	}, nil
+}
+
+// List 列出目录内容
+func (p *cloudDrive2Provider) List(ctx context.Context, listPath string, recursive bool, maxDepth int) ([]RemoteFile, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if strings.TrimSpace(listPath) == "" {
+		listPath = "/"
+	}
+	return p.listCloudDrive2(ctx, listPath, recursive, maxDepth)
+}
+
+// Watch 监控目录变化（CloudDrive2不支持）
+func (p *cloudDrive2Provider) Watch(ctx context.Context, path string) (<-chan FileEvent, error) {
+	return nil, ErrNotSupported
+}
+
+// TestConnection 测试连接
+func (p *cloudDrive2Provider) TestConnection(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	p.logger.Info("测试CloudDrive2连接", zap.String("type", TypeCloudDrive2.String()))
+
+	// 使用GetSystemInfo测试连接（公开接口）
+	_, err := p.client.GetSystemInfo(ctx)
+	if err != nil {
+		p.logger.Error("CloudDrive2连接失败", zap.Error(err))
+		return fmt.Errorf("filesystem: test connection failed: %w", err)
+	}
+
+	p.logger.Info("CloudDrive2连接成功")
+	return nil
+}
+
+// listCloudDrive2 递归列出CloudDrive2目录（使用BFS，支持深度限制）
+func (p *cloudDrive2Provider) listCloudDrive2(ctx context.Context, root string, recursive bool, maxDepth int) ([]RemoteFile, error) {
+	var results []RemoteFile
+
+	// 使用BFS队列遍历目录树，队列中存储路径和当前深度
+	type queueItem struct {
+		path  string
+		depth int
+	}
+	queue := []queueItem{{path: cleanRemotePath(root), depth: 0}}
+
+	for len(queue) > 0 {
+		// 检查context取消
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+
+		// 取出队头目录
+		item := queue[0]
+		dir := item.path
+		queue = queue[1:]
+
+		// 调用GetSubFiles列出当前目录
+		files, err := p.client.GetSubFiles(ctx, dir, false)
+		if err != nil {
+			return nil, fmt.Errorf("list directory %s: %w", dir, err)
+		}
+
+		// 处理每个项目
+		for _, file := range files {
+			if file == nil {
+				continue
+			}
+
+			fullPath := joinRemotePath(dir, file.Name)
+			modTime := parseProtoTimestamp(file.WriteTime)
+
+			// 转换为RemoteFile
+			remoteFile := RemoteFile{
+				Path:    fullPath,
+				Name:    file.Name,
+				Size:    file.Size,
+				ModTime: modTime,
+				IsDir:   file.IsDirectory,
+			}
+
+			// 将所有项目（文件和目录）加入结果
+			results = append(results, remoteFile)
+
+			// 递归模式：将子目录加入队列（深度控制）
+			// 只有当子目录的内容深度(item.depth+2)不超过maxDepth时才入队
+			// 即：item.depth + 1 < maxDepth
+			if file.IsDirectory && recursive && item.depth+1 < maxDepth {
+				queue = append(queue, queueItem{path: fullPath, depth: item.depth + 1})
+			}
+		}
+	}
+
+	p.logger.Info("CloudDrive2目录列出完成",
+		zap.String("root", root),
+		zap.Bool("recursive", recursive),
+		zap.Int("max_depth", maxDepth),
+		zap.Int("count", len(results)))
+
+	return results, nil
+}
+
+// parseProtoTimestamp 解析protobuf Timestamp为time.Time
+func parseProtoTimestamp(ts *timestamppb.Timestamp) time.Time {
+	if ts == nil {
+		return time.Time{}
+	}
+	return ts.AsTime()
 }

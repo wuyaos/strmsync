@@ -82,11 +82,13 @@ type TaskRun struct {
 // LogEntry 日志记录模型
 type LogEntry struct {
 	ID        uint       `gorm:"primaryKey" json:"id"`
-	Level     string     `gorm:"index:idx_logs_level_created_at,priority:1;not null" json:"level"`          // 日志级别
-	Module    *string    `gorm:"index" json:"module,omitempty"`                                             // 模块名称
-	Message   string     `gorm:"type:text;not null" json:"message"`                                         // 日志消息
-	JobID     *uint      `gorm:"index" json:"job_id,omitempty"`                                             // 关联的任务ID
-	CreatedAt time.Time  `gorm:"index:idx_logs_level_created_at,priority:2;index" json:"created_at"`        // 创建时间
+	Level      string     `gorm:"index:idx_logs_level_created_at,priority:1;not null" json:"level"`          // 日志级别
+	Module     *string    `gorm:"index" json:"module,omitempty"`                                             // 模块名称
+	Message    string     `gorm:"type:text;not null" json:"message"`                                         // 日志消息
+	RequestID  *string    `gorm:"index" json:"request_id,omitempty"`                                         // 请求ID
+	UserAction *string    `gorm:"index" json:"user_action,omitempty"`                                        // 用户操作
+	JobID      *uint      `gorm:"index" json:"job_id,omitempty"`                                             // 关联的任务ID
+	CreatedAt  time.Time  `gorm:"index:idx_logs_level_created_at,priority:2;index" json:"created_at"`        // 创建时间
 }
 
 // Setting 系统设置模型

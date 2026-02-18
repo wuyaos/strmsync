@@ -42,14 +42,14 @@ func newOpenListProvider(c *clientImpl) (provider, error) {
 }
 
 // List 列出目录内容
-func (p *openListProvider) List(ctx context.Context, listPath string, recursive bool) ([]RemoteFile, error) {
+func (p *openListProvider) List(ctx context.Context, listPath string, recursive bool, maxDepth int) ([]RemoteFile, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	if strings.TrimSpace(listPath) == ""  {
+	if strings.TrimSpace(listPath) == "" {
 		listPath = "/"
 	}
-	return p.listOpenList(ctx, listPath, recursive)
+	return p.listOpenList(ctx, listPath, recursive, maxDepth)
 }
 
 // Watch 监控目录变化（OpenList不支持）
@@ -104,12 +104,16 @@ type openListItem struct {
 	Modified string `json:"modified"` // RFC3339Nano 格式
 }
 
-// listOpenList 递归列出 OpenList 目录（使用 BFS）
-func (p *openListProvider) listOpenList(ctx context.Context, root string, recursive bool) ([]RemoteFile, error) {
+// listOpenList 递归列出 OpenList 目录（使用 BFS，支持深度限制）
+func (p *openListProvider) listOpenList(ctx context.Context, root string, recursive bool, maxDepth int) ([]RemoteFile, error) {
 	var results []RemoteFile
 
-	// 使用 BFS 队列遍历目录树
-	queue := []string{cleanRemotePath(root)}
+	// 使用 BFS 队列遍历目录树，队列中存储路径和当前深度
+	type queueItem struct {
+		path  string
+		depth int
+	}
+	queue := []queueItem{{path: cleanRemotePath(root), depth: 0}}
 
 	for len(queue) > 0 {
 		// 检查 context 取消
@@ -118,7 +122,8 @@ func (p *openListProvider) listOpenList(ctx context.Context, root string, recurs
 		}
 
 		// 取出队头目录
-		dir := queue[0]
+		item := queue[0]
+		dir := item.path
 		queue = queue[1:]
 
 		// 列出当前目录
@@ -128,15 +133,15 @@ func (p *openListProvider) listOpenList(ctx context.Context, root string, recurs
 		}
 
 		// 处理每个项目
-		for _, item := range items {
-			if item.IsDir {
-				// 递归模式：将子目录加入队列
-				if recursive {
-					queue = append(queue, item.Path)
-				}
-			} else {
-				// 只将文件加入结果
-				results = append(results, item)
+		for _, remoteFile := range items {
+			// 将所有项目（文件和目录）加入结果
+			results = append(results, remoteFile)
+
+			// 递归模式：将子目录加入队列（深度控制）
+			// 只有当子目录的内容深度(item.depth+2)不超过maxDepth时才入队
+			// 即：item.depth + 1 < maxDepth
+			if remoteFile.IsDir && recursive && item.depth+1 < maxDepth {
+				queue = append(queue, queueItem{path: remoteFile.Path, depth: item.depth + 1})
 			}
 		}
 	}
@@ -144,6 +149,7 @@ func (p *openListProvider) listOpenList(ctx context.Context, root string, recurs
 	p.logger.Info("OpenList 目录列出完成",
 		zap.String("root", root),
 		zap.Bool("recursive", recursive),
+		zap.Int("max_depth", maxDepth),
 		zap.Int("count", len(results)))
 
 	return results, nil

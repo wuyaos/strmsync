@@ -9,7 +9,8 @@ import (
 // Client 数据服务器客户端接口
 type Client interface {
 	// List 列出目录内容
-	List(ctx context.Context, path string, recursive bool) ([]RemoteFile, error)
+	// maxDepth: 递归最大深度，0表示非递归，>0表示递归的最大层级
+	List(ctx context.Context, path string, recursive bool, maxDepth int) ([]RemoteFile, error)
 
 	// Watch 监控目录变化（如果支持）
 	Watch(ctx context.Context, path string) (<-chan FileEvent, error)

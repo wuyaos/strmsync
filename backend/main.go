@@ -8,12 +8,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/strmsync/strmsync/core"
-	"github.com/strmsync/strmsync/handler"
+	handlers "github.com/strmsync/strmsync/handler"
 	"github.com/strmsync/strmsync/utils"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -117,6 +118,7 @@ func setupRouter(db *gorm.DB) *gin.Engine {
 
 	// 中间件
 	router.Use(gin.Recovery())
+	router.Use(requestIDMiddleware())
 	router.Use(ginLogger(db))
 
 	// 获取logger
@@ -125,7 +127,7 @@ func setupRouter(db *gorm.DB) *gin.Engine {
 	// 创建处理器
 	logHandler := handlers.NewLogHandler(db, logger)
 	settingHandler := handlers.NewSettingHandler(db, logger)
-	fileHandler := handlers.NewFileHandler()
+	fileHandler := handlers.NewFileHandler(db, logger)
 	dataServerHandler := handlers.NewDataServerHandler(db, logger)
 	mediaServerHandler := handlers.NewMediaServerHandler(db, logger)
 	jobHandler := handlers.NewJobHandler(db, logger)
@@ -155,6 +157,7 @@ func setupRouter(db *gorm.DB) *gin.Engine {
 		files := api.Group("/files")
 		{
 			files.GET("/directories", fileHandler.ListDirectories)
+			files.POST("/list", fileHandler.ListFiles)
 		}
 
 		// 数据服务器管理
@@ -210,6 +213,26 @@ func setupRouter(db *gorm.DB) *gin.Engine {
 	return router
 }
 
+const (
+	requestIDHeader = "X-Request-ID"
+	requestIDKey    = "request_id"
+)
+
+// requestIDMiddleware Request ID中间件
+func requestIDMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id := strings.TrimSpace(c.GetHeader(requestIDHeader))
+		if id == "" {
+			id = utils.NewRequestID()
+		}
+		if id != "" {
+			c.Set(requestIDKey, id)
+			c.Writer.Header().Set(requestIDHeader, id)
+		}
+		c.Next()
+	}
+}
+
 // ginLogger Gin日志中间件
 func ginLogger(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -222,15 +245,26 @@ func ginLogger(db *gorm.DB) gin.HandlerFunc {
 		latency := time.Since(start)
 		status := c.Writer.Status()
 
-		// 记录到zap日志
-		utils.LogInfo("HTTP请求",
+		requestID := strings.TrimSpace(c.GetString(requestIDKey))
+		userAction := strings.TrimSpace(c.GetHeader("X-User-Action"))
+
+		fields := []zap.Field{
 			zap.String("method", c.Request.Method),
 			zap.String("path", path),
 			zap.String("query", query),
 			zap.Int("status", status),
 			zap.Duration("latency", latency),
 			zap.String("client_ip", c.ClientIP()),
-		)
+		}
+		if requestID != "" {
+			fields = append(fields, zap.String("request_id", requestID))
+		}
+		if userAction != "" {
+			fields = append(fields, zap.String("user_action", userAction))
+		}
+
+		// 记录到zap日志
+		utils.LogInfo("HTTP请求", fields...)
 
 		// 同时写入数据库日志
 		module := "api"
@@ -242,10 +276,21 @@ func ginLogger(db *gorm.DB) gin.HandlerFunc {
 			level = "warn"
 		}
 
+		var reqID *string
+		if requestID != "" {
+			reqID = &requestID
+		}
+		var action *string
+		if userAction != "" {
+			action = &userAction
+		}
+
 		utils.WriteLogToDB(db, &core.LogEntry{
-			Level:   level,
-			Module:  &module,
-			Message: message,
+			Level:      level,
+			Module:     &module,
+			Message:    message,
+			RequestID:  reqID,
+			UserAction: action,
 		})
 	}
 }

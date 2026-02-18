@@ -18,6 +18,14 @@ type MediaServerID = uint
 // WatchMode 监控模式
 type WatchMode string
 
+// FileListRequest 文件列表请求
+type FileListRequest struct {
+	ServerID  DataServerID // 数据服务器ID
+	Path      string       // 路径
+	Recursive bool         // 是否递归
+	MaxDepth  *int         // 递归最大深度（nil 表示使用默认值，0 表示非递归）
+}
+
 const (
 	WatchModeAPI   WatchMode = "api"   // API模式（通过CloudDrive2等API监控）
 	WatchModeLocal WatchMode = "local" // 本地模式（直接监控本地挂载路径）
