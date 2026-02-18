@@ -7,6 +7,7 @@ package filesystem
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/url"
 	"path"
 	"strings"
@@ -76,6 +77,21 @@ func (p *openListProvider) TestConnection(ctx context.Context) error {
 	}
 	p.logger.Info("OpenList连接成功")
 	return nil
+}
+
+// Download 下载文件内容到writer
+func (p *openListProvider) Download(ctx context.Context, remotePath string, w io.Writer) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if strings.TrimSpace(remotePath) == "" {
+		return fmt.Errorf("openlist: remote path cannot be empty")
+	}
+
+	cleanPath := filesystem.CleanRemotePath(remotePath)
+	p.logger.Debug("OpenList Download", zap.String("path", cleanPath))
+
+	return p.client.Download(ctx, cleanPath, w)
 }
 
 // Stat 获取单个路径的元数据

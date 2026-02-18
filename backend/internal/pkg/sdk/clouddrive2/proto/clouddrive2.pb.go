@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v3.21.12
-// source: clouddrive2.proto
+// source: internal/pkg/sdk/clouddrive2/proto/clouddrive2.proto
 
 package clouddrive2_proto
 
@@ -60,11 +60,11 @@ func (x ProxyType) String() string {
 }
 
 func (ProxyType) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[0].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[0].Descriptor()
 }
 
 func (ProxyType) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[0]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[0]
 }
 
 func (x ProxyType) Number() protoreflect.EnumNumber {
@@ -73,7 +73,7 @@ func (x ProxyType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ProxyType.Descriptor instead.
 func (ProxyType) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{0}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{0}
 }
 
 type QRCodeScanMessageType int32
@@ -115,11 +115,11 @@ func (x QRCodeScanMessageType) String() string {
 }
 
 func (QRCodeScanMessageType) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[1].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[1].Descriptor()
 }
 
 func (QRCodeScanMessageType) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[1]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[1]
 }
 
 func (x QRCodeScanMessageType) Number() protoreflect.EnumNumber {
@@ -128,7 +128,7 @@ func (x QRCodeScanMessageType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use QRCodeScanMessageType.Descriptor instead.
 func (QRCodeScanMessageType) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{1}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{1}
 }
 
 type UpdateChannel int32
@@ -161,11 +161,11 @@ func (x UpdateChannel) String() string {
 }
 
 func (UpdateChannel) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[2].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[2].Descriptor()
 }
 
 func (UpdateChannel) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[2]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[2]
 }
 
 func (x UpdateChannel) Number() protoreflect.EnumNumber {
@@ -174,7 +174,7 @@ func (x UpdateChannel) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use UpdateChannel.Descriptor instead.
 func (UpdateChannel) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{2}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{2}
 }
 
 type LogLevel int32
@@ -216,11 +216,11 @@ func (x LogLevel) String() string {
 }
 
 func (LogLevel) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[3].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[3].Descriptor()
 }
 
 func (LogLevel) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[3]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[3]
 }
 
 func (x LogLevel) Number() protoreflect.EnumNumber {
@@ -229,7 +229,7 @@ func (x LogLevel) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use LogLevel.Descriptor instead.
 func (LogLevel) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{3}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{3}
 }
 
 // Eviction strategy for disk cache
@@ -266,11 +266,11 @@ func (x EvictionStrategy) String() string {
 }
 
 func (EvictionStrategy) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[4].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[4].Descriptor()
 }
 
 func (EvictionStrategy) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[4]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[4]
 }
 
 func (x EvictionStrategy) Number() protoreflect.EnumNumber {
@@ -279,7 +279,7 @@ func (x EvictionStrategy) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use EvictionStrategy.Descriptor instead.
 func (EvictionStrategy) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{4}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{4}
 }
 
 type VacuumStatus int32
@@ -318,11 +318,11 @@ func (x VacuumStatus) String() string {
 }
 
 func (VacuumStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[5].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[5].Descriptor()
 }
 
 func (VacuumStatus) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[5]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[5]
 }
 
 func (x VacuumStatus) Number() protoreflect.EnumNumber {
@@ -331,7 +331,7 @@ func (x VacuumStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use VacuumStatus.Descriptor instead.
 func (VacuumStatus) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{5}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{5}
 }
 
 type OfflineFileStatus int32
@@ -373,11 +373,11 @@ func (x OfflineFileStatus) String() string {
 }
 
 func (OfflineFileStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[6].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[6].Descriptor()
 }
 
 func (OfflineFileStatus) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[6]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[6]
 }
 
 func (x OfflineFileStatus) Number() protoreflect.EnumNumber {
@@ -386,7 +386,7 @@ func (x OfflineFileStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use OfflineFileStatus.Descriptor instead.
 func (OfflineFileStatus) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{6}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{6}
 }
 
 type FileReplaceRule int32
@@ -422,11 +422,11 @@ func (x FileReplaceRule) String() string {
 }
 
 func (FileReplaceRule) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[7].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[7].Descriptor()
 }
 
 func (FileReplaceRule) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[7]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[7]
 }
 
 func (x FileReplaceRule) Number() protoreflect.EnumNumber {
@@ -435,7 +435,7 @@ func (x FileReplaceRule) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FileReplaceRule.Descriptor instead.
 func (FileReplaceRule) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{7}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{7}
 }
 
 type FileDeleteRule int32
@@ -474,11 +474,11 @@ func (x FileDeleteRule) String() string {
 }
 
 func (FileDeleteRule) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[8].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[8].Descriptor()
 }
 
 func (FileDeleteRule) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[8]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[8]
 }
 
 func (x FileDeleteRule) Number() protoreflect.EnumNumber {
@@ -487,7 +487,7 @@ func (x FileDeleteRule) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FileDeleteRule.Descriptor instead.
 func (FileDeleteRule) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{8}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{8}
 }
 
 type FileCompletionRule int32
@@ -523,11 +523,11 @@ func (x FileCompletionRule) String() string {
 }
 
 func (FileCompletionRule) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[9].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[9].Descriptor()
 }
 
 func (FileCompletionRule) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[9]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[9]
 }
 
 func (x FileCompletionRule) Number() protoreflect.EnumNumber {
@@ -536,7 +536,7 @@ func (x FileCompletionRule) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FileCompletionRule.Descriptor instead.
 func (FileCompletionRule) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{9}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{9}
 }
 
 type MoveFileRequest_ConflictPolicy int32
@@ -572,11 +572,11 @@ func (x MoveFileRequest_ConflictPolicy) String() string {
 }
 
 func (MoveFileRequest_ConflictPolicy) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[10].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[10].Descriptor()
 }
 
 func (MoveFileRequest_ConflictPolicy) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[10]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[10]
 }
 
 func (x MoveFileRequest_ConflictPolicy) Number() protoreflect.EnumNumber {
@@ -585,7 +585,7 @@ func (x MoveFileRequest_ConflictPolicy) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use MoveFileRequest_ConflictPolicy.Descriptor instead.
 func (MoveFileRequest_ConflictPolicy) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{24, 0}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{24, 0}
 }
 
 type CopyFileRequest_ConflictPolicy int32
@@ -621,11 +621,11 @@ func (x CopyFileRequest_ConflictPolicy) String() string {
 }
 
 func (CopyFileRequest_ConflictPolicy) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[11].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[11].Descriptor()
 }
 
 func (CopyFileRequest_ConflictPolicy) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[11]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[11]
 }
 
 func (x CopyFileRequest_ConflictPolicy) Number() protoreflect.EnumNumber {
@@ -634,7 +634,7 @@ func (x CopyFileRequest_ConflictPolicy) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CopyFileRequest_ConflictPolicy.Descriptor instead.
 func (CopyFileRequest_ConflictPolicy) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{25, 0}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{25, 0}
 }
 
 type CloudDriveFile_FileType int32
@@ -670,11 +670,11 @@ func (x CloudDriveFile_FileType) String() string {
 }
 
 func (CloudDriveFile_FileType) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[12].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[12].Descriptor()
 }
 
 func (CloudDriveFile_FileType) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[12]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[12]
 }
 
 func (x CloudDriveFile_FileType) Number() protoreflect.EnumNumber {
@@ -683,7 +683,7 @@ func (x CloudDriveFile_FileType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CloudDriveFile_FileType.Descriptor instead.
 func (CloudDriveFile_FileType) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{30, 0}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{30, 0}
 }
 
 type CloudDriveFile_HashType int32
@@ -722,11 +722,11 @@ func (x CloudDriveFile_HashType) String() string {
 }
 
 func (CloudDriveFile_HashType) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[13].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[13].Descriptor()
 }
 
 func (CloudDriveFile_HashType) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[13]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[13]
 }
 
 func (x CloudDriveFile_HashType) Number() protoreflect.EnumNumber {
@@ -735,7 +735,7 @@ func (x CloudDriveFile_HashType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CloudDriveFile_HashType.Descriptor instead.
 func (CloudDriveFile_HashType) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{30, 1}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{30, 1}
 }
 
 type CloudDriveFile_FileEncryptionType int32
@@ -772,11 +772,11 @@ func (x CloudDriveFile_FileEncryptionType) String() string {
 }
 
 func (CloudDriveFile_FileEncryptionType) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[14].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[14].Descriptor()
 }
 
 func (CloudDriveFile_FileEncryptionType) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[14]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[14]
 }
 
 func (x CloudDriveFile_FileEncryptionType) Number() protoreflect.EnumNumber {
@@ -785,7 +785,7 @@ func (x CloudDriveFile_FileEncryptionType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CloudDriveFile_FileEncryptionType.Descriptor instead.
 func (CloudDriveFile_FileEncryptionType) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{30, 2}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{30, 2}
 }
 
 type FileSystemChange_ChangeType int32
@@ -821,11 +821,11 @@ func (x FileSystemChange_ChangeType) String() string {
 }
 
 func (FileSystemChange_ChangeType) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[15].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[15].Descriptor()
 }
 
 func (FileSystemChange_ChangeType) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[15]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[15]
 }
 
 func (x FileSystemChange_ChangeType) Number() protoreflect.EnumNumber {
@@ -834,7 +834,7 @@ func (x FileSystemChange_ChangeType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FileSystemChange_ChangeType.Descriptor instead.
 func (FileSystemChange_ChangeType) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{63, 0}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{63, 0}
 }
 
 type UpdateStatus_UpdatePhase int32
@@ -879,11 +879,11 @@ func (x UpdateStatus_UpdatePhase) String() string {
 }
 
 func (UpdateStatus_UpdatePhase) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[16].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[16].Descriptor()
 }
 
 func (UpdateStatus_UpdatePhase) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[16]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[16]
 }
 
 func (x UpdateStatus_UpdatePhase) Number() protoreflect.EnumNumber {
@@ -892,7 +892,7 @@ func (x UpdateStatus_UpdatePhase) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use UpdateStatus_UpdatePhase.Descriptor instead.
 func (UpdateStatus_UpdatePhase) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{64, 0}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{64, 0}
 }
 
 type ExitedMessage_ExitReason int32
@@ -937,11 +937,11 @@ func (x ExitedMessage_ExitReason) String() string {
 }
 
 func (ExitedMessage_ExitReason) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[17].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[17].Descriptor()
 }
 
 func (ExitedMessage_ExitReason) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[17]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[17]
 }
 
 func (x ExitedMessage_ExitReason) Number() protoreflect.EnumNumber {
@@ -950,7 +950,7 @@ func (x ExitedMessage_ExitReason) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ExitedMessage_ExitReason.Descriptor instead.
 func (ExitedMessage_ExitReason) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{66, 0}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{66, 0}
 }
 
 type MountPointChange_ActionType int32
@@ -983,11 +983,11 @@ func (x MountPointChange_ActionType) String() string {
 }
 
 func (MountPointChange_ActionType) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[18].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[18].Descriptor()
 }
 
 func (MountPointChange_ActionType) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[18]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[18]
 }
 
 func (x MountPointChange_ActionType) Number() protoreflect.EnumNumber {
@@ -996,7 +996,7 @@ func (x MountPointChange_ActionType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use MountPointChange_ActionType.Descriptor instead.
 func (MountPointChange_ActionType) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{68, 0}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{68, 0}
 }
 
 type LogMessage_LogLevel int32
@@ -1038,11 +1038,11 @@ func (x LogMessage_LogLevel) String() string {
 }
 
 func (LogMessage_LogLevel) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[19].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[19].Descriptor()
 }
 
 func (LogMessage_LogLevel) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[19]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[19]
 }
 
 func (x LogMessage_LogLevel) Number() protoreflect.EnumNumber {
@@ -1051,7 +1051,7 @@ func (x LogMessage_LogLevel) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use LogMessage_LogLevel.Descriptor instead.
 func (LogMessage_LogLevel) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{69, 0}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{69, 0}
 }
 
 type CloudDrivePushMessage_MessageType int32
@@ -1105,11 +1105,11 @@ func (x CloudDrivePushMessage_MessageType) String() string {
 }
 
 func (CloudDrivePushMessage_MessageType) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[20].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[20].Descriptor()
 }
 
 func (CloudDrivePushMessage_MessageType) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[20]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[20]
 }
 
 func (x CloudDrivePushMessage_MessageType) Number() protoreflect.EnumNumber {
@@ -1118,7 +1118,7 @@ func (x CloudDrivePushMessage_MessageType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CloudDrivePushMessage_MessageType.Descriptor instead.
 func (CloudDrivePushMessage_MessageType) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{70, 0}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{70, 0}
 }
 
 type UploadFileInfo_Status int32
@@ -1178,11 +1178,11 @@ func (x UploadFileInfo_Status) String() string {
 }
 
 func (UploadFileInfo_Status) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[21].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[21].Descriptor()
 }
 
 func (UploadFileInfo_Status) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[21]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[21]
 }
 
 func (x UploadFileInfo_Status) Number() protoreflect.EnumNumber {
@@ -1191,7 +1191,7 @@ func (x UploadFileInfo_Status) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use UploadFileInfo_Status.Descriptor instead.
 func (UploadFileInfo_Status) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{76, 0}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{76, 0}
 }
 
 type UploadFileInfo_OperatorType int32
@@ -1232,11 +1232,11 @@ func (x UploadFileInfo_OperatorType) String() string {
 }
 
 func (UploadFileInfo_OperatorType) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[22].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[22].Descriptor()
 }
 
 func (UploadFileInfo_OperatorType) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[22]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[22]
 }
 
 func (x UploadFileInfo_OperatorType) Number() protoreflect.EnumNumber {
@@ -1245,7 +1245,7 @@ func (x UploadFileInfo_OperatorType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use UploadFileInfo_OperatorType.Descriptor instead.
 func (UploadFileInfo_OperatorType) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{76, 1}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{76, 1}
 }
 
 type MergeTask_TaskStatus int32
@@ -1287,11 +1287,11 @@ func (x MergeTask_TaskStatus) String() string {
 }
 
 func (MergeTask_TaskStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[23].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[23].Descriptor()
 }
 
 func (MergeTask_TaskStatus) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[23]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[23]
 }
 
 func (x MergeTask_TaskStatus) Number() protoreflect.EnumNumber {
@@ -1300,7 +1300,7 @@ func (x MergeTask_TaskStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use MergeTask_TaskStatus.Descriptor instead.
 func (MergeTask_TaskStatus) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{86, 0}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{86, 0}
 }
 
 type MergeTask_OperationType int32
@@ -1333,11 +1333,11 @@ func (x MergeTask_OperationType) String() string {
 }
 
 func (MergeTask_OperationType) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[24].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[24].Descriptor()
 }
 
 func (MergeTask_OperationType) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[24]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[24]
 }
 
 func (x MergeTask_OperationType) Number() protoreflect.EnumNumber {
@@ -1346,7 +1346,7 @@ func (x MergeTask_OperationType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use MergeTask_OperationType.Descriptor instead.
 func (MergeTask_OperationType) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{86, 1}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{86, 1}
 }
 
 type CopyTask_TaskMode int32
@@ -1379,11 +1379,11 @@ func (x CopyTask_TaskMode) String() string {
 }
 
 func (CopyTask_TaskMode) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[25].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[25].Descriptor()
 }
 
 func (CopyTask_TaskMode) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[25]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[25]
 }
 
 func (x CopyTask_TaskMode) Number() protoreflect.EnumNumber {
@@ -1392,7 +1392,7 @@ func (x CopyTask_TaskMode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CopyTask_TaskMode.Descriptor instead.
 func (CopyTask_TaskMode) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{89, 0}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{89, 0}
 }
 
 type CopyTask_TaskStatus int32
@@ -1434,11 +1434,11 @@ func (x CopyTask_TaskStatus) String() string {
 }
 
 func (CopyTask_TaskStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[26].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[26].Descriptor()
 }
 
 func (CopyTask_TaskStatus) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[26]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[26]
 }
 
 func (x CopyTask_TaskStatus) Number() protoreflect.EnumNumber {
@@ -1447,7 +1447,7 @@ func (x CopyTask_TaskStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CopyTask_TaskStatus.Descriptor instead.
 func (CopyTask_TaskStatus) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{89, 1}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{89, 1}
 }
 
 type ClearOfflineFileRequest_Filter int32
@@ -1486,11 +1486,11 @@ func (x ClearOfflineFileRequest_Filter) String() string {
 }
 
 func (ClearOfflineFileRequest_Filter) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[27].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[27].Descriptor()
 }
 
 func (ClearOfflineFileRequest_Filter) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[27]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[27]
 }
 
 func (x ClearOfflineFileRequest_Filter) Number() protoreflect.EnumNumber {
@@ -1499,7 +1499,7 @@ func (x ClearOfflineFileRequest_Filter) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ClearOfflineFileRequest_Filter.Descriptor instead.
 func (ClearOfflineFileRequest_Filter) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{155, 0}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{155, 0}
 }
 
 type BalanceLog_BalancceChangeOperation int32
@@ -1535,11 +1535,11 @@ func (x BalanceLog_BalancceChangeOperation) String() string {
 }
 
 func (BalanceLog_BalancceChangeOperation) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[28].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[28].Descriptor()
 }
 
 func (BalanceLog_BalancceChangeOperation) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[28]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[28]
 }
 
 func (x BalanceLog_BalancceChangeOperation) Number() protoreflect.EnumNumber {
@@ -1548,7 +1548,7 @@ func (x BalanceLog_BalancceChangeOperation) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use BalanceLog_BalancceChangeOperation.Descriptor instead.
 func (BalanceLog_BalancceChangeOperation) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{162, 0}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{162, 0}
 }
 
 type BackupStatus_Status int32
@@ -1593,11 +1593,11 @@ func (x BackupStatus_Status) String() string {
 }
 
 func (BackupStatus_Status) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[29].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[29].Descriptor()
 }
 
 func (BackupStatus_Status) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[29]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[29]
 }
 
 func (x BackupStatus_Status) Number() protoreflect.EnumNumber {
@@ -1606,7 +1606,7 @@ func (x BackupStatus_Status) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use BackupStatus_Status.Descriptor instead.
 func (BackupStatus_Status) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{174, 0}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{174, 0}
 }
 
 type BackupStatus_FileWatchStatus int32
@@ -1645,11 +1645,11 @@ func (x BackupStatus_FileWatchStatus) String() string {
 }
 
 func (BackupStatus_FileWatchStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[30].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[30].Descriptor()
 }
 
 func (BackupStatus_FileWatchStatus) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[30]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[30]
 }
 
 func (x BackupStatus_FileWatchStatus) Number() protoreflect.EnumNumber {
@@ -1658,7 +1658,7 @@ func (x BackupStatus_FileWatchStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use BackupStatus_FileWatchStatus.Descriptor instead.
 func (BackupStatus_FileWatchStatus) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{174, 1}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{174, 1}
 }
 
 type PhotoLibraryChange_ChangeType int32
@@ -1691,11 +1691,11 @@ func (x PhotoLibraryChange_ChangeType) String() string {
 }
 
 func (PhotoLibraryChange_ChangeType) Descriptor() protoreflect.EnumDescriptor {
-	return file_clouddrive2_proto_enumTypes[31].Descriptor()
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[31].Descriptor()
 }
 
 func (PhotoLibraryChange_ChangeType) Type() protoreflect.EnumType {
-	return &file_clouddrive2_proto_enumTypes[31]
+	return &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes[31]
 }
 
 func (x PhotoLibraryChange_ChangeType) Number() protoreflect.EnumNumber {
@@ -1704,7 +1704,7 @@ func (x PhotoLibraryChange_ChangeType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use PhotoLibraryChange_ChangeType.Descriptor instead.
 func (PhotoLibraryChange_ChangeType) EnumDescriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{178, 0}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{178, 0}
 }
 
 type GetTokenRequest struct {
@@ -1718,7 +1718,7 @@ type GetTokenRequest struct {
 
 func (x *GetTokenRequest) Reset() {
 	*x = GetTokenRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[0]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1730,7 +1730,7 @@ func (x *GetTokenRequest) String() string {
 func (*GetTokenRequest) ProtoMessage() {}
 
 func (x *GetTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[0]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1743,7 +1743,7 @@ func (x *GetTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTokenRequest.ProtoReflect.Descriptor instead.
 func (*GetTokenRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{0}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *GetTokenRequest) GetUserName() string {
@@ -1779,7 +1779,7 @@ type JWTToken struct {
 
 func (x *JWTToken) Reset() {
 	*x = JWTToken{}
-	mi := &file_clouddrive2_proto_msgTypes[1]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1791,7 +1791,7 @@ func (x *JWTToken) String() string {
 func (*JWTToken) ProtoMessage() {}
 
 func (x *JWTToken) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[1]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1804,7 +1804,7 @@ func (x *JWTToken) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWTToken.ProtoReflect.Descriptor instead.
 func (*JWTToken) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{1}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *JWTToken) GetSuccess() bool {
@@ -1845,7 +1845,7 @@ type FileRequest struct {
 
 func (x *FileRequest) Reset() {
 	*x = FileRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[2]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1857,7 +1857,7 @@ func (x *FileRequest) String() string {
 func (*FileRequest) ProtoMessage() {}
 
 func (x *FileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[2]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1870,7 +1870,7 @@ func (x *FileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileRequest.ProtoReflect.Descriptor instead.
 func (*FileRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{2}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *FileRequest) GetPath() string {
@@ -1896,7 +1896,7 @@ type MultiFileRequest struct {
 
 func (x *MultiFileRequest) Reset() {
 	*x = MultiFileRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[3]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1908,7 +1908,7 @@ func (x *MultiFileRequest) String() string {
 func (*MultiFileRequest) ProtoMessage() {}
 
 func (x *MultiFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[3]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1921,7 +1921,7 @@ func (x *MultiFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MultiFileRequest.ProtoReflect.Descriptor instead.
 func (*MultiFileRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{3}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *MultiFileRequest) GetPath() []string {
@@ -1942,7 +1942,7 @@ type FileOperationResult struct {
 
 func (x *FileOperationResult) Reset() {
 	*x = FileOperationResult{}
-	mi := &file_clouddrive2_proto_msgTypes[4]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1954,7 +1954,7 @@ func (x *FileOperationResult) String() string {
 func (*FileOperationResult) ProtoMessage() {}
 
 func (x *FileOperationResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[4]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1967,7 +1967,7 @@ func (x *FileOperationResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileOperationResult.ProtoReflect.Descriptor instead.
 func (*FileOperationResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{4}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *FileOperationResult) GetSuccess() bool {
@@ -2000,7 +2000,7 @@ type StringResult struct {
 
 func (x *StringResult) Reset() {
 	*x = StringResult{}
-	mi := &file_clouddrive2_proto_msgTypes[5]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2012,7 +2012,7 @@ func (x *StringResult) String() string {
 func (*StringResult) ProtoMessage() {}
 
 func (x *StringResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[5]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2025,7 +2025,7 @@ func (x *StringResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StringResult.ProtoReflect.Descriptor instead.
 func (*StringResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{5}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *StringResult) GetResult() string {
@@ -2047,7 +2047,7 @@ type GetDownloadUrlPathRequest struct {
 
 func (x *GetDownloadUrlPathRequest) Reset() {
 	*x = GetDownloadUrlPathRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[6]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2059,7 +2059,7 @@ func (x *GetDownloadUrlPathRequest) String() string {
 func (*GetDownloadUrlPathRequest) ProtoMessage() {}
 
 func (x *GetDownloadUrlPathRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[6]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2072,7 +2072,7 @@ func (x *GetDownloadUrlPathRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDownloadUrlPathRequest.ProtoReflect.Descriptor instead.
 func (*GetDownloadUrlPathRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{6}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetDownloadUrlPathRequest) GetPath() string {
@@ -2117,7 +2117,7 @@ type DownloadUrlPathInfo struct {
 
 func (x *DownloadUrlPathInfo) Reset() {
 	*x = DownloadUrlPathInfo{}
-	mi := &file_clouddrive2_proto_msgTypes[7]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2129,7 +2129,7 @@ func (x *DownloadUrlPathInfo) String() string {
 func (*DownloadUrlPathInfo) ProtoMessage() {}
 
 func (x *DownloadUrlPathInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[7]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2142,7 +2142,7 @@ func (x *DownloadUrlPathInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DownloadUrlPathInfo.ProtoReflect.Descriptor instead.
 func (*DownloadUrlPathInfo) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{7}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *DownloadUrlPathInfo) GetDownloadUrlPath() string {
@@ -2189,7 +2189,7 @@ type BoolResult struct {
 
 func (x *BoolResult) Reset() {
 	*x = BoolResult{}
-	mi := &file_clouddrive2_proto_msgTypes[8]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2201,7 +2201,7 @@ func (x *BoolResult) String() string {
 func (*BoolResult) ProtoMessage() {}
 
 func (x *BoolResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[8]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2214,7 +2214,7 @@ func (x *BoolResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BoolResult.ProtoReflect.Descriptor instead.
 func (*BoolResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{8}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *BoolResult) GetResult() bool {
@@ -2233,7 +2233,7 @@ type UnmountArchiveResult struct {
 
 func (x *UnmountArchiveResult) Reset() {
 	*x = UnmountArchiveResult{}
-	mi := &file_clouddrive2_proto_msgTypes[9]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2245,7 +2245,7 @@ func (x *UnmountArchiveResult) String() string {
 func (*UnmountArchiveResult) ProtoMessage() {}
 
 func (x *UnmountArchiveResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[9]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2258,7 +2258,7 @@ func (x *UnmountArchiveResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnmountArchiveResult.ProtoReflect.Descriptor instead.
 func (*UnmountArchiveResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{9}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *UnmountArchiveResult) GetResult() string {
@@ -2279,7 +2279,7 @@ type ListSubFileRequest struct {
 
 func (x *ListSubFileRequest) Reset() {
 	*x = ListSubFileRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[10]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2291,7 +2291,7 @@ func (x *ListSubFileRequest) String() string {
 func (*ListSubFileRequest) ProtoMessage() {}
 
 func (x *ListSubFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[10]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2304,7 +2304,7 @@ func (x *ListSubFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSubFileRequest.ProtoReflect.Descriptor instead.
 func (*ListSubFileRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{10}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListSubFileRequest) GetPath() string {
@@ -2341,7 +2341,7 @@ type SearchRequest struct {
 
 func (x *SearchRequest) Reset() {
 	*x = SearchRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[11]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2353,7 +2353,7 @@ func (x *SearchRequest) String() string {
 func (*SearchRequest) ProtoMessage() {}
 
 func (x *SearchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[11]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2366,7 +2366,7 @@ func (x *SearchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchRequest.ProtoReflect.Descriptor instead.
 func (*SearchRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{11}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *SearchRequest) GetPath() string {
@@ -2415,7 +2415,7 @@ type AddOfflineFileRequest struct {
 
 func (x *AddOfflineFileRequest) Reset() {
 	*x = AddOfflineFileRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[12]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2427,7 +2427,7 @@ func (x *AddOfflineFileRequest) String() string {
 func (*AddOfflineFileRequest) ProtoMessage() {}
 
 func (x *AddOfflineFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[12]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2440,7 +2440,7 @@ func (x *AddOfflineFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddOfflineFileRequest.ProtoReflect.Descriptor instead.
 func (*AddOfflineFileRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{12}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *AddOfflineFileRequest) GetUrls() string {
@@ -2477,7 +2477,7 @@ type RemoveOfflineFilesRequest struct {
 
 func (x *RemoveOfflineFilesRequest) Reset() {
 	*x = RemoveOfflineFilesRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[13]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2489,7 +2489,7 @@ func (x *RemoveOfflineFilesRequest) String() string {
 func (*RemoveOfflineFilesRequest) ProtoMessage() {}
 
 func (x *RemoveOfflineFilesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[13]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2502,7 +2502,7 @@ func (x *RemoveOfflineFilesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveOfflineFilesRequest.ProtoReflect.Descriptor instead.
 func (*RemoveOfflineFilesRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{13}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *RemoveOfflineFilesRequest) GetCloudName() string {
@@ -2551,7 +2551,7 @@ type AddSharedLinkRequest struct {
 
 func (x *AddSharedLinkRequest) Reset() {
 	*x = AddSharedLinkRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[14]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2563,7 +2563,7 @@ func (x *AddSharedLinkRequest) String() string {
 func (*AddSharedLinkRequest) ProtoMessage() {}
 
 func (x *AddSharedLinkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[14]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2576,7 +2576,7 @@ func (x *AddSharedLinkRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddSharedLinkRequest.ProtoReflect.Descriptor instead.
 func (*AddSharedLinkRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{14}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *AddSharedLinkRequest) GetSharedLinkUrl() string {
@@ -2609,7 +2609,7 @@ type SubFilesReply struct {
 
 func (x *SubFilesReply) Reset() {
 	*x = SubFilesReply{}
-	mi := &file_clouddrive2_proto_msgTypes[15]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2621,7 +2621,7 @@ func (x *SubFilesReply) String() string {
 func (*SubFilesReply) ProtoMessage() {}
 
 func (x *SubFilesReply) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[15]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2634,7 +2634,7 @@ func (x *SubFilesReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubFilesReply.ProtoReflect.Descriptor instead.
 func (*SubFilesReply) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{15}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *SubFilesReply) GetSubFiles() []*CloudDriveFile {
@@ -2654,7 +2654,7 @@ type FindFileByPathRequest struct {
 
 func (x *FindFileByPathRequest) Reset() {
 	*x = FindFileByPathRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[16]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2666,7 +2666,7 @@ func (x *FindFileByPathRequest) String() string {
 func (*FindFileByPathRequest) ProtoMessage() {}
 
 func (x *FindFileByPathRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[16]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2679,7 +2679,7 @@ func (x *FindFileByPathRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FindFileByPathRequest.ProtoReflect.Descriptor instead.
 func (*FindFileByPathRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{16}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *FindFileByPathRequest) GetParentPath() string {
@@ -2706,7 +2706,7 @@ type CreateFolderRequest struct {
 
 func (x *CreateFolderRequest) Reset() {
 	*x = CreateFolderRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[17]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2718,7 +2718,7 @@ func (x *CreateFolderRequest) String() string {
 func (*CreateFolderRequest) ProtoMessage() {}
 
 func (x *CreateFolderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[17]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2731,7 +2731,7 @@ func (x *CreateFolderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateFolderRequest.ProtoReflect.Descriptor instead.
 func (*CreateFolderRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{17}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CreateFolderRequest) GetParentPath() string {
@@ -2760,7 +2760,7 @@ type CreateEncryptedFolderRequest struct {
 
 func (x *CreateEncryptedFolderRequest) Reset() {
 	*x = CreateEncryptedFolderRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[18]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2772,7 +2772,7 @@ func (x *CreateEncryptedFolderRequest) String() string {
 func (*CreateEncryptedFolderRequest) ProtoMessage() {}
 
 func (x *CreateEncryptedFolderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[18]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2785,7 +2785,7 @@ func (x *CreateEncryptedFolderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateEncryptedFolderRequest.ProtoReflect.Descriptor instead.
 func (*CreateEncryptedFolderRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{18}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *CreateEncryptedFolderRequest) GetParentPath() string {
@@ -2827,7 +2827,7 @@ type UnlockEncryptedFileRequest struct {
 
 func (x *UnlockEncryptedFileRequest) Reset() {
 	*x = UnlockEncryptedFileRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[19]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2839,7 +2839,7 @@ func (x *UnlockEncryptedFileRequest) String() string {
 func (*UnlockEncryptedFileRequest) ProtoMessage() {}
 
 func (x *UnlockEncryptedFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[19]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2852,7 +2852,7 @@ func (x *UnlockEncryptedFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnlockEncryptedFileRequest.ProtoReflect.Descriptor instead.
 func (*UnlockEncryptedFileRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{19}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *UnlockEncryptedFileRequest) GetPath() string {
@@ -2886,7 +2886,7 @@ type CreateFolderResult struct {
 
 func (x *CreateFolderResult) Reset() {
 	*x = CreateFolderResult{}
-	mi := &file_clouddrive2_proto_msgTypes[20]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2898,7 +2898,7 @@ func (x *CreateFolderResult) String() string {
 func (*CreateFolderResult) ProtoMessage() {}
 
 func (x *CreateFolderResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[20]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2911,7 +2911,7 @@ func (x *CreateFolderResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateFolderResult.ProtoReflect.Descriptor instead.
 func (*CreateFolderResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{20}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *CreateFolderResult) GetFolderCreated() *CloudDriveFile {
@@ -2938,7 +2938,7 @@ type CreateFileRequest struct {
 
 func (x *CreateFileRequest) Reset() {
 	*x = CreateFileRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[21]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2950,7 +2950,7 @@ func (x *CreateFileRequest) String() string {
 func (*CreateFileRequest) ProtoMessage() {}
 
 func (x *CreateFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[21]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2963,7 +2963,7 @@ func (x *CreateFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateFileRequest.ProtoReflect.Descriptor instead.
 func (*CreateFileRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{21}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *CreateFileRequest) GetParentPath() string {
@@ -2989,7 +2989,7 @@ type CreateFileResult struct {
 
 func (x *CreateFileResult) Reset() {
 	*x = CreateFileResult{}
-	mi := &file_clouddrive2_proto_msgTypes[22]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3001,7 +3001,7 @@ func (x *CreateFileResult) String() string {
 func (*CreateFileResult) ProtoMessage() {}
 
 func (x *CreateFileResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[22]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3014,7 +3014,7 @@ func (x *CreateFileResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateFileResult.ProtoReflect.Descriptor instead.
 func (*CreateFileResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{22}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *CreateFileResult) GetFileHandle() uint64 {
@@ -3033,7 +3033,7 @@ type CloseFileRequest struct {
 
 func (x *CloseFileRequest) Reset() {
 	*x = CloseFileRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[23]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3045,7 +3045,7 @@ func (x *CloseFileRequest) String() string {
 func (*CloseFileRequest) ProtoMessage() {}
 
 func (x *CloseFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[23]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3058,7 +3058,7 @@ func (x *CloseFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseFileRequest.ProtoReflect.Descriptor instead.
 func (*CloseFileRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{23}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *CloseFileRequest) GetFileHandle() uint64 {
@@ -3082,7 +3082,7 @@ type MoveFileRequest struct {
 
 func (x *MoveFileRequest) Reset() {
 	*x = MoveFileRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[24]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3094,7 +3094,7 @@ func (x *MoveFileRequest) String() string {
 func (*MoveFileRequest) ProtoMessage() {}
 
 func (x *MoveFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[24]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3107,7 +3107,7 @@ func (x *MoveFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MoveFileRequest.ProtoReflect.Descriptor instead.
 func (*MoveFileRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{24}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *MoveFileRequest) GetTheFilePaths() []string {
@@ -3157,7 +3157,7 @@ type CopyFileRequest struct {
 
 func (x *CopyFileRequest) Reset() {
 	*x = CopyFileRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[25]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3169,7 +3169,7 @@ func (x *CopyFileRequest) String() string {
 func (*CopyFileRequest) ProtoMessage() {}
 
 func (x *CopyFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[25]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3182,7 +3182,7 @@ func (x *CopyFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CopyFileRequest.ProtoReflect.Descriptor instead.
 func (*CopyFileRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{25}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *CopyFileRequest) GetTheFilePaths() []string {
@@ -3226,7 +3226,7 @@ type WriteFileRequest struct {
 
 func (x *WriteFileRequest) Reset() {
 	*x = WriteFileRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[26]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3238,7 +3238,7 @@ func (x *WriteFileRequest) String() string {
 func (*WriteFileRequest) ProtoMessage() {}
 
 func (x *WriteFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[26]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3251,7 +3251,7 @@ func (x *WriteFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteFileRequest.ProtoReflect.Descriptor instead.
 func (*WriteFileRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{26}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *WriteFileRequest) GetFileHandle() uint64 {
@@ -3298,7 +3298,7 @@ type WriteFileResult struct {
 
 func (x *WriteFileResult) Reset() {
 	*x = WriteFileResult{}
-	mi := &file_clouddrive2_proto_msgTypes[27]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3310,7 +3310,7 @@ func (x *WriteFileResult) String() string {
 func (*WriteFileResult) ProtoMessage() {}
 
 func (x *WriteFileResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[27]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3323,7 +3323,7 @@ func (x *WriteFileResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteFileResult.ProtoReflect.Descriptor instead.
 func (*WriteFileResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{27}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *WriteFileResult) GetBytesWritten() uint64 {
@@ -3343,7 +3343,7 @@ type RenameFileRequest struct {
 
 func (x *RenameFileRequest) Reset() {
 	*x = RenameFileRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[28]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3355,7 +3355,7 @@ func (x *RenameFileRequest) String() string {
 func (*RenameFileRequest) ProtoMessage() {}
 
 func (x *RenameFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[28]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3368,7 +3368,7 @@ func (x *RenameFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenameFileRequest.ProtoReflect.Descriptor instead.
 func (*RenameFileRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{28}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *RenameFileRequest) GetTheFilePath() string {
@@ -3394,7 +3394,7 @@ type RenameFilesRequest struct {
 
 func (x *RenameFilesRequest) Reset() {
 	*x = RenameFilesRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[29]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3406,7 +3406,7 @@ func (x *RenameFilesRequest) String() string {
 func (*RenameFilesRequest) ProtoMessage() {}
 
 func (x *RenameFilesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[29]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3419,7 +3419,7 @@ func (x *RenameFilesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenameFilesRequest.ProtoReflect.Descriptor instead.
 func (*RenameFilesRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{29}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *RenameFilesRequest) GetRenameFiles() []*RenameFileRequest {
@@ -3477,7 +3477,7 @@ type CloudDriveFile struct {
 
 func (x *CloudDriveFile) Reset() {
 	*x = CloudDriveFile{}
-	mi := &file_clouddrive2_proto_msgTypes[30]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3489,7 +3489,7 @@ func (x *CloudDriveFile) String() string {
 func (*CloudDriveFile) ProtoMessage() {}
 
 func (x *CloudDriveFile) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[30]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3502,7 +3502,7 @@ func (x *CloudDriveFile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloudDriveFile.ProtoReflect.Descriptor instead.
 func (*CloudDriveFile) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{30}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *CloudDriveFile) GetId() string {
@@ -3775,7 +3775,7 @@ type SpaceInfo struct {
 
 func (x *SpaceInfo) Reset() {
 	*x = SpaceInfo{}
-	mi := &file_clouddrive2_proto_msgTypes[31]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3787,7 +3787,7 @@ func (x *SpaceInfo) String() string {
 func (*SpaceInfo) ProtoMessage() {}
 
 func (x *SpaceInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[31]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3800,7 +3800,7 @@ func (x *SpaceInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SpaceInfo.ProtoReflect.Descriptor instead.
 func (*SpaceInfo) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{31}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *SpaceInfo) GetTotalSpace() int64 {
@@ -3844,7 +3844,7 @@ type CloudAPI struct {
 
 func (x *CloudAPI) Reset() {
 	*x = CloudAPI{}
-	mi := &file_clouddrive2_proto_msgTypes[32]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3856,7 +3856,7 @@ func (x *CloudAPI) String() string {
 func (*CloudAPI) ProtoMessage() {}
 
 func (x *CloudAPI) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[32]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3869,7 +3869,7 @@ func (x *CloudAPI) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloudAPI.ProtoReflect.Descriptor instead.
 func (*CloudAPI) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{32}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *CloudAPI) GetName() string {
@@ -3960,7 +3960,7 @@ type CloudMembership struct {
 
 func (x *CloudMembership) Reset() {
 	*x = CloudMembership{}
-	mi := &file_clouddrive2_proto_msgTypes[33]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3972,7 +3972,7 @@ func (x *CloudMembership) String() string {
 func (*CloudMembership) ProtoMessage() {}
 
 func (x *CloudMembership) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[33]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3985,7 +3985,7 @@ func (x *CloudMembership) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloudMembership.ProtoReflect.Descriptor instead.
 func (*CloudMembership) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{33}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *CloudMembership) GetIdentity() string {
@@ -4018,7 +4018,7 @@ type CloudMemberships struct {
 
 func (x *CloudMemberships) Reset() {
 	*x = CloudMemberships{}
-	mi := &file_clouddrive2_proto_msgTypes[34]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4030,7 +4030,7 @@ func (x *CloudMemberships) String() string {
 func (*CloudMemberships) ProtoMessage() {}
 
 func (x *CloudMemberships) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[34]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4043,7 +4043,7 @@ func (x *CloudMemberships) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloudMemberships.ProtoReflect.Descriptor instead.
 func (*CloudMemberships) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{34}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *CloudMemberships) GetMemberships() []*CloudMembership {
@@ -4067,7 +4067,7 @@ type FileDetailProperties struct {
 
 func (x *FileDetailProperties) Reset() {
 	*x = FileDetailProperties{}
-	mi := &file_clouddrive2_proto_msgTypes[35]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4079,7 +4079,7 @@ func (x *FileDetailProperties) String() string {
 func (*FileDetailProperties) ProtoMessage() {}
 
 func (x *FileDetailProperties) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[35]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4092,7 +4092,7 @@ func (x *FileDetailProperties) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileDetailProperties.ProtoReflect.Descriptor instead.
 func (*FileDetailProperties) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{35}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *FileDetailProperties) GetTotalFileCount() int64 {
@@ -4146,7 +4146,7 @@ type FileMetaData struct {
 
 func (x *FileMetaData) Reset() {
 	*x = FileMetaData{}
-	mi := &file_clouddrive2_proto_msgTypes[36]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4158,7 +4158,7 @@ func (x *FileMetaData) String() string {
 func (*FileMetaData) ProtoMessage() {}
 
 func (x *FileMetaData) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[36]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4171,7 +4171,7 @@ func (x *FileMetaData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileMetaData.ProtoReflect.Descriptor instead.
 func (*FileMetaData) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{36}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *FileMetaData) GetMetadata() map[string]string {
@@ -4194,7 +4194,7 @@ type CloudDriveSystemInfo struct {
 
 func (x *CloudDriveSystemInfo) Reset() {
 	*x = CloudDriveSystemInfo{}
-	mi := &file_clouddrive2_proto_msgTypes[37]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4206,7 +4206,7 @@ func (x *CloudDriveSystemInfo) String() string {
 func (*CloudDriveSystemInfo) ProtoMessage() {}
 
 func (x *CloudDriveSystemInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[37]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4219,7 +4219,7 @@ func (x *CloudDriveSystemInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloudDriveSystemInfo.ProtoReflect.Descriptor instead.
 func (*CloudDriveSystemInfo) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{37}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *CloudDriveSystemInfo) GetIsLogin() bool {
@@ -4268,7 +4268,7 @@ type UserLoginRequest struct {
 
 func (x *UserLoginRequest) Reset() {
 	*x = UserLoginRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[38]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4280,7 +4280,7 @@ func (x *UserLoginRequest) String() string {
 func (*UserLoginRequest) ProtoMessage() {}
 
 func (x *UserLoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[38]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4293,7 +4293,7 @@ func (x *UserLoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserLoginRequest.ProtoReflect.Descriptor instead.
 func (*UserLoginRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{38}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *UserLoginRequest) GetUserName() string {
@@ -4330,7 +4330,7 @@ type LoginWithThirdPartyAccountRequest struct {
 
 func (x *LoginWithThirdPartyAccountRequest) Reset() {
 	*x = LoginWithThirdPartyAccountRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[39]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4342,7 +4342,7 @@ func (x *LoginWithThirdPartyAccountRequest) String() string {
 func (*LoginWithThirdPartyAccountRequest) ProtoMessage() {}
 
 func (x *LoginWithThirdPartyAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[39]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4355,7 +4355,7 @@ func (x *LoginWithThirdPartyAccountRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use LoginWithThirdPartyAccountRequest.ProtoReflect.Descriptor instead.
 func (*LoginWithThirdPartyAccountRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{39}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *LoginWithThirdPartyAccountRequest) GetCloudName() string {
@@ -4403,7 +4403,7 @@ type UserRegisterRequest struct {
 
 func (x *UserRegisterRequest) Reset() {
 	*x = UserRegisterRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[40]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4415,7 +4415,7 @@ func (x *UserRegisterRequest) String() string {
 func (*UserRegisterRequest) ProtoMessage() {}
 
 func (x *UserRegisterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[40]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4428,7 +4428,7 @@ func (x *UserRegisterRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserRegisterRequest.ProtoReflect.Descriptor instead.
 func (*UserRegisterRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{40}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *UserRegisterRequest) GetUserName() string {
@@ -4454,7 +4454,7 @@ type UserLogoutRequest struct {
 
 func (x *UserLogoutRequest) Reset() {
 	*x = UserLogoutRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[41]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4466,7 +4466,7 @@ func (x *UserLogoutRequest) String() string {
 func (*UserLogoutRequest) ProtoMessage() {}
 
 func (x *UserLogoutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[41]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4479,7 +4479,7 @@ func (x *UserLogoutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserLogoutRequest.ProtoReflect.Descriptor instead.
 func (*UserLogoutRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{41}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *UserLogoutRequest) GetLogoutFromCloudFS() bool {
@@ -4500,7 +4500,7 @@ type ChangePasswordRequest struct {
 
 func (x *ChangePasswordRequest) Reset() {
 	*x = ChangePasswordRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[42]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4512,7 +4512,7 @@ func (x *ChangePasswordRequest) String() string {
 func (*ChangePasswordRequest) ProtoMessage() {}
 
 func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[42]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4525,7 +4525,7 @@ func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangePasswordRequest.ProtoReflect.Descriptor instead.
 func (*ChangePasswordRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{42}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *ChangePasswordRequest) GetOldPassword() string {
@@ -4567,7 +4567,7 @@ type AccountStatusResult struct {
 
 func (x *AccountStatusResult) Reset() {
 	*x = AccountStatusResult{}
-	mi := &file_clouddrive2_proto_msgTypes[43]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4579,7 +4579,7 @@ func (x *AccountStatusResult) String() string {
 func (*AccountStatusResult) ProtoMessage() {}
 
 func (x *AccountStatusResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[43]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4592,7 +4592,7 @@ func (x *AccountStatusResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AccountStatusResult.ProtoReflect.Descriptor instead.
 func (*AccountStatusResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{43}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *AccountStatusResult) GetUserName() string {
@@ -4671,7 +4671,7 @@ type AccountPlan struct {
 
 func (x *AccountPlan) Reset() {
 	*x = AccountPlan{}
-	mi := &file_clouddrive2_proto_msgTypes[44]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4683,7 +4683,7 @@ func (x *AccountPlan) String() string {
 func (*AccountPlan) ProtoMessage() {}
 
 func (x *AccountPlan) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[44]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4696,7 +4696,7 @@ func (x *AccountPlan) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AccountPlan.ProtoReflect.Descriptor instead.
 func (*AccountPlan) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{44}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *AccountPlan) GetPlanName() string {
@@ -4745,7 +4745,7 @@ type AccountRole struct {
 
 func (x *AccountRole) Reset() {
 	*x = AccountRole{}
-	mi := &file_clouddrive2_proto_msgTypes[45]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4757,7 +4757,7 @@ func (x *AccountRole) String() string {
 func (*AccountRole) ProtoMessage() {}
 
 func (x *AccountRole) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[45]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4770,7 +4770,7 @@ func (x *AccountRole) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AccountRole.ProtoReflect.Descriptor instead.
 func (*AccountRole) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{45}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *AccountRole) GetRoleName() string {
@@ -4806,7 +4806,7 @@ type RuntimeInfo struct {
 
 func (x *RuntimeInfo) Reset() {
 	*x = RuntimeInfo{}
-	mi := &file_clouddrive2_proto_msgTypes[46]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4818,7 +4818,7 @@ func (x *RuntimeInfo) String() string {
 func (*RuntimeInfo) ProtoMessage() {}
 
 func (x *RuntimeInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[46]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4831,7 +4831,7 @@ func (x *RuntimeInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RuntimeInfo.ProtoReflect.Descriptor instead.
 func (*RuntimeInfo) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{46}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *RuntimeInfo) GetProductName() string {
@@ -4880,7 +4880,7 @@ type RunInfo struct {
 
 func (x *RunInfo) Reset() {
 	*x = RunInfo{}
-	mi := &file_clouddrive2_proto_msgTypes[47]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4892,7 +4892,7 @@ func (x *RunInfo) String() string {
 func (*RunInfo) ProtoMessage() {}
 
 func (x *RunInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[47]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4905,7 +4905,7 @@ func (x *RunInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunInfo.ProtoReflect.Descriptor instead.
 func (*RunInfo) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{47}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *RunInfo) GetCpuUsage() float64 {
@@ -4993,7 +4993,7 @@ type OpenFileHandle struct {
 
 func (x *OpenFileHandle) Reset() {
 	*x = OpenFileHandle{}
-	mi := &file_clouddrive2_proto_msgTypes[48]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5005,7 +5005,7 @@ func (x *OpenFileHandle) String() string {
 func (*OpenFileHandle) ProtoMessage() {}
 
 func (x *OpenFileHandle) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[48]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5018,7 +5018,7 @@ func (x *OpenFileHandle) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenFileHandle.ProtoReflect.Descriptor instead.
 func (*OpenFileHandle) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{48}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *OpenFileHandle) GetFileHandle() uint64 {
@@ -5079,7 +5079,7 @@ type OpenFileHandleList struct {
 
 func (x *OpenFileHandleList) Reset() {
 	*x = OpenFileHandleList{}
-	mi := &file_clouddrive2_proto_msgTypes[49]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5091,7 +5091,7 @@ func (x *OpenFileHandleList) String() string {
 func (*OpenFileHandleList) ProtoMessage() {}
 
 func (x *OpenFileHandleList) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[49]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5104,7 +5104,7 @@ func (x *OpenFileHandleList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenFileHandleList.ProtoReflect.Descriptor instead.
 func (*OpenFileHandleList) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{49}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *OpenFileHandleList) GetOpenFileHandles() []*OpenFileHandle {
@@ -5131,7 +5131,7 @@ type MountOption struct {
 
 func (x *MountOption) Reset() {
 	*x = MountOption{}
-	mi := &file_clouddrive2_proto_msgTypes[50]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5143,7 +5143,7 @@ func (x *MountOption) String() string {
 func (*MountOption) ProtoMessage() {}
 
 func (x *MountOption) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[50]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5156,7 +5156,7 @@ func (x *MountOption) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MountOption.ProtoReflect.Descriptor instead.
 func (*MountOption) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{50}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *MountOption) GetMountPoint() string {
@@ -5240,7 +5240,7 @@ type MountPoint struct {
 
 func (x *MountPoint) Reset() {
 	*x = MountPoint{}
-	mi := &file_clouddrive2_proto_msgTypes[51]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5252,7 +5252,7 @@ func (x *MountPoint) String() string {
 func (*MountPoint) ProtoMessage() {}
 
 func (x *MountPoint) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[51]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5265,7 +5265,7 @@ func (x *MountPoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MountPoint.ProtoReflect.Descriptor instead.
 func (*MountPoint) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{51}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *MountPoint) GetMountPoint() string {
@@ -5347,7 +5347,7 @@ type MountPointRequest struct {
 
 func (x *MountPointRequest) Reset() {
 	*x = MountPointRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[52]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5359,7 +5359,7 @@ func (x *MountPointRequest) String() string {
 func (*MountPointRequest) ProtoMessage() {}
 
 func (x *MountPointRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[52]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5372,7 +5372,7 @@ func (x *MountPointRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MountPointRequest.ProtoReflect.Descriptor instead.
 func (*MountPointRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{52}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *MountPointRequest) GetMountPoint() string {
@@ -5391,7 +5391,7 @@ type GetMountPointsResult struct {
 
 func (x *GetMountPointsResult) Reset() {
 	*x = GetMountPointsResult{}
-	mi := &file_clouddrive2_proto_msgTypes[53]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5403,7 +5403,7 @@ func (x *GetMountPointsResult) String() string {
 func (*GetMountPointsResult) ProtoMessage() {}
 
 func (x *GetMountPointsResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[53]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5416,7 +5416,7 @@ func (x *GetMountPointsResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMountPointsResult.ProtoReflect.Descriptor instead.
 func (*GetMountPointsResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{53}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *GetMountPointsResult) GetMountPoints() []*MountPoint {
@@ -5436,7 +5436,7 @@ type MountPointResult struct {
 
 func (x *MountPointResult) Reset() {
 	*x = MountPointResult{}
-	mi := &file_clouddrive2_proto_msgTypes[54]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5448,7 +5448,7 @@ func (x *MountPointResult) String() string {
 func (*MountPointResult) ProtoMessage() {}
 
 func (x *MountPointResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[54]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5461,7 +5461,7 @@ func (x *MountPointResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MountPointResult.ProtoReflect.Descriptor instead.
 func (*MountPointResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{54}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *MountPointResult) GetSuccess() bool {
@@ -5488,7 +5488,7 @@ type UpdateMountPointRequest struct {
 
 func (x *UpdateMountPointRequest) Reset() {
 	*x = UpdateMountPointRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[55]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5500,7 +5500,7 @@ func (x *UpdateMountPointRequest) String() string {
 func (*UpdateMountPointRequest) ProtoMessage() {}
 
 func (x *UpdateMountPointRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[55]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5513,7 +5513,7 @@ func (x *UpdateMountPointRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateMountPointRequest.ProtoReflect.Descriptor instead.
 func (*UpdateMountPointRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{55}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *UpdateMountPointRequest) GetMountPoint() string {
@@ -5539,7 +5539,7 @@ type GetAvailableDriveLettersRequest struct {
 
 func (x *GetAvailableDriveLettersRequest) Reset() {
 	*x = GetAvailableDriveLettersRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[56]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5551,7 +5551,7 @@ func (x *GetAvailableDriveLettersRequest) String() string {
 func (*GetAvailableDriveLettersRequest) ProtoMessage() {}
 
 func (x *GetAvailableDriveLettersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[56]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5564,7 +5564,7 @@ func (x *GetAvailableDriveLettersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAvailableDriveLettersRequest.ProtoReflect.Descriptor instead.
 func (*GetAvailableDriveLettersRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{56}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *GetAvailableDriveLettersRequest) GetIncludeCloudDrive() bool {
@@ -5583,7 +5583,7 @@ type GetAvailableDriveLettersResult struct {
 
 func (x *GetAvailableDriveLettersResult) Reset() {
 	*x = GetAvailableDriveLettersResult{}
-	mi := &file_clouddrive2_proto_msgTypes[57]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5595,7 +5595,7 @@ func (x *GetAvailableDriveLettersResult) String() string {
 func (*GetAvailableDriveLettersResult) ProtoMessage() {}
 
 func (x *GetAvailableDriveLettersResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[57]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5608,7 +5608,7 @@ func (x *GetAvailableDriveLettersResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAvailableDriveLettersResult.ProtoReflect.Descriptor instead.
 func (*GetAvailableDriveLettersResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{57}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *GetAvailableDriveLettersResult) GetDriveLetters() []string {
@@ -5627,7 +5627,7 @@ type HasDriveLettersResult struct {
 
 func (x *HasDriveLettersResult) Reset() {
 	*x = HasDriveLettersResult{}
-	mi := &file_clouddrive2_proto_msgTypes[58]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5639,7 +5639,7 @@ func (x *HasDriveLettersResult) String() string {
 func (*HasDriveLettersResult) ProtoMessage() {}
 
 func (x *HasDriveLettersResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[58]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5652,7 +5652,7 @@ func (x *HasDriveLettersResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HasDriveLettersResult.ProtoReflect.Descriptor instead.
 func (*HasDriveLettersResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{58}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *HasDriveLettersResult) GetHasDriveLetters() bool {
@@ -5674,7 +5674,7 @@ type LocalGetSubFilesRequest struct {
 
 func (x *LocalGetSubFilesRequest) Reset() {
 	*x = LocalGetSubFilesRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[59]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5686,7 +5686,7 @@ func (x *LocalGetSubFilesRequest) String() string {
 func (*LocalGetSubFilesRequest) ProtoMessage() {}
 
 func (x *LocalGetSubFilesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[59]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5699,7 +5699,7 @@ func (x *LocalGetSubFilesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalGetSubFilesRequest.ProtoReflect.Descriptor instead.
 func (*LocalGetSubFilesRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{59}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *LocalGetSubFilesRequest) GetParentFolder() string {
@@ -5739,7 +5739,7 @@ type LocalGetSubFilesResult struct {
 
 func (x *LocalGetSubFilesResult) Reset() {
 	*x = LocalGetSubFilesResult{}
-	mi := &file_clouddrive2_proto_msgTypes[60]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5751,7 +5751,7 @@ func (x *LocalGetSubFilesResult) String() string {
 func (*LocalGetSubFilesResult) ProtoMessage() {}
 
 func (x *LocalGetSubFilesResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[60]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5764,7 +5764,7 @@ func (x *LocalGetSubFilesResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalGetSubFilesResult.ProtoReflect.Descriptor instead.
 func (*LocalGetSubFilesResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{60}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *LocalGetSubFilesResult) GetSubFiles() []string {
@@ -5783,7 +5783,7 @@ type PushMessage struct {
 
 func (x *PushMessage) Reset() {
 	*x = PushMessage{}
-	mi := &file_clouddrive2_proto_msgTypes[61]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5795,7 +5795,7 @@ func (x *PushMessage) String() string {
 func (*PushMessage) ProtoMessage() {}
 
 func (x *PushMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[61]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5808,7 +5808,7 @@ func (x *PushMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PushMessage.ProtoReflect.Descriptor instead.
 func (*PushMessage) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{61}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *PushMessage) GetClouddriveVersion() string {
@@ -5832,7 +5832,7 @@ type GetAllTasksCountResult struct {
 
 func (x *GetAllTasksCountResult) Reset() {
 	*x = GetAllTasksCountResult{}
-	mi := &file_clouddrive2_proto_msgTypes[62]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5844,7 +5844,7 @@ func (x *GetAllTasksCountResult) String() string {
 func (*GetAllTasksCountResult) ProtoMessage() {}
 
 func (x *GetAllTasksCountResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[62]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5857,7 +5857,7 @@ func (x *GetAllTasksCountResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAllTasksCountResult.ProtoReflect.Descriptor instead.
 func (*GetAllTasksCountResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{62}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *GetAllTasksCountResult) GetDownloadCount() uint32 {
@@ -5917,7 +5917,7 @@ type FileSystemChange struct {
 
 func (x *FileSystemChange) Reset() {
 	*x = FileSystemChange{}
-	mi := &file_clouddrive2_proto_msgTypes[63]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5929,7 +5929,7 @@ func (x *FileSystemChange) String() string {
 func (*FileSystemChange) ProtoMessage() {}
 
 func (x *FileSystemChange) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[63]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5942,7 +5942,7 @@ func (x *FileSystemChange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileSystemChange.ProtoReflect.Descriptor instead.
 func (*FileSystemChange) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{63}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *FileSystemChange) GetChangeType() FileSystemChange_ChangeType {
@@ -5994,7 +5994,7 @@ type UpdateStatus struct {
 
 func (x *UpdateStatus) Reset() {
 	*x = UpdateStatus{}
-	mi := &file_clouddrive2_proto_msgTypes[64]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6006,7 +6006,7 @@ func (x *UpdateStatus) String() string {
 func (*UpdateStatus) ProtoMessage() {}
 
 func (x *UpdateStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[64]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6019,7 +6019,7 @@ func (x *UpdateStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateStatus.ProtoReflect.Descriptor instead.
 func (*UpdateStatus) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{64}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *UpdateStatus) GetUpdatePhase() UpdateStatus_UpdatePhase {
@@ -6078,7 +6078,7 @@ type TransferTaskStatus struct {
 
 func (x *TransferTaskStatus) Reset() {
 	*x = TransferTaskStatus{}
-	mi := &file_clouddrive2_proto_msgTypes[65]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6090,7 +6090,7 @@ func (x *TransferTaskStatus) String() string {
 func (*TransferTaskStatus) ProtoMessage() {}
 
 func (x *TransferTaskStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[65]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6103,7 +6103,7 @@ func (x *TransferTaskStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransferTaskStatus.ProtoReflect.Descriptor instead.
 func (*TransferTaskStatus) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{65}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *TransferTaskStatus) GetDownloadCount() uint32 {
@@ -6158,7 +6158,7 @@ type ExitedMessage struct {
 
 func (x *ExitedMessage) Reset() {
 	*x = ExitedMessage{}
-	mi := &file_clouddrive2_proto_msgTypes[66]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6170,7 +6170,7 @@ func (x *ExitedMessage) String() string {
 func (*ExitedMessage) ProtoMessage() {}
 
 func (x *ExitedMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[66]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6183,7 +6183,7 @@ func (x *ExitedMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExitedMessage.ProtoReflect.Descriptor instead.
 func (*ExitedMessage) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{66}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *ExitedMessage) GetExitReason() ExitedMessage_ExitReason {
@@ -6209,7 +6209,7 @@ type FileSystemChangeList struct {
 
 func (x *FileSystemChangeList) Reset() {
 	*x = FileSystemChangeList{}
-	mi := &file_clouddrive2_proto_msgTypes[67]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6221,7 +6221,7 @@ func (x *FileSystemChangeList) String() string {
 func (*FileSystemChangeList) ProtoMessage() {}
 
 func (x *FileSystemChangeList) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[67]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6234,7 +6234,7 @@ func (x *FileSystemChangeList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileSystemChangeList.ProtoReflect.Descriptor instead.
 func (*FileSystemChangeList) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{67}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *FileSystemChangeList) GetFileSystemChanges() []*FileSystemChange {
@@ -6256,7 +6256,7 @@ type MountPointChange struct {
 
 func (x *MountPointChange) Reset() {
 	*x = MountPointChange{}
-	mi := &file_clouddrive2_proto_msgTypes[68]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6268,7 +6268,7 @@ func (x *MountPointChange) String() string {
 func (*MountPointChange) ProtoMessage() {}
 
 func (x *MountPointChange) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[68]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6281,7 +6281,7 @@ func (x *MountPointChange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MountPointChange.ProtoReflect.Descriptor instead.
 func (*MountPointChange) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{68}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *MountPointChange) GetActionType() MountPointChange_ActionType {
@@ -6325,7 +6325,7 @@ type LogMessage struct {
 
 func (x *LogMessage) Reset() {
 	*x = LogMessage{}
-	mi := &file_clouddrive2_proto_msgTypes[69]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6337,7 +6337,7 @@ func (x *LogMessage) String() string {
 func (*LogMessage) ProtoMessage() {}
 
 func (x *LogMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[69]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6350,7 +6350,7 @@ func (x *LogMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogMessage.ProtoReflect.Descriptor instead.
 func (*LogMessage) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{69}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *LogMessage) GetLevel() LogMessage_LogLevel {
@@ -6407,7 +6407,7 @@ type CloudDrivePushMessage struct {
 
 func (x *CloudDrivePushMessage) Reset() {
 	*x = CloudDrivePushMessage{}
-	mi := &file_clouddrive2_proto_msgTypes[70]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6419,7 +6419,7 @@ func (x *CloudDrivePushMessage) String() string {
 func (*CloudDrivePushMessage) ProtoMessage() {}
 
 func (x *CloudDrivePushMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[70]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6432,7 +6432,7 @@ func (x *CloudDrivePushMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloudDrivePushMessage.ProtoReflect.Descriptor instead.
 func (*CloudDrivePushMessage) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{70}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *CloudDrivePushMessage) GetMessageType() CloudDrivePushMessage_MessageType {
@@ -6571,7 +6571,7 @@ type MergeTaskUpdate struct {
 
 func (x *MergeTaskUpdate) Reset() {
 	*x = MergeTaskUpdate{}
-	mi := &file_clouddrive2_proto_msgTypes[71]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6583,7 +6583,7 @@ func (x *MergeTaskUpdate) String() string {
 func (*MergeTaskUpdate) ProtoMessage() {}
 
 func (x *MergeTaskUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[71]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6596,7 +6596,7 @@ func (x *MergeTaskUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MergeTaskUpdate.ProtoReflect.Descriptor instead.
 func (*MergeTaskUpdate) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{71}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *MergeTaskUpdate) GetMergeTasks() []*MergeTask {
@@ -6629,7 +6629,7 @@ type GetDownloadFileCountResult struct {
 
 func (x *GetDownloadFileCountResult) Reset() {
 	*x = GetDownloadFileCountResult{}
-	mi := &file_clouddrive2_proto_msgTypes[72]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6641,7 +6641,7 @@ func (x *GetDownloadFileCountResult) String() string {
 func (*GetDownloadFileCountResult) ProtoMessage() {}
 
 func (x *GetDownloadFileCountResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[72]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6654,7 +6654,7 @@ func (x *GetDownloadFileCountResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDownloadFileCountResult.ProtoReflect.Descriptor instead.
 func (*GetDownloadFileCountResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{72}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *GetDownloadFileCountResult) GetFileCount() uint32 {
@@ -6680,7 +6680,7 @@ type DownloadFileInfo struct {
 
 func (x *DownloadFileInfo) Reset() {
 	*x = DownloadFileInfo{}
-	mi := &file_clouddrive2_proto_msgTypes[73]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6692,7 +6692,7 @@ func (x *DownloadFileInfo) String() string {
 func (*DownloadFileInfo) ProtoMessage() {}
 
 func (x *DownloadFileInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[73]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6705,7 +6705,7 @@ func (x *DownloadFileInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DownloadFileInfo.ProtoReflect.Descriptor instead.
 func (*DownloadFileInfo) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{73}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *DownloadFileInfo) GetFilePath() string {
@@ -6774,7 +6774,7 @@ type GetDownloadFileListResult struct {
 
 func (x *GetDownloadFileListResult) Reset() {
 	*x = GetDownloadFileListResult{}
-	mi := &file_clouddrive2_proto_msgTypes[74]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6786,7 +6786,7 @@ func (x *GetDownloadFileListResult) String() string {
 func (*GetDownloadFileListResult) ProtoMessage() {}
 
 func (x *GetDownloadFileListResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[74]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6799,7 +6799,7 @@ func (x *GetDownloadFileListResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDownloadFileListResult.ProtoReflect.Descriptor instead.
 func (*GetDownloadFileListResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{74}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *GetDownloadFileListResult) GetGlobalBytesPerSecond() float64 {
@@ -6825,7 +6825,7 @@ type GetUploadFileCountResult struct {
 
 func (x *GetUploadFileCountResult) Reset() {
 	*x = GetUploadFileCountResult{}
-	mi := &file_clouddrive2_proto_msgTypes[75]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6837,7 +6837,7 @@ func (x *GetUploadFileCountResult) String() string {
 func (*GetUploadFileCountResult) ProtoMessage() {}
 
 func (x *GetUploadFileCountResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[75]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6850,7 +6850,7 @@ func (x *GetUploadFileCountResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUploadFileCountResult.ProtoReflect.Descriptor instead.
 func (*GetUploadFileCountResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{75}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *GetUploadFileCountResult) GetFileCount() uint32 {
@@ -6876,7 +6876,7 @@ type UploadFileInfo struct {
 
 func (x *UploadFileInfo) Reset() {
 	*x = UploadFileInfo{}
-	mi := &file_clouddrive2_proto_msgTypes[76]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6888,7 +6888,7 @@ func (x *UploadFileInfo) String() string {
 func (*UploadFileInfo) ProtoMessage() {}
 
 func (x *UploadFileInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[76]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6901,7 +6901,7 @@ func (x *UploadFileInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadFileInfo.ProtoReflect.Descriptor instead.
 func (*UploadFileInfo) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{76}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *UploadFileInfo) GetKey() string {
@@ -6974,7 +6974,7 @@ type GetUploadFileListRequest struct {
 
 func (x *GetUploadFileListRequest) Reset() {
 	*x = GetUploadFileListRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[77]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6986,7 +6986,7 @@ func (x *GetUploadFileListRequest) String() string {
 func (*GetUploadFileListRequest) ProtoMessage() {}
 
 func (x *GetUploadFileListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[77]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6999,7 +6999,7 @@ func (x *GetUploadFileListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUploadFileListRequest.ProtoReflect.Descriptor instead.
 func (*GetUploadFileListRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{77}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *GetUploadFileListRequest) GetGetAll() bool {
@@ -7058,7 +7058,7 @@ type GetUploadFileListResult struct {
 
 func (x *GetUploadFileListResult) Reset() {
 	*x = GetUploadFileListResult{}
-	mi := &file_clouddrive2_proto_msgTypes[78]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7070,7 +7070,7 @@ func (x *GetUploadFileListResult) String() string {
 func (*GetUploadFileListResult) ProtoMessage() {}
 
 func (x *GetUploadFileListResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[78]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7083,7 +7083,7 @@ func (x *GetUploadFileListResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUploadFileListResult.ProtoReflect.Descriptor instead.
 func (*GetUploadFileListResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{78}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *GetUploadFileListResult) GetTotalCount() uint32 {
@@ -7138,7 +7138,7 @@ type TaskError struct {
 
 func (x *TaskError) Reset() {
 	*x = TaskError{}
-	mi := &file_clouddrive2_proto_msgTypes[79]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7150,7 +7150,7 @@ func (x *TaskError) String() string {
 func (*TaskError) ProtoMessage() {}
 
 func (x *TaskError) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[79]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7163,7 +7163,7 @@ func (x *TaskError) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskError.ProtoReflect.Descriptor instead.
 func (*TaskError) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{79}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *TaskError) GetTime() *timestamppb.Timestamp {
@@ -7190,7 +7190,7 @@ type CopyTaskRequest struct {
 
 func (x *CopyTaskRequest) Reset() {
 	*x = CopyTaskRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[80]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7202,7 +7202,7 @@ func (x *CopyTaskRequest) String() string {
 func (*CopyTaskRequest) ProtoMessage() {}
 
 func (x *CopyTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[80]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7215,7 +7215,7 @@ func (x *CopyTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CopyTaskRequest.ProtoReflect.Descriptor instead.
 func (*CopyTaskRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{80}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *CopyTaskRequest) GetSourcePath() string {
@@ -7243,7 +7243,7 @@ type PauseCopyTaskRequest struct {
 
 func (x *PauseCopyTaskRequest) Reset() {
 	*x = PauseCopyTaskRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[81]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7255,7 +7255,7 @@ func (x *PauseCopyTaskRequest) String() string {
 func (*PauseCopyTaskRequest) ProtoMessage() {}
 
 func (x *PauseCopyTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[81]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7268,7 +7268,7 @@ func (x *PauseCopyTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PauseCopyTaskRequest.ProtoReflect.Descriptor instead.
 func (*PauseCopyTaskRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{81}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *PauseCopyTaskRequest) GetSourcePath() string {
@@ -7301,7 +7301,7 @@ type CopyTaskBatchRequest struct {
 
 func (x *CopyTaskBatchRequest) Reset() {
 	*x = CopyTaskBatchRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[82]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7313,7 +7313,7 @@ func (x *CopyTaskBatchRequest) String() string {
 func (*CopyTaskBatchRequest) ProtoMessage() {}
 
 func (x *CopyTaskBatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[82]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7326,7 +7326,7 @@ func (x *CopyTaskBatchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CopyTaskBatchRequest.ProtoReflect.Descriptor instead.
 func (*CopyTaskBatchRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{82}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *CopyTaskBatchRequest) GetTaskKeys() []string {
@@ -7345,7 +7345,7 @@ type PauseAllCopyTasksRequest struct {
 
 func (x *PauseAllCopyTasksRequest) Reset() {
 	*x = PauseAllCopyTasksRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[83]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7357,7 +7357,7 @@ func (x *PauseAllCopyTasksRequest) String() string {
 func (*PauseAllCopyTasksRequest) ProtoMessage() {}
 
 func (x *PauseAllCopyTasksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[83]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7370,7 +7370,7 @@ func (x *PauseAllCopyTasksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PauseAllCopyTasksRequest.ProtoReflect.Descriptor instead.
 func (*PauseAllCopyTasksRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{83}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *PauseAllCopyTasksRequest) GetPause() bool {
@@ -7390,7 +7390,7 @@ type PauseCopyTasksRequest struct {
 
 func (x *PauseCopyTasksRequest) Reset() {
 	*x = PauseCopyTasksRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[84]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7402,7 +7402,7 @@ func (x *PauseCopyTasksRequest) String() string {
 func (*PauseCopyTasksRequest) ProtoMessage() {}
 
 func (x *PauseCopyTasksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[84]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7415,7 +7415,7 @@ func (x *PauseCopyTasksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PauseCopyTasksRequest.ProtoReflect.Descriptor instead.
 func (*PauseCopyTasksRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{84}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{84}
 }
 
 func (x *PauseCopyTasksRequest) GetTaskKeys() []string {
@@ -7443,7 +7443,7 @@ type BatchOperationResult struct {
 
 func (x *BatchOperationResult) Reset() {
 	*x = BatchOperationResult{}
-	mi := &file_clouddrive2_proto_msgTypes[85]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7455,7 +7455,7 @@ func (x *BatchOperationResult) String() string {
 func (*BatchOperationResult) ProtoMessage() {}
 
 func (x *BatchOperationResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[85]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7468,7 +7468,7 @@ func (x *BatchOperationResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchOperationResult.ProtoReflect.Descriptor instead.
 func (*BatchOperationResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{85}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *BatchOperationResult) GetSuccess() bool {
@@ -7514,7 +7514,7 @@ type MergeTask struct {
 
 func (x *MergeTask) Reset() {
 	*x = MergeTask{}
-	mi := &file_clouddrive2_proto_msgTypes[86]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7526,7 +7526,7 @@ func (x *MergeTask) String() string {
 func (*MergeTask) ProtoMessage() {}
 
 func (x *MergeTask) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[86]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7539,7 +7539,7 @@ func (x *MergeTask) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MergeTask.ProtoReflect.Descriptor instead.
 func (*MergeTask) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{86}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *MergeTask) GetSourcePath() string {
@@ -7621,7 +7621,7 @@ type GetMergeTasksResult struct {
 
 func (x *GetMergeTasksResult) Reset() {
 	*x = GetMergeTasksResult{}
-	mi := &file_clouddrive2_proto_msgTypes[87]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7633,7 +7633,7 @@ func (x *GetMergeTasksResult) String() string {
 func (*GetMergeTasksResult) ProtoMessage() {}
 
 func (x *GetMergeTasksResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[87]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7646,7 +7646,7 @@ func (x *GetMergeTasksResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMergeTasksResult.ProtoReflect.Descriptor instead.
 func (*GetMergeTasksResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{87}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *GetMergeTasksResult) GetMergeTasks() []*MergeTask {
@@ -7666,7 +7666,7 @@ type CancelMergeTaskRequest struct {
 
 func (x *CancelMergeTaskRequest) Reset() {
 	*x = CancelMergeTaskRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[88]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7678,7 +7678,7 @@ func (x *CancelMergeTaskRequest) String() string {
 func (*CancelMergeTaskRequest) ProtoMessage() {}
 
 func (x *CancelMergeTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[88]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7691,7 +7691,7 @@ func (x *CancelMergeTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelMergeTaskRequest.ProtoReflect.Descriptor instead.
 func (*CancelMergeTaskRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{88}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *CancelMergeTaskRequest) GetSourcePath() string {
@@ -7733,7 +7733,7 @@ type CopyTask struct {
 
 func (x *CopyTask) Reset() {
 	*x = CopyTask{}
-	mi := &file_clouddrive2_proto_msgTypes[89]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7745,7 +7745,7 @@ func (x *CopyTask) String() string {
 func (*CopyTask) ProtoMessage() {}
 
 func (x *CopyTask) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[89]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7758,7 +7758,7 @@ func (x *CopyTask) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CopyTask.ProtoReflect.Descriptor instead.
 func (*CopyTask) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{89}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *CopyTask) GetTaskMode() CopyTask_TaskMode {
@@ -7889,7 +7889,7 @@ type GetCopyTaskResult struct {
 
 func (x *GetCopyTaskResult) Reset() {
 	*x = GetCopyTaskResult{}
-	mi := &file_clouddrive2_proto_msgTypes[90]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7901,7 +7901,7 @@ func (x *GetCopyTaskResult) String() string {
 func (*GetCopyTaskResult) ProtoMessage() {}
 
 func (x *GetCopyTaskResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[90]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7914,7 +7914,7 @@ func (x *GetCopyTaskResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCopyTaskResult.ProtoReflect.Descriptor instead.
 func (*GetCopyTaskResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{90}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *GetCopyTaskResult) GetCopyTasks() []*CopyTask {
@@ -7933,7 +7933,7 @@ type MultpleUploadFileKeyRequest struct {
 
 func (x *MultpleUploadFileKeyRequest) Reset() {
 	*x = MultpleUploadFileKeyRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[91]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7945,7 +7945,7 @@ func (x *MultpleUploadFileKeyRequest) String() string {
 func (*MultpleUploadFileKeyRequest) ProtoMessage() {}
 
 func (x *MultpleUploadFileKeyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[91]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7958,7 +7958,7 @@ func (x *MultpleUploadFileKeyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MultpleUploadFileKeyRequest.ProtoReflect.Descriptor instead.
 func (*MultpleUploadFileKeyRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{91}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *MultpleUploadFileKeyRequest) GetKeys() []string {
@@ -7977,7 +7977,7 @@ type Login115EditthiscookieRequest struct {
 
 func (x *Login115EditthiscookieRequest) Reset() {
 	*x = Login115EditthiscookieRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[92]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7989,7 +7989,7 @@ func (x *Login115EditthiscookieRequest) String() string {
 func (*Login115EditthiscookieRequest) ProtoMessage() {}
 
 func (x *Login115EditthiscookieRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[92]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8002,7 +8002,7 @@ func (x *Login115EditthiscookieRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Login115EditthiscookieRequest.ProtoReflect.Descriptor instead.
 func (*Login115EditthiscookieRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{92}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *Login115EditthiscookieRequest) GetEditThiscookieString() string {
@@ -8021,7 +8021,7 @@ type Login115QrCodeRequest struct {
 
 func (x *Login115QrCodeRequest) Reset() {
 	*x = Login115QrCodeRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[93]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8033,7 +8033,7 @@ func (x *Login115QrCodeRequest) String() string {
 func (*Login115QrCodeRequest) ProtoMessage() {}
 
 func (x *Login115QrCodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[93]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8046,7 +8046,7 @@ func (x *Login115QrCodeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Login115QrCodeRequest.ProtoReflect.Descriptor instead.
 func (*Login115QrCodeRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{93}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *Login115QrCodeRequest) GetPlatformString() string {
@@ -8067,7 +8067,7 @@ type LoginAliyundriveOAuthRequest struct {
 
 func (x *LoginAliyundriveOAuthRequest) Reset() {
 	*x = LoginAliyundriveOAuthRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[94]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8079,7 +8079,7 @@ func (x *LoginAliyundriveOAuthRequest) String() string {
 func (*LoginAliyundriveOAuthRequest) ProtoMessage() {}
 
 func (x *LoginAliyundriveOAuthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[94]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8092,7 +8092,7 @@ func (x *LoginAliyundriveOAuthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginAliyundriveOAuthRequest.ProtoReflect.Descriptor instead.
 func (*LoginAliyundriveOAuthRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{94}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *LoginAliyundriveOAuthRequest) GetRefreshToken() string {
@@ -8126,7 +8126,7 @@ type LoginAliyundriveRefreshtokenRequest struct {
 
 func (x *LoginAliyundriveRefreshtokenRequest) Reset() {
 	*x = LoginAliyundriveRefreshtokenRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[95]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8138,7 +8138,7 @@ func (x *LoginAliyundriveRefreshtokenRequest) String() string {
 func (*LoginAliyundriveRefreshtokenRequest) ProtoMessage() {}
 
 func (x *LoginAliyundriveRefreshtokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[95]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8151,7 +8151,7 @@ func (x *LoginAliyundriveRefreshtokenRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use LoginAliyundriveRefreshtokenRequest.ProtoReflect.Descriptor instead.
 func (*LoginAliyundriveRefreshtokenRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{95}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *LoginAliyundriveRefreshtokenRequest) GetRefreshToken() string {
@@ -8177,7 +8177,7 @@ type LoginAliyundriveQRCodeRequest struct {
 
 func (x *LoginAliyundriveQRCodeRequest) Reset() {
 	*x = LoginAliyundriveQRCodeRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[96]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8189,7 +8189,7 @@ func (x *LoginAliyundriveQRCodeRequest) String() string {
 func (*LoginAliyundriveQRCodeRequest) ProtoMessage() {}
 
 func (x *LoginAliyundriveQRCodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[96]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8202,7 +8202,7 @@ func (x *LoginAliyundriveQRCodeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginAliyundriveQRCodeRequest.ProtoReflect.Descriptor instead.
 func (*LoginAliyundriveQRCodeRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{96}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *LoginAliyundriveQRCodeRequest) GetUseOpenAPI() bool {
@@ -8223,7 +8223,7 @@ type LoginBaiduPanOAuthRequest struct {
 
 func (x *LoginBaiduPanOAuthRequest) Reset() {
 	*x = LoginBaiduPanOAuthRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[97]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8235,7 +8235,7 @@ func (x *LoginBaiduPanOAuthRequest) String() string {
 func (*LoginBaiduPanOAuthRequest) ProtoMessage() {}
 
 func (x *LoginBaiduPanOAuthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[97]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8248,7 +8248,7 @@ func (x *LoginBaiduPanOAuthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginBaiduPanOAuthRequest.ProtoReflect.Descriptor instead.
 func (*LoginBaiduPanOAuthRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{97}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{97}
 }
 
 func (x *LoginBaiduPanOAuthRequest) GetRefreshToken() string {
@@ -8283,7 +8283,7 @@ type LoginOneDriveOAuthRequest struct {
 
 func (x *LoginOneDriveOAuthRequest) Reset() {
 	*x = LoginOneDriveOAuthRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[98]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8295,7 +8295,7 @@ func (x *LoginOneDriveOAuthRequest) String() string {
 func (*LoginOneDriveOAuthRequest) ProtoMessage() {}
 
 func (x *LoginOneDriveOAuthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[98]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8308,7 +8308,7 @@ func (x *LoginOneDriveOAuthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginOneDriveOAuthRequest.ProtoReflect.Descriptor instead.
 func (*LoginOneDriveOAuthRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{98}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *LoginOneDriveOAuthRequest) GetRefreshToken() string {
@@ -8343,7 +8343,7 @@ type LoginGoogleDriveOAuthRequest struct {
 
 func (x *LoginGoogleDriveOAuthRequest) Reset() {
 	*x = LoginGoogleDriveOAuthRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[99]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8355,7 +8355,7 @@ func (x *LoginGoogleDriveOAuthRequest) String() string {
 func (*LoginGoogleDriveOAuthRequest) ProtoMessage() {}
 
 func (x *LoginGoogleDriveOAuthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[99]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8368,7 +8368,7 @@ func (x *LoginGoogleDriveOAuthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginGoogleDriveOAuthRequest.ProtoReflect.Descriptor instead.
 func (*LoginGoogleDriveOAuthRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{99}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *LoginGoogleDriveOAuthRequest) GetRefreshToken() string {
@@ -8403,7 +8403,7 @@ type LoginGoogleDriveRefreshTokenRequest struct {
 
 func (x *LoginGoogleDriveRefreshTokenRequest) Reset() {
 	*x = LoginGoogleDriveRefreshTokenRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[100]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8415,7 +8415,7 @@ func (x *LoginGoogleDriveRefreshTokenRequest) String() string {
 func (*LoginGoogleDriveRefreshTokenRequest) ProtoMessage() {}
 
 func (x *LoginGoogleDriveRefreshTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[100]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8428,7 +8428,7 @@ func (x *LoginGoogleDriveRefreshTokenRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use LoginGoogleDriveRefreshTokenRequest.ProtoReflect.Descriptor instead.
 func (*LoginGoogleDriveRefreshTokenRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{100}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{100}
 }
 
 func (x *LoginGoogleDriveRefreshTokenRequest) GetClientId() string {
@@ -8463,7 +8463,7 @@ type LoginXunleiOAuthRequest struct {
 
 func (x *LoginXunleiOAuthRequest) Reset() {
 	*x = LoginXunleiOAuthRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[101]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8475,7 +8475,7 @@ func (x *LoginXunleiOAuthRequest) String() string {
 func (*LoginXunleiOAuthRequest) ProtoMessage() {}
 
 func (x *LoginXunleiOAuthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[101]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8488,7 +8488,7 @@ func (x *LoginXunleiOAuthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginXunleiOAuthRequest.ProtoReflect.Descriptor instead.
 func (*LoginXunleiOAuthRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{101}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{101}
 }
 
 func (x *LoginXunleiOAuthRequest) GetRefreshToken() string {
@@ -8523,7 +8523,7 @@ type LoginXunleiOpenOAuthRequest struct {
 
 func (x *LoginXunleiOpenOAuthRequest) Reset() {
 	*x = LoginXunleiOpenOAuthRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[102]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8535,7 +8535,7 @@ func (x *LoginXunleiOpenOAuthRequest) String() string {
 func (*LoginXunleiOpenOAuthRequest) ProtoMessage() {}
 
 func (x *LoginXunleiOpenOAuthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[102]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8548,7 +8548,7 @@ func (x *LoginXunleiOpenOAuthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginXunleiOpenOAuthRequest.ProtoReflect.Descriptor instead.
 func (*LoginXunleiOpenOAuthRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{102}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *LoginXunleiOpenOAuthRequest) GetRefreshToken() string {
@@ -8583,7 +8583,7 @@ type Login123PanOAuthRequest struct {
 
 func (x *Login123PanOAuthRequest) Reset() {
 	*x = Login123PanOAuthRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[103]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8595,7 +8595,7 @@ func (x *Login123PanOAuthRequest) String() string {
 func (*Login123PanOAuthRequest) ProtoMessage() {}
 
 func (x *Login123PanOAuthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[103]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8608,7 +8608,7 @@ func (x *Login123PanOAuthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Login123PanOAuthRequest.ProtoReflect.Descriptor instead.
 func (*Login123PanOAuthRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{103}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{103}
 }
 
 func (x *Login123PanOAuthRequest) GetRefreshToken() string {
@@ -8643,7 +8643,7 @@ type Login115OpenOAuthRequest struct {
 
 func (x *Login115OpenOAuthRequest) Reset() {
 	*x = Login115OpenOAuthRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[104]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8655,7 +8655,7 @@ func (x *Login115OpenOAuthRequest) String() string {
 func (*Login115OpenOAuthRequest) ProtoMessage() {}
 
 func (x *Login115OpenOAuthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[104]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8668,7 +8668,7 @@ func (x *Login115OpenOAuthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Login115OpenOAuthRequest.ProtoReflect.Descriptor instead.
 func (*Login115OpenOAuthRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{104}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{104}
 }
 
 func (x *Login115OpenOAuthRequest) GetRefreshToken() string {
@@ -8704,7 +8704,7 @@ type LoginWebDavRequest struct {
 
 func (x *LoginWebDavRequest) Reset() {
 	*x = LoginWebDavRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[105]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8716,7 +8716,7 @@ func (x *LoginWebDavRequest) String() string {
 func (*LoginWebDavRequest) ProtoMessage() {}
 
 func (x *LoginWebDavRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[105]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8729,7 +8729,7 @@ func (x *LoginWebDavRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginWebDavRequest.ProtoReflect.Descriptor instead.
 func (*LoginWebDavRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{105}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{105}
 }
 
 func (x *LoginWebDavRequest) GetServerUrl() string {
@@ -8776,7 +8776,7 @@ type LoginS3Request struct {
 
 func (x *LoginS3Request) Reset() {
 	*x = LoginS3Request{}
-	mi := &file_clouddrive2_proto_msgTypes[106]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[106]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8788,7 +8788,7 @@ func (x *LoginS3Request) String() string {
 func (*LoginS3Request) ProtoMessage() {}
 
 func (x *LoginS3Request) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[106]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[106]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8801,7 +8801,7 @@ func (x *LoginS3Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginS3Request.ProtoReflect.Descriptor instead.
 func (*LoginS3Request) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{106}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{106}
 }
 
 func (x *LoginS3Request) GetAccessKeyId() string {
@@ -8870,7 +8870,7 @@ type APILoginResult struct {
 
 func (x *APILoginResult) Reset() {
 	*x = APILoginResult{}
-	mi := &file_clouddrive2_proto_msgTypes[107]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8882,7 +8882,7 @@ func (x *APILoginResult) String() string {
 func (*APILoginResult) ProtoMessage() {}
 
 func (x *APILoginResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[107]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8895,7 +8895,7 @@ func (x *APILoginResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use APILoginResult.ProtoReflect.Descriptor instead.
 func (*APILoginResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{107}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{107}
 }
 
 func (x *APILoginResult) GetSuccess() bool {
@@ -8921,7 +8921,7 @@ type AddLocalFolderRequest struct {
 
 func (x *AddLocalFolderRequest) Reset() {
 	*x = AddLocalFolderRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[108]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[108]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8933,7 +8933,7 @@ func (x *AddLocalFolderRequest) String() string {
 func (*AddLocalFolderRequest) ProtoMessage() {}
 
 func (x *AddLocalFolderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[108]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[108]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8946,7 +8946,7 @@ func (x *AddLocalFolderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddLocalFolderRequest.ProtoReflect.Descriptor instead.
 func (*AddLocalFolderRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{108}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{108}
 }
 
 func (x *AddLocalFolderRequest) GetLocalFolderPath() string {
@@ -8970,7 +8970,7 @@ type LoginCloudDriveRequest struct {
 
 func (x *LoginCloudDriveRequest) Reset() {
 	*x = LoginCloudDriveRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[109]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[109]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8982,7 +8982,7 @@ func (x *LoginCloudDriveRequest) String() string {
 func (*LoginCloudDriveRequest) ProtoMessage() {}
 
 func (x *LoginCloudDriveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[109]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[109]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8995,7 +8995,7 @@ func (x *LoginCloudDriveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginCloudDriveRequest.ProtoReflect.Descriptor instead.
 func (*LoginCloudDriveRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{109}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{109}
 }
 
 func (x *LoginCloudDriveRequest) GetGrpcUrl() string {
@@ -9037,7 +9037,7 @@ type RemoveCloudAPIRequest struct {
 
 func (x *RemoveCloudAPIRequest) Reset() {
 	*x = RemoveCloudAPIRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[110]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[110]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9049,7 +9049,7 @@ func (x *RemoveCloudAPIRequest) String() string {
 func (*RemoveCloudAPIRequest) ProtoMessage() {}
 
 func (x *RemoveCloudAPIRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[110]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[110]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9062,7 +9062,7 @@ func (x *RemoveCloudAPIRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveCloudAPIRequest.ProtoReflect.Descriptor instead.
 func (*RemoveCloudAPIRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{110}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{110}
 }
 
 func (x *RemoveCloudAPIRequest) GetCloudName() string {
@@ -9096,7 +9096,7 @@ type CloudAPIRequest struct {
 
 func (x *CloudAPIRequest) Reset() {
 	*x = CloudAPIRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[111]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[111]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9108,7 +9108,7 @@ func (x *CloudAPIRequest) String() string {
 func (*CloudAPIRequest) ProtoMessage() {}
 
 func (x *CloudAPIRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[111]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[111]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9121,7 +9121,7 @@ func (x *CloudAPIRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloudAPIRequest.ProtoReflect.Descriptor instead.
 func (*CloudAPIRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{111}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{111}
 }
 
 func (x *CloudAPIRequest) GetCloudName() string {
@@ -9151,7 +9151,7 @@ type ProxyInfo struct {
 
 func (x *ProxyInfo) Reset() {
 	*x = ProxyInfo{}
-	mi := &file_clouddrive2_proto_msgTypes[112]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[112]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9163,7 +9163,7 @@ func (x *ProxyInfo) String() string {
 func (*ProxyInfo) ProtoMessage() {}
 
 func (x *ProxyInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[112]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[112]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9176,7 +9176,7 @@ func (x *ProxyInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProxyInfo.ProtoReflect.Descriptor instead.
 func (*ProxyInfo) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{112}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{112}
 }
 
 func (x *ProxyInfo) GetProxyType() ProxyType {
@@ -9224,7 +9224,7 @@ type GetCloudAPIConfigRequest struct {
 
 func (x *GetCloudAPIConfigRequest) Reset() {
 	*x = GetCloudAPIConfigRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[113]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[113]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9236,7 +9236,7 @@ func (x *GetCloudAPIConfigRequest) String() string {
 func (*GetCloudAPIConfigRequest) ProtoMessage() {}
 
 func (x *GetCloudAPIConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[113]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[113]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9249,7 +9249,7 @@ func (x *GetCloudAPIConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCloudAPIConfigRequest.ProtoReflect.Descriptor instead.
 func (*GetCloudAPIConfigRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{113}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{113}
 }
 
 func (x *GetCloudAPIConfigRequest) GetCloudName() string {
@@ -9275,7 +9275,7 @@ type CloudAPIList struct {
 
 func (x *CloudAPIList) Reset() {
 	*x = CloudAPIList{}
-	mi := &file_clouddrive2_proto_msgTypes[114]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[114]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9287,7 +9287,7 @@ func (x *CloudAPIList) String() string {
 func (*CloudAPIList) ProtoMessage() {}
 
 func (x *CloudAPIList) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[114]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[114]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9300,7 +9300,7 @@ func (x *CloudAPIList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloudAPIList.ProtoReflect.Descriptor instead.
 func (*CloudAPIList) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{114}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{114}
 }
 
 func (x *CloudAPIList) GetApis() []*CloudAPI {
@@ -9341,7 +9341,7 @@ type CloudAPIConfig struct {
 
 func (x *CloudAPIConfig) Reset() {
 	*x = CloudAPIConfig{}
-	mi := &file_clouddrive2_proto_msgTypes[115]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[115]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9353,7 +9353,7 @@ func (x *CloudAPIConfig) String() string {
 func (*CloudAPIConfig) ProtoMessage() {}
 
 func (x *CloudAPIConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[115]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[115]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9366,7 +9366,7 @@ func (x *CloudAPIConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloudAPIConfig.ProtoReflect.Descriptor instead.
 func (*CloudAPIConfig) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{115}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{115}
 }
 
 func (x *CloudAPIConfig) GetMaxDownloadThreads() uint32 {
@@ -9499,7 +9499,7 @@ type SetCloudAPIConfigRequest struct {
 
 func (x *SetCloudAPIConfigRequest) Reset() {
 	*x = SetCloudAPIConfigRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[116]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[116]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9511,7 +9511,7 @@ func (x *SetCloudAPIConfigRequest) String() string {
 func (*SetCloudAPIConfigRequest) ProtoMessage() {}
 
 func (x *SetCloudAPIConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[116]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[116]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9524,7 +9524,7 @@ func (x *SetCloudAPIConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetCloudAPIConfigRequest.ProtoReflect.Descriptor instead.
 func (*SetCloudAPIConfigRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{116}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{116}
 }
 
 func (x *SetCloudAPIConfigRequest) GetCloudName() string {
@@ -9557,7 +9557,7 @@ type CommandRequest struct {
 
 func (x *CommandRequest) Reset() {
 	*x = CommandRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[117]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[117]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9569,7 +9569,7 @@ func (x *CommandRequest) String() string {
 func (*CommandRequest) ProtoMessage() {}
 
 func (x *CommandRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[117]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[117]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9582,7 +9582,7 @@ func (x *CommandRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CommandRequest.ProtoReflect.Descriptor instead.
 func (*CommandRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{117}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{117}
 }
 
 func (x *CommandRequest) GetCommand() string {
@@ -9601,7 +9601,7 @@ type CommandResult struct {
 
 func (x *CommandResult) Reset() {
 	*x = CommandResult{}
-	mi := &file_clouddrive2_proto_msgTypes[118]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[118]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9613,7 +9613,7 @@ func (x *CommandResult) String() string {
 func (*CommandResult) ProtoMessage() {}
 
 func (x *CommandResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[118]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[118]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9626,7 +9626,7 @@ func (x *CommandResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CommandResult.ProtoReflect.Descriptor instead.
 func (*CommandResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{118}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{118}
 }
 
 func (x *CommandResult) GetResult() string {
@@ -9645,7 +9645,7 @@ type StringValue struct {
 
 func (x *StringValue) Reset() {
 	*x = StringValue{}
-	mi := &file_clouddrive2_proto_msgTypes[119]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[119]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9657,7 +9657,7 @@ func (x *StringValue) String() string {
 func (*StringValue) ProtoMessage() {}
 
 func (x *StringValue) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[119]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[119]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9670,7 +9670,7 @@ func (x *StringValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StringValue.ProtoReflect.Descriptor instead.
 func (*StringValue) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{119}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{119}
 }
 
 func (x *StringValue) GetValue() string {
@@ -9690,7 +9690,7 @@ type QRCodeScanMessage struct {
 
 func (x *QRCodeScanMessage) Reset() {
 	*x = QRCodeScanMessage{}
-	mi := &file_clouddrive2_proto_msgTypes[120]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[120]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9702,7 +9702,7 @@ func (x *QRCodeScanMessage) String() string {
 func (*QRCodeScanMessage) ProtoMessage() {}
 
 func (x *QRCodeScanMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[120]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[120]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9715,7 +9715,7 @@ func (x *QRCodeScanMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QRCodeScanMessage.ProtoReflect.Descriptor instead.
 func (*QRCodeScanMessage) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{120}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{120}
 }
 
 func (x *QRCodeScanMessage) GetMessageType() QRCodeScanMessageType {
@@ -9741,7 +9741,7 @@ type StringList struct {
 
 func (x *StringList) Reset() {
 	*x = StringList{}
-	mi := &file_clouddrive2_proto_msgTypes[121]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[121]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9753,7 +9753,7 @@ func (x *StringList) String() string {
 func (*StringList) ProtoMessage() {}
 
 func (x *StringList) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[121]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[121]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9766,7 +9766,7 @@ func (x *StringList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StringList.ProtoReflect.Descriptor instead.
 func (*StringList) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{121}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{121}
 }
 
 func (x *StringList) GetValues() []string {
@@ -9818,7 +9818,7 @@ type SystemSettings struct {
 
 func (x *SystemSettings) Reset() {
 	*x = SystemSettings{}
-	mi := &file_clouddrive2_proto_msgTypes[122]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[122]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9830,7 +9830,7 @@ func (x *SystemSettings) String() string {
 func (*SystemSettings) ProtoMessage() {}
 
 func (x *SystemSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[122]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[122]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9843,7 +9843,7 @@ func (x *SystemSettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SystemSettings.ProtoReflect.Descriptor instead.
 func (*SystemSettings) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{122}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{122}
 }
 
 func (x *SystemSettings) GetDirCacheTimeToLiveSecs() uint64 {
@@ -10031,7 +10031,7 @@ type SetDiskCacheEvictionStrategyRequest struct {
 
 func (x *SetDiskCacheEvictionStrategyRequest) Reset() {
 	*x = SetDiskCacheEvictionStrategyRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[123]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[123]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10043,7 +10043,7 @@ func (x *SetDiskCacheEvictionStrategyRequest) String() string {
 func (*SetDiskCacheEvictionStrategyRequest) ProtoMessage() {}
 
 func (x *SetDiskCacheEvictionStrategyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[123]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[123]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10056,7 +10056,7 @@ func (x *SetDiskCacheEvictionStrategyRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use SetDiskCacheEvictionStrategyRequest.ProtoReflect.Descriptor instead.
 func (*SetDiskCacheEvictionStrategyRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{123}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{123}
 }
 
 func (x *SetDiskCacheEvictionStrategyRequest) GetStrategy() EvictionStrategy {
@@ -10083,7 +10083,7 @@ type FileBufferDiskCacheStats struct {
 
 func (x *FileBufferDiskCacheStats) Reset() {
 	*x = FileBufferDiskCacheStats{}
-	mi := &file_clouddrive2_proto_msgTypes[124]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[124]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10095,7 +10095,7 @@ func (x *FileBufferDiskCacheStats) String() string {
 func (*FileBufferDiskCacheStats) ProtoMessage() {}
 
 func (x *FileBufferDiskCacheStats) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[124]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[124]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10108,7 +10108,7 @@ func (x *FileBufferDiskCacheStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileBufferDiskCacheStats.ProtoReflect.Descriptor instead.
 func (*FileBufferDiskCacheStats) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{124}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{124}
 }
 
 func (x *FileBufferDiskCacheStats) GetEnabled() bool {
@@ -10178,7 +10178,7 @@ type SetDirCacheTimeRequest struct {
 
 func (x *SetDirCacheTimeRequest) Reset() {
 	*x = SetDirCacheTimeRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[125]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[125]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10190,7 +10190,7 @@ func (x *SetDirCacheTimeRequest) String() string {
 func (*SetDirCacheTimeRequest) ProtoMessage() {}
 
 func (x *SetDirCacheTimeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[125]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[125]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10203,7 +10203,7 @@ func (x *SetDirCacheTimeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetDirCacheTimeRequest.ProtoReflect.Descriptor instead.
 func (*SetDirCacheTimeRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{125}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{125}
 }
 
 func (x *SetDirCacheTimeRequest) GetPath() string {
@@ -10229,7 +10229,7 @@ type GetEffectiveDirCacheTimeRequest struct {
 
 func (x *GetEffectiveDirCacheTimeRequest) Reset() {
 	*x = GetEffectiveDirCacheTimeRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[126]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[126]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10241,7 +10241,7 @@ func (x *GetEffectiveDirCacheTimeRequest) String() string {
 func (*GetEffectiveDirCacheTimeRequest) ProtoMessage() {}
 
 func (x *GetEffectiveDirCacheTimeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[126]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[126]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10254,7 +10254,7 @@ func (x *GetEffectiveDirCacheTimeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEffectiveDirCacheTimeRequest.ProtoReflect.Descriptor instead.
 func (*GetEffectiveDirCacheTimeRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{126}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{126}
 }
 
 func (x *GetEffectiveDirCacheTimeRequest) GetPath() string {
@@ -10273,7 +10273,7 @@ type GetOpenFileTableRequest struct {
 
 func (x *GetOpenFileTableRequest) Reset() {
 	*x = GetOpenFileTableRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[127]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[127]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10285,7 +10285,7 @@ func (x *GetOpenFileTableRequest) String() string {
 func (*GetOpenFileTableRequest) ProtoMessage() {}
 
 func (x *GetOpenFileTableRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[127]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[127]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10298,7 +10298,7 @@ func (x *GetOpenFileTableRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOpenFileTableRequest.ProtoReflect.Descriptor instead.
 func (*GetOpenFileTableRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{127}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{127}
 }
 
 func (x *GetOpenFileTableRequest) GetIncludeDir() bool {
@@ -10317,7 +10317,7 @@ type GetEffectiveDirCacheTimeResult struct {
 
 func (x *GetEffectiveDirCacheTimeResult) Reset() {
 	*x = GetEffectiveDirCacheTimeResult{}
-	mi := &file_clouddrive2_proto_msgTypes[128]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[128]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10329,7 +10329,7 @@ func (x *GetEffectiveDirCacheTimeResult) String() string {
 func (*GetEffectiveDirCacheTimeResult) ProtoMessage() {}
 
 func (x *GetEffectiveDirCacheTimeResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[128]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[128]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10342,7 +10342,7 @@ func (x *GetEffectiveDirCacheTimeResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEffectiveDirCacheTimeResult.ProtoReflect.Descriptor instead.
 func (*GetEffectiveDirCacheTimeResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{128}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{128}
 }
 
 func (x *GetEffectiveDirCacheTimeResult) GetDirCacheTimeSecs() uint64 {
@@ -10362,7 +10362,7 @@ type GetDirCacheDbSizeResult struct {
 
 func (x *GetDirCacheDbSizeResult) Reset() {
 	*x = GetDirCacheDbSizeResult{}
-	mi := &file_clouddrive2_proto_msgTypes[129]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[129]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10374,7 +10374,7 @@ func (x *GetDirCacheDbSizeResult) String() string {
 func (*GetDirCacheDbSizeResult) ProtoMessage() {}
 
 func (x *GetDirCacheDbSizeResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[129]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[129]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10387,7 +10387,7 @@ func (x *GetDirCacheDbSizeResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDirCacheDbSizeResult.ProtoReflect.Descriptor instead.
 func (*GetDirCacheDbSizeResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{129}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{129}
 }
 
 func (x *GetDirCacheDbSizeResult) GetTotalSizeBytes() uint64 {
@@ -10418,7 +10418,7 @@ type VacuumProgressResult struct {
 
 func (x *VacuumProgressResult) Reset() {
 	*x = VacuumProgressResult{}
-	mi := &file_clouddrive2_proto_msgTypes[130]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[130]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10430,7 +10430,7 @@ func (x *VacuumProgressResult) String() string {
 func (*VacuumProgressResult) ProtoMessage() {}
 
 func (x *VacuumProgressResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[130]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[130]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10443,7 +10443,7 @@ func (x *VacuumProgressResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VacuumProgressResult.ProtoReflect.Descriptor instead.
 func (*VacuumProgressResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{130}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{130}
 }
 
 func (x *VacuumProgressResult) GetStatus() VacuumStatus {
@@ -10499,7 +10499,7 @@ type UpdateResult struct {
 
 func (x *UpdateResult) Reset() {
 	*x = UpdateResult{}
-	mi := &file_clouddrive2_proto_msgTypes[131]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[131]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10511,7 +10511,7 @@ func (x *UpdateResult) String() string {
 func (*UpdateResult) ProtoMessage() {}
 
 func (x *UpdateResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[131]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[131]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10524,7 +10524,7 @@ func (x *UpdateResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateResult.ProtoReflect.Descriptor instead.
 func (*UpdateResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{131}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{131}
 }
 
 func (x *UpdateResult) GetHasUpdate() bool {
@@ -10558,7 +10558,7 @@ type OpenFileTable struct {
 
 func (x *OpenFileTable) Reset() {
 	*x = OpenFileTable{}
-	mi := &file_clouddrive2_proto_msgTypes[132]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[132]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10570,7 +10570,7 @@ func (x *OpenFileTable) String() string {
 func (*OpenFileTable) ProtoMessage() {}
 
 func (x *OpenFileTable) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[132]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[132]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10583,7 +10583,7 @@ func (x *OpenFileTable) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenFileTable.ProtoReflect.Descriptor instead.
 func (*OpenFileTable) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{132}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{132}
 }
 
 func (x *OpenFileTable) GetOpenFileTable() map[uint64]string {
@@ -10611,7 +10611,7 @@ type DirCacheItem struct {
 
 func (x *DirCacheItem) Reset() {
 	*x = DirCacheItem{}
-	mi := &file_clouddrive2_proto_msgTypes[133]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[133]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10623,7 +10623,7 @@ func (x *DirCacheItem) String() string {
 func (*DirCacheItem) ProtoMessage() {}
 
 func (x *DirCacheItem) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[133]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[133]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10636,7 +10636,7 @@ func (x *DirCacheItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DirCacheItem.ProtoReflect.Descriptor instead.
 func (*DirCacheItem) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{133}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{133}
 }
 
 func (x *DirCacheItem) GetInsertTime() *timestamppb.Timestamp {
@@ -10669,7 +10669,7 @@ type DirCacheTable struct {
 
 func (x *DirCacheTable) Reset() {
 	*x = DirCacheTable{}
-	mi := &file_clouddrive2_proto_msgTypes[134]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[134]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10681,7 +10681,7 @@ func (x *DirCacheTable) String() string {
 func (*DirCacheTable) ProtoMessage() {}
 
 func (x *DirCacheTable) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[134]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[134]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10694,7 +10694,7 @@ func (x *DirCacheTable) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DirCacheTable.ProtoReflect.Descriptor instead.
 func (*DirCacheTable) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{134}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{134}
 }
 
 func (x *DirCacheTable) GetDirCacheTable() map[string]*DirCacheItem {
@@ -10714,7 +10714,7 @@ type TempFileTable struct {
 
 func (x *TempFileTable) Reset() {
 	*x = TempFileTable{}
-	mi := &file_clouddrive2_proto_msgTypes[135]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[135]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10726,7 +10726,7 @@ func (x *TempFileTable) String() string {
 func (*TempFileTable) ProtoMessage() {}
 
 func (x *TempFileTable) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[135]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[135]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10739,7 +10739,7 @@ func (x *TempFileTable) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TempFileTable.ProtoReflect.Descriptor instead.
 func (*TempFileTable) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{135}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{135}
 }
 
 func (x *TempFileTable) GetCount() uint64 {
@@ -10765,7 +10765,7 @@ type ConfirmEmailRequest struct {
 
 func (x *ConfirmEmailRequest) Reset() {
 	*x = ConfirmEmailRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[136]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[136]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10777,7 +10777,7 @@ func (x *ConfirmEmailRequest) String() string {
 func (*ConfirmEmailRequest) ProtoMessage() {}
 
 func (x *ConfirmEmailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[136]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[136]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10790,7 +10790,7 @@ func (x *ConfirmEmailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmEmailRequest.ProtoReflect.Descriptor instead.
 func (*ConfirmEmailRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{136}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{136}
 }
 
 func (x *ConfirmEmailRequest) GetConfirmCode() string {
@@ -10809,7 +10809,7 @@ type SendResetAccountEmailRequest struct {
 
 func (x *SendResetAccountEmailRequest) Reset() {
 	*x = SendResetAccountEmailRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[137]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[137]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10821,7 +10821,7 @@ func (x *SendResetAccountEmailRequest) String() string {
 func (*SendResetAccountEmailRequest) ProtoMessage() {}
 
 func (x *SendResetAccountEmailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[137]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[137]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10834,7 +10834,7 @@ func (x *SendResetAccountEmailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendResetAccountEmailRequest.ProtoReflect.Descriptor instead.
 func (*SendResetAccountEmailRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{137}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{137}
 }
 
 func (x *SendResetAccountEmailRequest) GetEmail() string {
@@ -10854,7 +10854,7 @@ type ResetAccountRequest struct {
 
 func (x *ResetAccountRequest) Reset() {
 	*x = ResetAccountRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[138]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[138]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10866,7 +10866,7 @@ func (x *ResetAccountRequest) String() string {
 func (*ResetAccountRequest) ProtoMessage() {}
 
 func (x *ResetAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[138]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[138]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10879,7 +10879,7 @@ func (x *ResetAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResetAccountRequest.ProtoReflect.Descriptor instead.
 func (*ResetAccountRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{138}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{138}
 }
 
 func (x *ResetAccountRequest) GetResetCode() string {
@@ -10914,7 +10914,7 @@ type CloudDrivePlan struct {
 
 func (x *CloudDrivePlan) Reset() {
 	*x = CloudDrivePlan{}
-	mi := &file_clouddrive2_proto_msgTypes[139]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[139]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10926,7 +10926,7 @@ func (x *CloudDrivePlan) String() string {
 func (*CloudDrivePlan) ProtoMessage() {}
 
 func (x *CloudDrivePlan) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[139]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[139]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10939,7 +10939,7 @@ func (x *CloudDrivePlan) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloudDrivePlan.ProtoReflect.Descriptor instead.
 func (*CloudDrivePlan) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{139}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{139}
 }
 
 func (x *CloudDrivePlan) GetId() string {
@@ -11021,7 +11021,7 @@ type GetCloudDrivePlansResult struct {
 
 func (x *GetCloudDrivePlansResult) Reset() {
 	*x = GetCloudDrivePlansResult{}
-	mi := &file_clouddrive2_proto_msgTypes[140]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[140]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11033,7 +11033,7 @@ func (x *GetCloudDrivePlansResult) String() string {
 func (*GetCloudDrivePlansResult) ProtoMessage() {}
 
 func (x *GetCloudDrivePlansResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[140]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[140]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11046,7 +11046,7 @@ func (x *GetCloudDrivePlansResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCloudDrivePlansResult.ProtoReflect.Descriptor instead.
 func (*GetCloudDrivePlansResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{140}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{140}
 }
 
 func (x *GetCloudDrivePlansResult) GetPlans() []*CloudDrivePlan {
@@ -11066,7 +11066,7 @@ type JoinPlanRequest struct {
 
 func (x *JoinPlanRequest) Reset() {
 	*x = JoinPlanRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[141]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[141]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11078,7 +11078,7 @@ func (x *JoinPlanRequest) String() string {
 func (*JoinPlanRequest) ProtoMessage() {}
 
 func (x *JoinPlanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[141]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[141]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11091,7 +11091,7 @@ func (x *JoinPlanRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JoinPlanRequest.ProtoReflect.Descriptor instead.
 func (*JoinPlanRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{141}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{141}
 }
 
 func (x *JoinPlanRequest) GetPlanId() string {
@@ -11122,7 +11122,7 @@ type PaymentInfo struct {
 
 func (x *PaymentInfo) Reset() {
 	*x = PaymentInfo{}
-	mi := &file_clouddrive2_proto_msgTypes[142]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[142]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11134,7 +11134,7 @@ func (x *PaymentInfo) String() string {
 func (*PaymentInfo) ProtoMessage() {}
 
 func (x *PaymentInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[142]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[142]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11147,7 +11147,7 @@ func (x *PaymentInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PaymentInfo.ProtoReflect.Descriptor instead.
 func (*PaymentInfo) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{142}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{142}
 }
 
 func (x *PaymentInfo) GetUserId() string {
@@ -11206,7 +11206,7 @@ type JoinPlanResult struct {
 
 func (x *JoinPlanResult) Reset() {
 	*x = JoinPlanResult{}
-	mi := &file_clouddrive2_proto_msgTypes[143]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[143]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11218,7 +11218,7 @@ func (x *JoinPlanResult) String() string {
 func (*JoinPlanResult) ProtoMessage() {}
 
 func (x *JoinPlanResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[143]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[143]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11231,7 +11231,7 @@ func (x *JoinPlanResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JoinPlanResult.ProtoReflect.Descriptor instead.
 func (*JoinPlanResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{143}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{143}
 }
 
 func (x *JoinPlanResult) GetSuccess() bool {
@@ -11291,7 +11291,7 @@ type Promotion struct {
 
 func (x *Promotion) Reset() {
 	*x = Promotion{}
-	mi := &file_clouddrive2_proto_msgTypes[144]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[144]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11303,7 +11303,7 @@ func (x *Promotion) String() string {
 func (*Promotion) ProtoMessage() {}
 
 func (x *Promotion) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[144]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[144]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11316,7 +11316,7 @@ func (x *Promotion) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Promotion.ProtoReflect.Descriptor instead.
 func (*Promotion) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{144}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{144}
 }
 
 func (x *Promotion) GetId() string {
@@ -11377,7 +11377,7 @@ type GetPromotionsResult struct {
 
 func (x *GetPromotionsResult) Reset() {
 	*x = GetPromotionsResult{}
-	mi := &file_clouddrive2_proto_msgTypes[145]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[145]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11389,7 +11389,7 @@ func (x *GetPromotionsResult) String() string {
 func (*GetPromotionsResult) ProtoMessage() {}
 
 func (x *GetPromotionsResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[145]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[145]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11402,7 +11402,7 @@ func (x *GetPromotionsResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPromotionsResult.ProtoReflect.Descriptor instead.
 func (*GetPromotionsResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{145}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{145}
 }
 
 func (x *GetPromotionsResult) GetPromotions() []*Promotion {
@@ -11423,7 +11423,7 @@ type UpdatePromotionResultByCloudRequest struct {
 
 func (x *UpdatePromotionResultByCloudRequest) Reset() {
 	*x = UpdatePromotionResultByCloudRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[146]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[146]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11435,7 +11435,7 @@ func (x *UpdatePromotionResultByCloudRequest) String() string {
 func (*UpdatePromotionResultByCloudRequest) ProtoMessage() {}
 
 func (x *UpdatePromotionResultByCloudRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[146]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[146]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11448,7 +11448,7 @@ func (x *UpdatePromotionResultByCloudRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use UpdatePromotionResultByCloudRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePromotionResultByCloudRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{146}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{146}
 }
 
 func (x *UpdatePromotionResultByCloudRequest) GetCloudName() string {
@@ -11483,7 +11483,7 @@ type SendPromotionActionRequest struct {
 
 func (x *SendPromotionActionRequest) Reset() {
 	*x = SendPromotionActionRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[147]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[147]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11495,7 +11495,7 @@ func (x *SendPromotionActionRequest) String() string {
 func (*SendPromotionActionRequest) ProtoMessage() {}
 
 func (x *SendPromotionActionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[147]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[147]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11508,7 +11508,7 @@ func (x *SendPromotionActionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendPromotionActionRequest.ProtoReflect.Descriptor instead.
 func (*SendPromotionActionRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{147}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{147}
 }
 
 func (x *SendPromotionActionRequest) GetCloudName() string {
@@ -11542,7 +11542,7 @@ type OfflineStatus struct {
 
 func (x *OfflineStatus) Reset() {
 	*x = OfflineStatus{}
-	mi := &file_clouddrive2_proto_msgTypes[148]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[148]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11554,7 +11554,7 @@ func (x *OfflineStatus) String() string {
 func (*OfflineStatus) ProtoMessage() {}
 
 func (x *OfflineStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[148]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[148]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11567,7 +11567,7 @@ func (x *OfflineStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OfflineStatus.ProtoReflect.Descriptor instead.
 func (*OfflineStatus) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{148}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{148}
 }
 
 func (x *OfflineStatus) GetQuota() uint32 {
@@ -11602,7 +11602,7 @@ type OfflineFile struct {
 
 func (x *OfflineFile) Reset() {
 	*x = OfflineFile{}
-	mi := &file_clouddrive2_proto_msgTypes[149]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[149]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11614,7 +11614,7 @@ func (x *OfflineFile) String() string {
 func (*OfflineFile) ProtoMessage() {}
 
 func (x *OfflineFile) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[149]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[149]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11627,7 +11627,7 @@ func (x *OfflineFile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OfflineFile.ProtoReflect.Descriptor instead.
 func (*OfflineFile) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{149}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{149}
 }
 
 func (x *OfflineFile) GetName() string {
@@ -11712,7 +11712,7 @@ type OfflineFileListAllRequest struct {
 
 func (x *OfflineFileListAllRequest) Reset() {
 	*x = OfflineFileListAllRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[150]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[150]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11724,7 +11724,7 @@ func (x *OfflineFileListAllRequest) String() string {
 func (*OfflineFileListAllRequest) ProtoMessage() {}
 
 func (x *OfflineFileListAllRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[150]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[150]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11737,7 +11737,7 @@ func (x *OfflineFileListAllRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OfflineFileListAllRequest.ProtoReflect.Descriptor instead.
 func (*OfflineFileListAllRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{150}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{150}
 }
 
 func (x *OfflineFileListAllRequest) GetCloudName() string {
@@ -11782,7 +11782,7 @@ type OfflineFileListAllResult struct {
 
 func (x *OfflineFileListAllResult) Reset() {
 	*x = OfflineFileListAllResult{}
-	mi := &file_clouddrive2_proto_msgTypes[151]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[151]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11794,7 +11794,7 @@ func (x *OfflineFileListAllResult) String() string {
 func (*OfflineFileListAllResult) ProtoMessage() {}
 
 func (x *OfflineFileListAllResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[151]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[151]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11807,7 +11807,7 @@ func (x *OfflineFileListAllResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OfflineFileListAllResult.ProtoReflect.Descriptor instead.
 func (*OfflineFileListAllResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{151}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{151}
 }
 
 func (x *OfflineFileListAllResult) GetPageNo() uint32 {
@@ -11862,7 +11862,7 @@ type OfflineFileListResult struct {
 
 func (x *OfflineFileListResult) Reset() {
 	*x = OfflineFileListResult{}
-	mi := &file_clouddrive2_proto_msgTypes[152]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[152]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11874,7 +11874,7 @@ func (x *OfflineFileListResult) String() string {
 func (*OfflineFileListResult) ProtoMessage() {}
 
 func (x *OfflineFileListResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[152]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[152]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11887,7 +11887,7 @@ func (x *OfflineFileListResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OfflineFileListResult.ProtoReflect.Descriptor instead.
 func (*OfflineFileListResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{152}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{152}
 }
 
 func (x *OfflineFileListResult) GetOfflineFiles() []*OfflineFile {
@@ -11915,7 +11915,7 @@ type OfflineQuotaRequest struct {
 
 func (x *OfflineQuotaRequest) Reset() {
 	*x = OfflineQuotaRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[153]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[153]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11927,7 +11927,7 @@ func (x *OfflineQuotaRequest) String() string {
 func (*OfflineQuotaRequest) ProtoMessage() {}
 
 func (x *OfflineQuotaRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[153]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[153]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11940,7 +11940,7 @@ func (x *OfflineQuotaRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OfflineQuotaRequest.ProtoReflect.Descriptor instead.
 func (*OfflineQuotaRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{153}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{153}
 }
 
 func (x *OfflineQuotaRequest) GetCloudName() string {
@@ -11975,7 +11975,7 @@ type OfflineQuotaInfo struct {
 
 func (x *OfflineQuotaInfo) Reset() {
 	*x = OfflineQuotaInfo{}
-	mi := &file_clouddrive2_proto_msgTypes[154]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[154]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11987,7 +11987,7 @@ func (x *OfflineQuotaInfo) String() string {
 func (*OfflineQuotaInfo) ProtoMessage() {}
 
 func (x *OfflineQuotaInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[154]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[154]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12000,7 +12000,7 @@ func (x *OfflineQuotaInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OfflineQuotaInfo.ProtoReflect.Descriptor instead.
 func (*OfflineQuotaInfo) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{154}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{154}
 }
 
 func (x *OfflineQuotaInfo) GetTotal() int32 {
@@ -12037,7 +12037,7 @@ type ClearOfflineFileRequest struct {
 
 func (x *ClearOfflineFileRequest) Reset() {
 	*x = ClearOfflineFileRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[155]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[155]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12049,7 +12049,7 @@ func (x *ClearOfflineFileRequest) String() string {
 func (*ClearOfflineFileRequest) ProtoMessage() {}
 
 func (x *ClearOfflineFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[155]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[155]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12062,7 +12062,7 @@ func (x *ClearOfflineFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClearOfflineFileRequest.ProtoReflect.Descriptor instead.
 func (*ClearOfflineFileRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{155}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{155}
 }
 
 func (x *ClearOfflineFileRequest) GetCloudName() string {
@@ -12114,7 +12114,7 @@ type RestartOfflineFileRequest struct {
 
 func (x *RestartOfflineFileRequest) Reset() {
 	*x = RestartOfflineFileRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[156]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[156]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12126,7 +12126,7 @@ func (x *RestartOfflineFileRequest) String() string {
 func (*RestartOfflineFileRequest) ProtoMessage() {}
 
 func (x *RestartOfflineFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[156]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[156]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12139,7 +12139,7 @@ func (x *RestartOfflineFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RestartOfflineFileRequest.ProtoReflect.Descriptor instead.
 func (*RestartOfflineFileRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{156}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{156}
 }
 
 func (x *RestartOfflineFileRequest) GetCloudName() string {
@@ -12194,7 +12194,7 @@ type BindCloudAccountRequest struct {
 
 func (x *BindCloudAccountRequest) Reset() {
 	*x = BindCloudAccountRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[157]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[157]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12206,7 +12206,7 @@ func (x *BindCloudAccountRequest) String() string {
 func (*BindCloudAccountRequest) ProtoMessage() {}
 
 func (x *BindCloudAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[157]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[157]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12219,7 +12219,7 @@ func (x *BindCloudAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BindCloudAccountRequest.ProtoReflect.Descriptor instead.
 func (*BindCloudAccountRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{157}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{157}
 }
 
 func (x *BindCloudAccountRequest) GetCloudName() string {
@@ -12247,7 +12247,7 @@ type TransferBalanceRequest struct {
 
 func (x *TransferBalanceRequest) Reset() {
 	*x = TransferBalanceRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[158]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[158]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12259,7 +12259,7 @@ func (x *TransferBalanceRequest) String() string {
 func (*TransferBalanceRequest) ProtoMessage() {}
 
 func (x *TransferBalanceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[158]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[158]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12272,7 +12272,7 @@ func (x *TransferBalanceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransferBalanceRequest.ProtoReflect.Descriptor instead.
 func (*TransferBalanceRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{158}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{158}
 }
 
 func (x *TransferBalanceRequest) GetToUserName() string {
@@ -12306,7 +12306,7 @@ type SendChangeEmailCodeRequest struct {
 
 func (x *SendChangeEmailCodeRequest) Reset() {
 	*x = SendChangeEmailCodeRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[159]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[159]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12318,7 +12318,7 @@ func (x *SendChangeEmailCodeRequest) String() string {
 func (*SendChangeEmailCodeRequest) ProtoMessage() {}
 
 func (x *SendChangeEmailCodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[159]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[159]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12331,7 +12331,7 @@ func (x *SendChangeEmailCodeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendChangeEmailCodeRequest.ProtoReflect.Descriptor instead.
 func (*SendChangeEmailCodeRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{159}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{159}
 }
 
 func (x *SendChangeEmailCodeRequest) GetNewEmail() string {
@@ -12360,7 +12360,7 @@ type ChangeEmailRequest struct {
 
 func (x *ChangeEmailRequest) Reset() {
 	*x = ChangeEmailRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[160]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[160]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12372,7 +12372,7 @@ func (x *ChangeEmailRequest) String() string {
 func (*ChangeEmailRequest) ProtoMessage() {}
 
 func (x *ChangeEmailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[160]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[160]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12385,7 +12385,7 @@ func (x *ChangeEmailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangeEmailRequest.ProtoReflect.Descriptor instead.
 func (*ChangeEmailRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{160}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{160}
 }
 
 func (x *ChangeEmailRequest) GetNewEmail() string {
@@ -12427,7 +12427,7 @@ type ChangeEmailAndPasswordRequest struct {
 
 func (x *ChangeEmailAndPasswordRequest) Reset() {
 	*x = ChangeEmailAndPasswordRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[161]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[161]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12439,7 +12439,7 @@ func (x *ChangeEmailAndPasswordRequest) String() string {
 func (*ChangeEmailAndPasswordRequest) ProtoMessage() {}
 
 func (x *ChangeEmailAndPasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[161]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[161]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12452,7 +12452,7 @@ func (x *ChangeEmailAndPasswordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangeEmailAndPasswordRequest.ProtoReflect.Descriptor instead.
 func (*ChangeEmailAndPasswordRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{161}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{161}
 }
 
 func (x *ChangeEmailAndPasswordRequest) GetNewEmail() string {
@@ -12491,7 +12491,7 @@ type BalanceLog struct {
 
 func (x *BalanceLog) Reset() {
 	*x = BalanceLog{}
-	mi := &file_clouddrive2_proto_msgTypes[162]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[162]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12503,7 +12503,7 @@ func (x *BalanceLog) String() string {
 func (*BalanceLog) ProtoMessage() {}
 
 func (x *BalanceLog) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[162]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[162]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12516,7 +12516,7 @@ func (x *BalanceLog) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BalanceLog.ProtoReflect.Descriptor instead.
 func (*BalanceLog) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{162}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{162}
 }
 
 func (x *BalanceLog) GetBalanceBefore() float64 {
@@ -12577,7 +12577,7 @@ type BalanceLogResult struct {
 
 func (x *BalanceLogResult) Reset() {
 	*x = BalanceLogResult{}
-	mi := &file_clouddrive2_proto_msgTypes[163]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[163]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12589,7 +12589,7 @@ func (x *BalanceLogResult) String() string {
 func (*BalanceLogResult) ProtoMessage() {}
 
 func (x *BalanceLogResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[163]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[163]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12602,7 +12602,7 @@ func (x *BalanceLogResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BalanceLogResult.ProtoReflect.Descriptor instead.
 func (*BalanceLogResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{163}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{163}
 }
 
 func (x *BalanceLogResult) GetLogs() []*BalanceLog {
@@ -12622,7 +12622,7 @@ type CheckFinalPriceRequest struct {
 
 func (x *CheckFinalPriceRequest) Reset() {
 	*x = CheckFinalPriceRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[164]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[164]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12634,7 +12634,7 @@ func (x *CheckFinalPriceRequest) String() string {
 func (*CheckFinalPriceRequest) ProtoMessage() {}
 
 func (x *CheckFinalPriceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[164]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[164]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12647,7 +12647,7 @@ func (x *CheckFinalPriceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckFinalPriceRequest.ProtoReflect.Descriptor instead.
 func (*CheckFinalPriceRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{164}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{164}
 }
 
 func (x *CheckFinalPriceRequest) GetPlanId() string {
@@ -12678,7 +12678,7 @@ type CheckFinalPriceResult struct {
 
 func (x *CheckFinalPriceResult) Reset() {
 	*x = CheckFinalPriceResult{}
-	mi := &file_clouddrive2_proto_msgTypes[165]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[165]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12690,7 +12690,7 @@ func (x *CheckFinalPriceResult) String() string {
 func (*CheckFinalPriceResult) ProtoMessage() {}
 
 func (x *CheckFinalPriceResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[165]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[165]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12703,7 +12703,7 @@ func (x *CheckFinalPriceResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckFinalPriceResult.ProtoReflect.Descriptor instead.
 func (*CheckFinalPriceResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{165}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{165}
 }
 
 func (x *CheckFinalPriceResult) GetPlanId() string {
@@ -12759,7 +12759,7 @@ type CheckActivationCodeResult struct {
 
 func (x *CheckActivationCodeResult) Reset() {
 	*x = CheckActivationCodeResult{}
-	mi := &file_clouddrive2_proto_msgTypes[166]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[166]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12771,7 +12771,7 @@ func (x *CheckActivationCodeResult) String() string {
 func (*CheckActivationCodeResult) ProtoMessage() {}
 
 func (x *CheckActivationCodeResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[166]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[166]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12784,7 +12784,7 @@ func (x *CheckActivationCodeResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckActivationCodeResult.ProtoReflect.Descriptor instead.
 func (*CheckActivationCodeResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{166}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{166}
 }
 
 func (x *CheckActivationCodeResult) GetPlanId() string {
@@ -12818,7 +12818,7 @@ type CheckCouponCodeRequest struct {
 
 func (x *CheckCouponCodeRequest) Reset() {
 	*x = CheckCouponCodeRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[167]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[167]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12830,7 +12830,7 @@ func (x *CheckCouponCodeRequest) String() string {
 func (*CheckCouponCodeRequest) ProtoMessage() {}
 
 func (x *CheckCouponCodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[167]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[167]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12843,7 +12843,7 @@ func (x *CheckCouponCodeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckCouponCodeRequest.ProtoReflect.Descriptor instead.
 func (*CheckCouponCodeRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{167}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{167}
 }
 
 func (x *CheckCouponCodeRequest) GetPlanId() string {
@@ -12872,7 +12872,7 @@ type CouponCodeResult struct {
 
 func (x *CouponCodeResult) Reset() {
 	*x = CouponCodeResult{}
-	mi := &file_clouddrive2_proto_msgTypes[168]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[168]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12884,7 +12884,7 @@ func (x *CouponCodeResult) String() string {
 func (*CouponCodeResult) ProtoMessage() {}
 
 func (x *CouponCodeResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[168]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[168]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12897,7 +12897,7 @@ func (x *CouponCodeResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CouponCodeResult.ProtoReflect.Descriptor instead.
 func (*CouponCodeResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{168}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{168}
 }
 
 func (x *CouponCodeResult) GetCouponCode() string {
@@ -12949,7 +12949,7 @@ type FileBackupRule struct {
 
 func (x *FileBackupRule) Reset() {
 	*x = FileBackupRule{}
-	mi := &file_clouddrive2_proto_msgTypes[169]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[169]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12961,7 +12961,7 @@ func (x *FileBackupRule) String() string {
 func (*FileBackupRule) ProtoMessage() {}
 
 func (x *FileBackupRule) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[169]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[169]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12974,7 +12974,7 @@ func (x *FileBackupRule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileBackupRule.ProtoReflect.Descriptor instead.
 func (*FileBackupRule) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{169}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{169}
 }
 
 func (x *FileBackupRule) GetRule() isFileBackupRule_Rule {
@@ -13087,7 +13087,7 @@ type BackupDestination struct {
 
 func (x *BackupDestination) Reset() {
 	*x = BackupDestination{}
-	mi := &file_clouddrive2_proto_msgTypes[170]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[170]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13099,7 +13099,7 @@ func (x *BackupDestination) String() string {
 func (*BackupDestination) ProtoMessage() {}
 
 func (x *BackupDestination) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[170]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[170]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13112,7 +13112,7 @@ func (x *BackupDestination) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupDestination.ProtoReflect.Descriptor instead.
 func (*BackupDestination) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{170}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{170}
 }
 
 func (x *BackupDestination) GetDestinationPath() string {
@@ -13145,7 +13145,7 @@ type DaysOfWeek struct {
 
 func (x *DaysOfWeek) Reset() {
 	*x = DaysOfWeek{}
-	mi := &file_clouddrive2_proto_msgTypes[171]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[171]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13157,7 +13157,7 @@ func (x *DaysOfWeek) String() string {
 func (*DaysOfWeek) ProtoMessage() {}
 
 func (x *DaysOfWeek) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[171]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[171]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13170,7 +13170,7 @@ func (x *DaysOfWeek) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DaysOfWeek.ProtoReflect.Descriptor instead.
 func (*DaysOfWeek) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{171}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{171}
 }
 
 func (x *DaysOfWeek) GetDaysOfWeek() []uint32 {
@@ -13193,7 +13193,7 @@ type TimeSchedule struct {
 
 func (x *TimeSchedule) Reset() {
 	*x = TimeSchedule{}
-	mi := &file_clouddrive2_proto_msgTypes[172]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[172]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13205,7 +13205,7 @@ func (x *TimeSchedule) String() string {
 func (*TimeSchedule) ProtoMessage() {}
 
 func (x *TimeSchedule) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[172]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[172]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13218,7 +13218,7 @@ func (x *TimeSchedule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TimeSchedule.ProtoReflect.Descriptor instead.
 func (*TimeSchedule) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{172}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{172}
 }
 
 func (x *TimeSchedule) GetIsEnabled() bool {
@@ -13277,7 +13277,7 @@ type Backup struct {
 
 func (x *Backup) Reset() {
 	*x = Backup{}
-	mi := &file_clouddrive2_proto_msgTypes[173]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[173]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13289,7 +13289,7 @@ func (x *Backup) String() string {
 func (*Backup) ProtoMessage() {}
 
 func (x *Backup) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[173]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[173]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13302,7 +13302,7 @@ func (x *Backup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Backup.ProtoReflect.Descriptor instead.
 func (*Backup) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{173}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{173}
 }
 
 func (x *Backup) GetSourcePath() string {
@@ -13410,7 +13410,7 @@ type BackupStatus struct {
 
 func (x *BackupStatus) Reset() {
 	*x = BackupStatus{}
-	mi := &file_clouddrive2_proto_msgTypes[174]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[174]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13422,7 +13422,7 @@ func (x *BackupStatus) String() string {
 func (*BackupStatus) ProtoMessage() {}
 
 func (x *BackupStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[174]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[174]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13435,7 +13435,7 @@ func (x *BackupStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupStatus.ProtoReflect.Descriptor instead.
 func (*BackupStatus) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{174}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{174}
 }
 
 func (x *BackupStatus) GetBackup() *Backup {
@@ -13489,7 +13489,7 @@ type BackupList struct {
 
 func (x *BackupList) Reset() {
 	*x = BackupList{}
-	mi := &file_clouddrive2_proto_msgTypes[175]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[175]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13501,7 +13501,7 @@ func (x *BackupList) String() string {
 func (*BackupList) ProtoMessage() {}
 
 func (x *BackupList) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[175]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[175]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13514,7 +13514,7 @@ func (x *BackupList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupList.ProtoReflect.Descriptor instead.
 func (*BackupList) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{175}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{175}
 }
 
 func (x *BackupList) GetBackups() []*BackupStatus {
@@ -13539,7 +13539,7 @@ type BackupModifyRequest struct {
 
 func (x *BackupModifyRequest) Reset() {
 	*x = BackupModifyRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[176]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[176]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13551,7 +13551,7 @@ func (x *BackupModifyRequest) String() string {
 func (*BackupModifyRequest) ProtoMessage() {}
 
 func (x *BackupModifyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[176]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[176]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13564,7 +13564,7 @@ func (x *BackupModifyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupModifyRequest.ProtoReflect.Descriptor instead.
 func (*BackupModifyRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{176}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{176}
 }
 
 func (x *BackupModifyRequest) GetSourcePath() string {
@@ -13626,7 +13626,7 @@ type BackupSetEnabledRequest struct {
 
 func (x *BackupSetEnabledRequest) Reset() {
 	*x = BackupSetEnabledRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[177]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[177]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13638,7 +13638,7 @@ func (x *BackupSetEnabledRequest) String() string {
 func (*BackupSetEnabledRequest) ProtoMessage() {}
 
 func (x *BackupSetEnabledRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[177]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[177]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13651,7 +13651,7 @@ func (x *BackupSetEnabledRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupSetEnabledRequest.ProtoReflect.Descriptor instead.
 func (*BackupSetEnabledRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{177}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{177}
 }
 
 func (x *BackupSetEnabledRequest) GetSourcePath() string {
@@ -13682,7 +13682,7 @@ type PhotoLibraryChange struct {
 
 func (x *PhotoLibraryChange) Reset() {
 	*x = PhotoLibraryChange{}
-	mi := &file_clouddrive2_proto_msgTypes[178]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[178]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13694,7 +13694,7 @@ func (x *PhotoLibraryChange) String() string {
 func (*PhotoLibraryChange) ProtoMessage() {}
 
 func (x *PhotoLibraryChange) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[178]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[178]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13707,7 +13707,7 @@ func (x *PhotoLibraryChange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PhotoLibraryChange.ProtoReflect.Descriptor instead.
 func (*PhotoLibraryChange) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{178}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{178}
 }
 
 func (x *PhotoLibraryChange) GetChangeType() PhotoLibraryChange_ChangeType {
@@ -13755,7 +13755,7 @@ type PhotoLibraryChangeList struct {
 
 func (x *PhotoLibraryChangeList) Reset() {
 	*x = PhotoLibraryChangeList{}
-	mi := &file_clouddrive2_proto_msgTypes[179]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[179]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13767,7 +13767,7 @@ func (x *PhotoLibraryChangeList) String() string {
 func (*PhotoLibraryChangeList) ProtoMessage() {}
 
 func (x *PhotoLibraryChangeList) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[179]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[179]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13780,7 +13780,7 @@ func (x *PhotoLibraryChangeList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PhotoLibraryChangeList.ProtoReflect.Descriptor instead.
 func (*PhotoLibraryChangeList) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{179}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{179}
 }
 
 func (x *PhotoLibraryChangeList) GetChanges() []*PhotoLibraryChange {
@@ -13811,7 +13811,7 @@ type Device struct {
 
 func (x *Device) Reset() {
 	*x = Device{}
-	mi := &file_clouddrive2_proto_msgTypes[180]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[180]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13823,7 +13823,7 @@ func (x *Device) String() string {
 func (*Device) ProtoMessage() {}
 
 func (x *Device) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[180]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[180]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13836,7 +13836,7 @@ func (x *Device) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Device.ProtoReflect.Descriptor instead.
 func (*Device) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{180}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{180}
 }
 
 func (x *Device) GetDeviceId() string {
@@ -13890,7 +13890,7 @@ type OnlineDevices struct {
 
 func (x *OnlineDevices) Reset() {
 	*x = OnlineDevices{}
-	mi := &file_clouddrive2_proto_msgTypes[181]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[181]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13902,7 +13902,7 @@ func (x *OnlineDevices) String() string {
 func (*OnlineDevices) ProtoMessage() {}
 
 func (x *OnlineDevices) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[181]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[181]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13915,7 +13915,7 @@ func (x *OnlineDevices) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OnlineDevices.ProtoReflect.Descriptor instead.
 func (*OnlineDevices) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{181}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{181}
 }
 
 func (x *OnlineDevices) GetDevices() []*Device {
@@ -13934,7 +13934,7 @@ type DeviceRequest struct {
 
 func (x *DeviceRequest) Reset() {
 	*x = DeviceRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[182]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[182]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13946,7 +13946,7 @@ func (x *DeviceRequest) String() string {
 func (*DeviceRequest) ProtoMessage() {}
 
 func (x *DeviceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[182]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[182]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13959,7 +13959,7 @@ func (x *DeviceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceRequest.ProtoReflect.Descriptor instead.
 func (*DeviceRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{182}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{182}
 }
 
 func (x *DeviceRequest) GetDeviceId() string {
@@ -13981,7 +13981,7 @@ type LogFileRecord struct {
 
 func (x *LogFileRecord) Reset() {
 	*x = LogFileRecord{}
-	mi := &file_clouddrive2_proto_msgTypes[183]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[183]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13993,7 +13993,7 @@ func (x *LogFileRecord) String() string {
 func (*LogFileRecord) ProtoMessage() {}
 
 func (x *LogFileRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[183]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[183]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14006,7 +14006,7 @@ func (x *LogFileRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogFileRecord.ProtoReflect.Descriptor instead.
 func (*LogFileRecord) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{183}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{183}
 }
 
 func (x *LogFileRecord) GetFileName() string {
@@ -14046,7 +14046,7 @@ type ListLogFileResult struct {
 
 func (x *ListLogFileResult) Reset() {
 	*x = ListLogFileResult{}
-	mi := &file_clouddrive2_proto_msgTypes[184]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[184]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14058,7 +14058,7 @@ func (x *ListLogFileResult) String() string {
 func (*ListLogFileResult) ProtoMessage() {}
 
 func (x *ListLogFileResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[184]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[184]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14071,7 +14071,7 @@ func (x *ListLogFileResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLogFileResult.ProtoReflect.Descriptor instead.
 func (*ListLogFileResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{184}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{184}
 }
 
 func (x *ListLogFileResult) GetLogFiles() []*LogFileRecord {
@@ -14092,7 +14092,7 @@ type FileSystemChangeStatistics struct {
 
 func (x *FileSystemChangeStatistics) Reset() {
 	*x = FileSystemChangeStatistics{}
-	mi := &file_clouddrive2_proto_msgTypes[185]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[185]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14104,7 +14104,7 @@ func (x *FileSystemChangeStatistics) String() string {
 func (*FileSystemChangeStatistics) ProtoMessage() {}
 
 func (x *FileSystemChangeStatistics) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[185]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[185]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14117,7 +14117,7 @@ func (x *FileSystemChangeStatistics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileSystemChangeStatistics.ProtoReflect.Descriptor instead.
 func (*FileSystemChangeStatistics) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{185}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{185}
 }
 
 func (x *FileSystemChangeStatistics) GetCreateCount() uint64 {
@@ -14152,7 +14152,7 @@ type WalkThroughFolderResult struct {
 
 func (x *WalkThroughFolderResult) Reset() {
 	*x = WalkThroughFolderResult{}
-	mi := &file_clouddrive2_proto_msgTypes[186]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[186]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14164,7 +14164,7 @@ func (x *WalkThroughFolderResult) String() string {
 func (*WalkThroughFolderResult) ProtoMessage() {}
 
 func (x *WalkThroughFolderResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[186]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[186]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14177,7 +14177,7 @@ func (x *WalkThroughFolderResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WalkThroughFolderResult.ProtoReflect.Descriptor instead.
 func (*WalkThroughFolderResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{186}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{186}
 }
 
 func (x *WalkThroughFolderResult) GetTotalFolderCount() uint64 {
@@ -14211,7 +14211,7 @@ type WebhookRequest struct {
 
 func (x *WebhookRequest) Reset() {
 	*x = WebhookRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[187]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[187]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14223,7 +14223,7 @@ func (x *WebhookRequest) String() string {
 func (*WebhookRequest) ProtoMessage() {}
 
 func (x *WebhookRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[187]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[187]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14236,7 +14236,7 @@ func (x *WebhookRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebhookRequest.ProtoReflect.Descriptor instead.
 func (*WebhookRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{187}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{187}
 }
 
 func (x *WebhookRequest) GetFileName() string {
@@ -14264,7 +14264,7 @@ type WebhookInfo struct {
 
 func (x *WebhookInfo) Reset() {
 	*x = WebhookInfo{}
-	mi := &file_clouddrive2_proto_msgTypes[188]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[188]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14276,7 +14276,7 @@ func (x *WebhookInfo) String() string {
 func (*WebhookInfo) ProtoMessage() {}
 
 func (x *WebhookInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[188]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[188]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14289,7 +14289,7 @@ func (x *WebhookInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebhookInfo.ProtoReflect.Descriptor instead.
 func (*WebhookInfo) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{188}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{188}
 }
 
 func (x *WebhookInfo) GetFileName() string {
@@ -14322,7 +14322,7 @@ type WebhookList struct {
 
 func (x *WebhookList) Reset() {
 	*x = WebhookList{}
-	mi := &file_clouddrive2_proto_msgTypes[189]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[189]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14334,7 +14334,7 @@ func (x *WebhookList) String() string {
 func (*WebhookList) ProtoMessage() {}
 
 func (x *WebhookList) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[189]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[189]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14347,7 +14347,7 @@ func (x *WebhookList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebhookList.ProtoReflect.Descriptor instead.
 func (*WebhookList) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{189}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{189}
 }
 
 func (x *WebhookList) GetWebhooks() []*WebhookInfo {
@@ -14372,7 +14372,7 @@ type AddDavUserRequest struct {
 
 func (x *AddDavUserRequest) Reset() {
 	*x = AddDavUserRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[190]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[190]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14384,7 +14384,7 @@ func (x *AddDavUserRequest) String() string {
 func (*AddDavUserRequest) ProtoMessage() {}
 
 func (x *AddDavUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[190]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[190]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14397,7 +14397,7 @@ func (x *AddDavUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddDavUserRequest.ProtoReflect.Descriptor instead.
 func (*AddDavUserRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{190}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{190}
 }
 
 func (x *AddDavUserRequest) GetUserName() string {
@@ -14456,7 +14456,7 @@ type ModifyDavUserRequest struct {
 
 func (x *ModifyDavUserRequest) Reset() {
 	*x = ModifyDavUserRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[191]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[191]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14468,7 +14468,7 @@ func (x *ModifyDavUserRequest) String() string {
 func (*ModifyDavUserRequest) ProtoMessage() {}
 
 func (x *ModifyDavUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[191]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[191]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14481,7 +14481,7 @@ func (x *ModifyDavUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModifyDavUserRequest.ProtoReflect.Descriptor instead.
 func (*ModifyDavUserRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{191}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{191}
 }
 
 func (x *ModifyDavUserRequest) GetUserName() string {
@@ -14540,7 +14540,7 @@ type DavUser struct {
 
 func (x *DavUser) Reset() {
 	*x = DavUser{}
-	mi := &file_clouddrive2_proto_msgTypes[192]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[192]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14552,7 +14552,7 @@ func (x *DavUser) String() string {
 func (*DavUser) ProtoMessage() {}
 
 func (x *DavUser) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[192]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[192]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14565,7 +14565,7 @@ func (x *DavUser) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DavUser.ProtoReflect.Descriptor instead.
 func (*DavUser) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{192}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{192}
 }
 
 func (x *DavUser) GetUserName() string {
@@ -14628,7 +14628,7 @@ type DavServerConfig struct {
 
 func (x *DavServerConfig) Reset() {
 	*x = DavServerConfig{}
-	mi := &file_clouddrive2_proto_msgTypes[193]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[193]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14640,7 +14640,7 @@ func (x *DavServerConfig) String() string {
 func (*DavServerConfig) ProtoMessage() {}
 
 func (x *DavServerConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[193]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[193]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14653,7 +14653,7 @@ func (x *DavServerConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DavServerConfig.ProtoReflect.Descriptor instead.
 func (*DavServerConfig) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{193}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{193}
 }
 
 func (x *DavServerConfig) GetDavServerEnabled() bool {
@@ -14742,7 +14742,7 @@ type ModifyDavServerConfigRequest struct {
 
 func (x *ModifyDavServerConfigRequest) Reset() {
 	*x = ModifyDavServerConfigRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[194]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[194]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14754,7 +14754,7 @@ func (x *ModifyDavServerConfigRequest) String() string {
 func (*ModifyDavServerConfigRequest) ProtoMessage() {}
 
 func (x *ModifyDavServerConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[194]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[194]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14767,7 +14767,7 @@ func (x *ModifyDavServerConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModifyDavServerConfigRequest.ProtoReflect.Descriptor instead.
 func (*ModifyDavServerConfigRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{194}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{194}
 }
 
 func (x *ModifyDavServerConfigRequest) GetEnableDavServer() bool {
@@ -14835,7 +14835,7 @@ type RemoteUploadChannelRequest struct {
 
 func (x *RemoteUploadChannelRequest) Reset() {
 	*x = RemoteUploadChannelRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[195]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[195]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14847,7 +14847,7 @@ func (x *RemoteUploadChannelRequest) String() string {
 func (*RemoteUploadChannelRequest) ProtoMessage() {}
 
 func (x *RemoteUploadChannelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[195]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[195]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14860,7 +14860,7 @@ func (x *RemoteUploadChannelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteUploadChannelRequest.ProtoReflect.Descriptor instead.
 func (*RemoteUploadChannelRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{195}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{195}
 }
 
 func (x *RemoteUploadChannelRequest) GetDeviceId() string {
@@ -14886,7 +14886,7 @@ type RemoteUploadChannelReply struct {
 
 func (x *RemoteUploadChannelReply) Reset() {
 	*x = RemoteUploadChannelReply{}
-	mi := &file_clouddrive2_proto_msgTypes[196]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[196]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14898,7 +14898,7 @@ func (x *RemoteUploadChannelReply) String() string {
 func (*RemoteUploadChannelReply) ProtoMessage() {}
 
 func (x *RemoteUploadChannelReply) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[196]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[196]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14911,7 +14911,7 @@ func (x *RemoteUploadChannelReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteUploadChannelReply.ProtoReflect.Descriptor instead.
 func (*RemoteUploadChannelReply) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{196}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{196}
 }
 
 func (x *RemoteUploadChannelReply) GetUploadId() string {
@@ -14993,7 +14993,7 @@ type RemoteUploadControlRequest struct {
 
 func (x *RemoteUploadControlRequest) Reset() {
 	*x = RemoteUploadControlRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[197]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[197]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15005,7 +15005,7 @@ func (x *RemoteUploadControlRequest) String() string {
 func (*RemoteUploadControlRequest) ProtoMessage() {}
 
 func (x *RemoteUploadControlRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[197]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[197]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15018,7 +15018,7 @@ func (x *RemoteUploadControlRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteUploadControlRequest.ProtoReflect.Descriptor instead.
 func (*RemoteUploadControlRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{197}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{197}
 }
 
 func (x *RemoteUploadControlRequest) GetUploadId() string {
@@ -15100,7 +15100,7 @@ type StartRemoteUploadRequest struct {
 
 func (x *StartRemoteUploadRequest) Reset() {
 	*x = StartRemoteUploadRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[198]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[198]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15112,7 +15112,7 @@ func (x *StartRemoteUploadRequest) String() string {
 func (*StartRemoteUploadRequest) ProtoMessage() {}
 
 func (x *StartRemoteUploadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[198]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[198]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15125,7 +15125,7 @@ func (x *StartRemoteUploadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartRemoteUploadRequest.ProtoReflect.Descriptor instead.
 func (*StartRemoteUploadRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{198}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{198}
 }
 
 func (x *StartRemoteUploadRequest) GetFilePath() string {
@@ -15165,7 +15165,7 @@ type CancelRemoteUpload struct {
 
 func (x *CancelRemoteUpload) Reset() {
 	*x = CancelRemoteUpload{}
-	mi := &file_clouddrive2_proto_msgTypes[199]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[199]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15177,7 +15177,7 @@ func (x *CancelRemoteUpload) String() string {
 func (*CancelRemoteUpload) ProtoMessage() {}
 
 func (x *CancelRemoteUpload) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[199]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[199]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15190,7 +15190,7 @@ func (x *CancelRemoteUpload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelRemoteUpload.ProtoReflect.Descriptor instead.
 func (*CancelRemoteUpload) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{199}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{199}
 }
 
 // Upload started reply
@@ -15203,7 +15203,7 @@ type RemoteUploadStarted struct {
 
 func (x *RemoteUploadStarted) Reset() {
 	*x = RemoteUploadStarted{}
-	mi := &file_clouddrive2_proto_msgTypes[200]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[200]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15215,7 +15215,7 @@ func (x *RemoteUploadStarted) String() string {
 func (*RemoteUploadStarted) ProtoMessage() {}
 
 func (x *RemoteUploadStarted) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[200]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[200]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15228,7 +15228,7 @@ func (x *RemoteUploadStarted) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteUploadStarted.ProtoReflect.Descriptor instead.
 func (*RemoteUploadStarted) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{200}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{200}
 }
 
 func (x *RemoteUploadStarted) GetUploadId() string {
@@ -15249,7 +15249,7 @@ type RemoteUploadProgress struct {
 
 func (x *RemoteUploadProgress) Reset() {
 	*x = RemoteUploadProgress{}
-	mi := &file_clouddrive2_proto_msgTypes[201]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[201]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15261,7 +15261,7 @@ func (x *RemoteUploadProgress) String() string {
 func (*RemoteUploadProgress) ProtoMessage() {}
 
 func (x *RemoteUploadProgress) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[201]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[201]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15274,7 +15274,7 @@ func (x *RemoteUploadProgress) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteUploadProgress.ProtoReflect.Descriptor instead.
 func (*RemoteUploadProgress) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{201}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{201}
 }
 
 func (x *RemoteUploadProgress) GetBytesUploaded() uint64 {
@@ -15301,7 +15301,7 @@ type RemoteRapidUploadCompleted struct {
 
 func (x *RemoteRapidUploadCompleted) Reset() {
 	*x = RemoteRapidUploadCompleted{}
-	mi := &file_clouddrive2_proto_msgTypes[202]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[202]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15313,7 +15313,7 @@ func (x *RemoteRapidUploadCompleted) String() string {
 func (*RemoteRapidUploadCompleted) ProtoMessage() {}
 
 func (x *RemoteRapidUploadCompleted) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[202]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[202]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15326,7 +15326,7 @@ func (x *RemoteRapidUploadCompleted) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteRapidUploadCompleted.ProtoReflect.Descriptor instead.
 func (*RemoteRapidUploadCompleted) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{202}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{202}
 }
 
 // Upload completed reply
@@ -15338,7 +15338,7 @@ type RemoteUploadCompleted struct {
 
 func (x *RemoteUploadCompleted) Reset() {
 	*x = RemoteUploadCompleted{}
-	mi := &file_clouddrive2_proto_msgTypes[203]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[203]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15350,7 +15350,7 @@ func (x *RemoteUploadCompleted) String() string {
 func (*RemoteUploadCompleted) ProtoMessage() {}
 
 func (x *RemoteUploadCompleted) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[203]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[203]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15363,7 +15363,7 @@ func (x *RemoteUploadCompleted) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteUploadCompleted.ProtoReflect.Descriptor instead.
 func (*RemoteUploadCompleted) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{203}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{203}
 }
 
 // Upload failed reply
@@ -15376,7 +15376,7 @@ type RemoteUploadFailed struct {
 
 func (x *RemoteUploadFailed) Reset() {
 	*x = RemoteUploadFailed{}
-	mi := &file_clouddrive2_proto_msgTypes[204]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[204]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15388,7 +15388,7 @@ func (x *RemoteUploadFailed) String() string {
 func (*RemoteUploadFailed) ProtoMessage() {}
 
 func (x *RemoteUploadFailed) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[204]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[204]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15401,7 +15401,7 @@ func (x *RemoteUploadFailed) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteUploadFailed.ProtoReflect.Descriptor instead.
 func (*RemoteUploadFailed) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{204}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{204}
 }
 
 func (x *RemoteUploadFailed) GetErrorMessage() string {
@@ -15423,7 +15423,7 @@ type RemoteReadDataRequest struct {
 
 func (x *RemoteReadDataRequest) Reset() {
 	*x = RemoteReadDataRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[205]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[205]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15435,7 +15435,7 @@ func (x *RemoteReadDataRequest) String() string {
 func (*RemoteReadDataRequest) ProtoMessage() {}
 
 func (x *RemoteReadDataRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[205]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[205]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15448,7 +15448,7 @@ func (x *RemoteReadDataRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteReadDataRequest.ProtoReflect.Descriptor instead.
 func (*RemoteReadDataRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{205}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{205}
 }
 
 func (x *RemoteReadDataRequest) GetOffset() uint64 {
@@ -15486,7 +15486,7 @@ type RemoteReadDataUpload struct {
 
 func (x *RemoteReadDataUpload) Reset() {
 	*x = RemoteReadDataUpload{}
-	mi := &file_clouddrive2_proto_msgTypes[206]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[206]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15498,7 +15498,7 @@ func (x *RemoteReadDataUpload) String() string {
 func (*RemoteReadDataUpload) ProtoMessage() {}
 
 func (x *RemoteReadDataUpload) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[206]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[206]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15511,7 +15511,7 @@ func (x *RemoteReadDataUpload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteReadDataUpload.ProtoReflect.Descriptor instead.
 func (*RemoteReadDataUpload) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{206}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{206}
 }
 
 func (x *RemoteReadDataUpload) GetUploadId() string {
@@ -15569,7 +15569,7 @@ type RemoteReadDataReply struct {
 
 func (x *RemoteReadDataReply) Reset() {
 	*x = RemoteReadDataReply{}
-	mi := &file_clouddrive2_proto_msgTypes[207]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[207]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15581,7 +15581,7 @@ func (x *RemoteReadDataReply) String() string {
 func (*RemoteReadDataReply) ProtoMessage() {}
 
 func (x *RemoteReadDataReply) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[207]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[207]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15594,7 +15594,7 @@ func (x *RemoteReadDataReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteReadDataReply.ProtoReflect.Descriptor instead.
 func (*RemoteReadDataReply) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{207}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{207}
 }
 
 func (x *RemoteReadDataReply) GetSuccess() bool {
@@ -15639,7 +15639,7 @@ type RemoteHashDataRequest struct {
 
 func (x *RemoteHashDataRequest) Reset() {
 	*x = RemoteHashDataRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[208]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[208]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15651,7 +15651,7 @@ func (x *RemoteHashDataRequest) String() string {
 func (*RemoteHashDataRequest) ProtoMessage() {}
 
 func (x *RemoteHashDataRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[208]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[208]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15664,7 +15664,7 @@ func (x *RemoteHashDataRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteHashDataRequest.ProtoReflect.Descriptor instead.
 func (*RemoteHashDataRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{208}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{208}
 }
 
 func (x *RemoteHashDataRequest) GetHashType() uint32 {
@@ -15692,7 +15692,7 @@ type RemoteUploadStatusChanged struct {
 
 func (x *RemoteUploadStatusChanged) Reset() {
 	*x = RemoteUploadStatusChanged{}
-	mi := &file_clouddrive2_proto_msgTypes[209]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[209]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15704,7 +15704,7 @@ func (x *RemoteUploadStatusChanged) String() string {
 func (*RemoteUploadStatusChanged) ProtoMessage() {}
 
 func (x *RemoteUploadStatusChanged) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[209]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[209]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15717,7 +15717,7 @@ func (x *RemoteUploadStatusChanged) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteUploadStatusChanged.ProtoReflect.Descriptor instead.
 func (*RemoteUploadStatusChanged) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{209}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{209}
 }
 
 func (x *RemoteUploadStatusChanged) GetStatus() UploadFileInfo_Status {
@@ -15743,7 +15743,7 @@ type PauseRemoteUpload struct {
 
 func (x *PauseRemoteUpload) Reset() {
 	*x = PauseRemoteUpload{}
-	mi := &file_clouddrive2_proto_msgTypes[210]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[210]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15755,7 +15755,7 @@ func (x *PauseRemoteUpload) String() string {
 func (*PauseRemoteUpload) ProtoMessage() {}
 
 func (x *PauseRemoteUpload) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[210]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[210]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15768,7 +15768,7 @@ func (x *PauseRemoteUpload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PauseRemoteUpload.ProtoReflect.Descriptor instead.
 func (*PauseRemoteUpload) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{210}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{210}
 }
 
 type ResumeRemoteUpload struct {
@@ -15779,7 +15779,7 @@ type ResumeRemoteUpload struct {
 
 func (x *ResumeRemoteUpload) Reset() {
 	*x = ResumeRemoteUpload{}
-	mi := &file_clouddrive2_proto_msgTypes[211]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[211]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15791,7 +15791,7 @@ func (x *ResumeRemoteUpload) String() string {
 func (*ResumeRemoteUpload) ProtoMessage() {}
 
 func (x *ResumeRemoteUpload) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[211]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[211]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15804,7 +15804,7 @@ func (x *ResumeRemoteUpload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResumeRemoteUpload.ProtoReflect.Descriptor instead.
 func (*ResumeRemoteUpload) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{211}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{211}
 }
 
 // Client-side hash calculation progress (e.g., when computing MD5/SHA1 locally)
@@ -15827,7 +15827,7 @@ type RemoteHashProgressUpload struct {
 
 func (x *RemoteHashProgressUpload) Reset() {
 	*x = RemoteHashProgressUpload{}
-	mi := &file_clouddrive2_proto_msgTypes[212]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[212]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15839,7 +15839,7 @@ func (x *RemoteHashProgressUpload) String() string {
 func (*RemoteHashProgressUpload) ProtoMessage() {}
 
 func (x *RemoteHashProgressUpload) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[212]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[212]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15852,7 +15852,7 @@ func (x *RemoteHashProgressUpload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteHashProgressUpload.ProtoReflect.Descriptor instead.
 func (*RemoteHashProgressUpload) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{212}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{212}
 }
 
 func (x *RemoteHashProgressUpload) GetUploadId() string {
@@ -15905,7 +15905,7 @@ type RemoteHashProgressReply struct {
 
 func (x *RemoteHashProgressReply) Reset() {
 	*x = RemoteHashProgressReply{}
-	mi := &file_clouddrive2_proto_msgTypes[213]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[213]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15917,7 +15917,7 @@ func (x *RemoteHashProgressReply) String() string {
 func (*RemoteHashProgressReply) ProtoMessage() {}
 
 func (x *RemoteHashProgressReply) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[213]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[213]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15930,7 +15930,7 @@ func (x *RemoteHashProgressReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteHashProgressReply.ProtoReflect.Descriptor instead.
 func (*RemoteHashProgressReply) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{213}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{213}
 }
 
 // --- End Remote Upload Protocol Messages ---
@@ -15998,7 +15998,7 @@ type TokenPermissions struct {
 
 func (x *TokenPermissions) Reset() {
 	*x = TokenPermissions{}
-	mi := &file_clouddrive2_proto_msgTypes[214]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[214]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16010,7 +16010,7 @@ func (x *TokenPermissions) String() string {
 func (*TokenPermissions) ProtoMessage() {}
 
 func (x *TokenPermissions) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[214]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[214]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16023,7 +16023,7 @@ func (x *TokenPermissions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TokenPermissions.ProtoReflect.Descriptor instead.
 func (*TokenPermissions) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{214}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{214}
 }
 
 func (x *TokenPermissions) GetAllowList() bool {
@@ -16329,7 +16329,7 @@ type TokenInfo struct {
 
 func (x *TokenInfo) Reset() {
 	*x = TokenInfo{}
-	mi := &file_clouddrive2_proto_msgTypes[215]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[215]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16341,7 +16341,7 @@ func (x *TokenInfo) String() string {
 func (*TokenInfo) ProtoMessage() {}
 
 func (x *TokenInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[215]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[215]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16354,7 +16354,7 @@ func (x *TokenInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TokenInfo.ProtoReflect.Descriptor instead.
 func (*TokenInfo) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{215}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{215}
 }
 
 func (x *TokenInfo) GetToken() string {
@@ -16421,7 +16421,7 @@ type CreateTokenRequest struct {
 
 func (x *CreateTokenRequest) Reset() {
 	*x = CreateTokenRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[216]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[216]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16433,7 +16433,7 @@ func (x *CreateTokenRequest) String() string {
 func (*CreateTokenRequest) ProtoMessage() {}
 
 func (x *CreateTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[216]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[216]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16446,7 +16446,7 @@ func (x *CreateTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateTokenRequest.ProtoReflect.Descriptor instead.
 func (*CreateTokenRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{216}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{216}
 }
 
 func (x *CreateTokenRequest) GetRootDir() string {
@@ -16508,7 +16508,7 @@ type ModifyTokenRequest struct {
 
 func (x *ModifyTokenRequest) Reset() {
 	*x = ModifyTokenRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[217]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[217]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16520,7 +16520,7 @@ func (x *ModifyTokenRequest) String() string {
 func (*ModifyTokenRequest) ProtoMessage() {}
 
 func (x *ModifyTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[217]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[217]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16533,7 +16533,7 @@ func (x *ModifyTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModifyTokenRequest.ProtoReflect.Descriptor instead.
 func (*ModifyTokenRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{217}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{217}
 }
 
 func (x *ModifyTokenRequest) GetToken() string {
@@ -16594,7 +16594,7 @@ type ListTokensResult struct {
 
 func (x *ListTokensResult) Reset() {
 	*x = ListTokensResult{}
-	mi := &file_clouddrive2_proto_msgTypes[218]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[218]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16606,7 +16606,7 @@ func (x *ListTokensResult) String() string {
 func (*ListTokensResult) ProtoMessage() {}
 
 func (x *ListTokensResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[218]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[218]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16619,7 +16619,7 @@ func (x *ListTokensResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTokensResult.ProtoReflect.Descriptor instead.
 func (*ListTokensResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{218}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{218}
 }
 
 func (x *ListTokensResult) GetTokens() []*TokenInfo {
@@ -16643,7 +16643,7 @@ type WebServerConfig struct {
 
 func (x *WebServerConfig) Reset() {
 	*x = WebServerConfig{}
-	mi := &file_clouddrive2_proto_msgTypes[219]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[219]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16655,7 +16655,7 @@ func (x *WebServerConfig) String() string {
 func (*WebServerConfig) ProtoMessage() {}
 
 func (x *WebServerConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[219]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[219]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16668,7 +16668,7 @@ func (x *WebServerConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebServerConfig.ProtoReflect.Descriptor instead.
 func (*WebServerConfig) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{219}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{219}
 }
 
 func (x *WebServerConfig) GetHttpPort() uint32 {
@@ -16725,7 +16725,7 @@ type SetWebServerConfigRequest struct {
 
 func (x *SetWebServerConfigRequest) Reset() {
 	*x = SetWebServerConfigRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[220]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[220]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16737,7 +16737,7 @@ func (x *SetWebServerConfigRequest) String() string {
 func (*SetWebServerConfigRequest) ProtoMessage() {}
 
 func (x *SetWebServerConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[220]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[220]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16750,7 +16750,7 @@ func (x *SetWebServerConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetWebServerConfigRequest.ProtoReflect.Descriptor instead.
 func (*SetWebServerConfigRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{220}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{220}
 }
 
 func (x *SetWebServerConfigRequest) GetHttpPort() uint32 {
@@ -16813,7 +16813,7 @@ type GenerateSelfSignedCertRequest struct {
 
 func (x *GenerateSelfSignedCertRequest) Reset() {
 	*x = GenerateSelfSignedCertRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[221]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[221]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16825,7 +16825,7 @@ func (x *GenerateSelfSignedCertRequest) String() string {
 func (*GenerateSelfSignedCertRequest) ProtoMessage() {}
 
 func (x *GenerateSelfSignedCertRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[221]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[221]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16838,7 +16838,7 @@ func (x *GenerateSelfSignedCertRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateSelfSignedCertRequest.ProtoReflect.Descriptor instead.
 func (*GenerateSelfSignedCertRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{221}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{221}
 }
 
 func (x *GenerateSelfSignedCertRequest) GetRestartServers() bool {
@@ -16857,7 +16857,7 @@ type TwoFactorAuthStatusResult struct {
 
 func (x *TwoFactorAuthStatusResult) Reset() {
 	*x = TwoFactorAuthStatusResult{}
-	mi := &file_clouddrive2_proto_msgTypes[222]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[222]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16869,7 +16869,7 @@ func (x *TwoFactorAuthStatusResult) String() string {
 func (*TwoFactorAuthStatusResult) ProtoMessage() {}
 
 func (x *TwoFactorAuthStatusResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[222]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[222]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16882,7 +16882,7 @@ func (x *TwoFactorAuthStatusResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TwoFactorAuthStatusResult.ProtoReflect.Descriptor instead.
 func (*TwoFactorAuthStatusResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{222}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{222}
 }
 
 func (x *TwoFactorAuthStatusResult) GetTwoFactorEnabled() bool {
@@ -16901,7 +16901,7 @@ type Setup2FARequest struct {
 
 func (x *Setup2FARequest) Reset() {
 	*x = Setup2FARequest{}
-	mi := &file_clouddrive2_proto_msgTypes[223]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[223]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16913,7 +16913,7 @@ func (x *Setup2FARequest) String() string {
 func (*Setup2FARequest) ProtoMessage() {}
 
 func (x *Setup2FARequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[223]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[223]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16926,7 +16926,7 @@ func (x *Setup2FARequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Setup2FARequest.ProtoReflect.Descriptor instead.
 func (*Setup2FARequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{223}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{223}
 }
 
 func (x *Setup2FARequest) GetPassword() string {
@@ -16947,7 +16947,7 @@ type TwoFactorAuthSetupResult struct {
 
 func (x *TwoFactorAuthSetupResult) Reset() {
 	*x = TwoFactorAuthSetupResult{}
-	mi := &file_clouddrive2_proto_msgTypes[224]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[224]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16959,7 +16959,7 @@ func (x *TwoFactorAuthSetupResult) String() string {
 func (*TwoFactorAuthSetupResult) ProtoMessage() {}
 
 func (x *TwoFactorAuthSetupResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[224]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[224]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16972,7 +16972,7 @@ func (x *TwoFactorAuthSetupResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TwoFactorAuthSetupResult.ProtoReflect.Descriptor instead.
 func (*TwoFactorAuthSetupResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{224}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{224}
 }
 
 func (x *TwoFactorAuthSetupResult) GetSecret() string {
@@ -17005,7 +17005,7 @@ type TwoFactorAuthCodeRequest struct {
 
 func (x *TwoFactorAuthCodeRequest) Reset() {
 	*x = TwoFactorAuthCodeRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[225]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[225]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -17017,7 +17017,7 @@ func (x *TwoFactorAuthCodeRequest) String() string {
 func (*TwoFactorAuthCodeRequest) ProtoMessage() {}
 
 func (x *TwoFactorAuthCodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[225]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[225]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -17030,7 +17030,7 @@ func (x *TwoFactorAuthCodeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TwoFactorAuthCodeRequest.ProtoReflect.Descriptor instead.
 func (*TwoFactorAuthCodeRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{225}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{225}
 }
 
 func (x *TwoFactorAuthCodeRequest) GetTotpCode() string {
@@ -17050,7 +17050,7 @@ type TwoFactorAuthEnableResult struct {
 
 func (x *TwoFactorAuthEnableResult) Reset() {
 	*x = TwoFactorAuthEnableResult{}
-	mi := &file_clouddrive2_proto_msgTypes[226]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[226]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -17062,7 +17062,7 @@ func (x *TwoFactorAuthEnableResult) String() string {
 func (*TwoFactorAuthEnableResult) ProtoMessage() {}
 
 func (x *TwoFactorAuthEnableResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[226]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[226]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -17075,7 +17075,7 @@ func (x *TwoFactorAuthEnableResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TwoFactorAuthEnableResult.ProtoReflect.Descriptor instead.
 func (*TwoFactorAuthEnableResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{226}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{226}
 }
 
 func (x *TwoFactorAuthEnableResult) GetRecoveryCodes() []string {
@@ -17101,7 +17101,7 @@ type TwoFactorAuthMessageResult struct {
 
 func (x *TwoFactorAuthMessageResult) Reset() {
 	*x = TwoFactorAuthMessageResult{}
-	mi := &file_clouddrive2_proto_msgTypes[227]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[227]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -17113,7 +17113,7 @@ func (x *TwoFactorAuthMessageResult) String() string {
 func (*TwoFactorAuthMessageResult) ProtoMessage() {}
 
 func (x *TwoFactorAuthMessageResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[227]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[227]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -17126,7 +17126,7 @@ func (x *TwoFactorAuthMessageResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TwoFactorAuthMessageResult.ProtoReflect.Descriptor instead.
 func (*TwoFactorAuthMessageResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{227}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{227}
 }
 
 func (x *TwoFactorAuthMessageResult) GetMessage() string {
@@ -17147,7 +17147,7 @@ type TwoFactorAuthRecoveryCodesResult struct {
 
 func (x *TwoFactorAuthRecoveryCodesResult) Reset() {
 	*x = TwoFactorAuthRecoveryCodesResult{}
-	mi := &file_clouddrive2_proto_msgTypes[228]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[228]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -17159,7 +17159,7 @@ func (x *TwoFactorAuthRecoveryCodesResult) String() string {
 func (*TwoFactorAuthRecoveryCodesResult) ProtoMessage() {}
 
 func (x *TwoFactorAuthRecoveryCodesResult) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[228]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[228]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -17172,7 +17172,7 @@ func (x *TwoFactorAuthRecoveryCodesResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TwoFactorAuthRecoveryCodesResult.ProtoReflect.Descriptor instead.
 func (*TwoFactorAuthRecoveryCodesResult) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{228}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{228}
 }
 
 func (x *TwoFactorAuthRecoveryCodesResult) GetRecoveryCodes() []string {
@@ -17208,7 +17208,7 @@ type LoginWith2FARequest struct {
 
 func (x *LoginWith2FARequest) Reset() {
 	*x = LoginWith2FARequest{}
-	mi := &file_clouddrive2_proto_msgTypes[229]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[229]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -17220,7 +17220,7 @@ func (x *LoginWith2FARequest) String() string {
 func (*LoginWith2FARequest) ProtoMessage() {}
 
 func (x *LoginWith2FARequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[229]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[229]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -17233,7 +17233,7 @@ func (x *LoginWith2FARequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginWith2FARequest.ProtoReflect.Descriptor instead.
 func (*LoginWith2FARequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{229}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{229}
 }
 
 func (x *LoginWith2FARequest) GetUserName() string {
@@ -17281,7 +17281,7 @@ type Session struct {
 
 func (x *Session) Reset() {
 	*x = Session{}
-	mi := &file_clouddrive2_proto_msgTypes[230]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[230]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -17293,7 +17293,7 @@ func (x *Session) String() string {
 func (*Session) ProtoMessage() {}
 
 func (x *Session) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[230]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[230]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -17306,7 +17306,7 @@ func (x *Session) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Session.ProtoReflect.Descriptor instead.
 func (*Session) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{230}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{230}
 }
 
 func (x *Session) GetId() string {
@@ -17374,7 +17374,7 @@ type GetSessionsResponse struct {
 
 func (x *GetSessionsResponse) Reset() {
 	*x = GetSessionsResponse{}
-	mi := &file_clouddrive2_proto_msgTypes[231]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[231]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -17386,7 +17386,7 @@ func (x *GetSessionsResponse) String() string {
 func (*GetSessionsResponse) ProtoMessage() {}
 
 func (x *GetSessionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[231]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[231]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -17399,7 +17399,7 @@ func (x *GetSessionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionsResponse.ProtoReflect.Descriptor instead.
 func (*GetSessionsResponse) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{231}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{231}
 }
 
 func (x *GetSessionsResponse) GetSessions() []*Session {
@@ -17418,7 +17418,7 @@ type RevokeSessionRequest struct {
 
 func (x *RevokeSessionRequest) Reset() {
 	*x = RevokeSessionRequest{}
-	mi := &file_clouddrive2_proto_msgTypes[232]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[232]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -17430,7 +17430,7 @@ func (x *RevokeSessionRequest) String() string {
 func (*RevokeSessionRequest) ProtoMessage() {}
 
 func (x *RevokeSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clouddrive2_proto_msgTypes[232]
+	mi := &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[232]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -17443,7 +17443,7 @@ func (x *RevokeSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeSessionRequest.ProtoReflect.Descriptor instead.
 func (*RevokeSessionRequest) Descriptor() ([]byte, []int) {
-	return file_clouddrive2_proto_rawDescGZIP(), []int{232}
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP(), []int{232}
 }
 
 func (x *RevokeSessionRequest) GetSessionId() string {
@@ -17453,28 +17453,28 @@ func (x *RevokeSessionRequest) GetSessionId() string {
 	return ""
 }
 
-var file_clouddrive2_proto_extTypes = []protoimpl.ExtensionInfo{
+var file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_extTypes = []protoimpl.ExtensionInfo{
 	{
 		ExtendedType:  (*descriptorpb.FileOptions)(nil),
 		ExtensionType: (*string)(nil),
 		Field:         50001,
 		Name:          "clouddrive.version",
 		Tag:           "bytes,50001,opt,name=version",
-		Filename:      "clouddrive2.proto",
+		Filename:      "internal/pkg/sdk/clouddrive2/proto/clouddrive2.proto",
 	},
 }
 
 // Extension fields to descriptorpb.FileOptions.
 var (
 	// optional string version = 50001;
-	E_Version = &file_clouddrive2_proto_extTypes[0]
+	E_Version = &file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_extTypes[0]
 )
 
-var File_clouddrive2_proto protoreflect.FileDescriptor
+var File_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto protoreflect.FileDescriptor
 
-const file_clouddrive2_proto_rawDesc = "" +
+const file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDesc = "" +
 	"\n" +
-	"\x11clouddrive2.proto\x12\n" +
+	"4internal/pkg/sdk/clouddrive2/proto/clouddrive2.proto\x12\n" +
 	"clouddrive\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a google/protobuf/descriptor.proto\"w\n" +
 	"\x0fGetTokenRequest\x12\x1a\n" +
 	"\buserName\x18\x01 \x01(\tR\buserName\x12\x1a\n" +
@@ -19413,23 +19413,23 @@ const file_clouddrive2_proto_rawDesc = "" +
 	"\x12GetWebServerConfig\x12\x16.google.protobuf.Empty\x1a\x1b.clouddrive.WebServerConfig\"\x00\x12U\n" +
 	"\x12SetWebServerConfig\x12%.clouddrive.SetWebServerConfigRequest\x1a\x16.google.protobuf.Empty\"\x00\x12]\n" +
 	"\x16GenerateSelfSignedCert\x12).clouddrive.GenerateSelfSignedCertRequest\x1a\x16.google.protobuf.Empty\"\x00:8\n" +
-	"\aversion\x12\x1c.google.protobuf.FileOptions\x18ц\x03 \x01(\tR\aversionBn\x8a\xb5\x18\x060.9.24ZKgithub.com/strmsync/strmsync/internal/infra/filesystem/clouddrive2_proto;clouddrive2_proto\xaa\x02\x14CloudDriveSrv.Protosb\x06proto3"
+	"\aversion\x12\x1c.google.protobuf.FileOptions\x18ц\x03 \x01(\tR\aversionBn\x8a\xb5\x18\x060.9.24ZKgithub.com/strmsync/strmsync/filesystem/clouddrive2_proto;clouddrive2_proto\xaa\x02\x14CloudDriveSrv.Protosb\x06proto3"
 
 var (
-	file_clouddrive2_proto_rawDescOnce sync.Once
-	file_clouddrive2_proto_rawDescData []byte
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescOnce sync.Once
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescData []byte
 )
 
-func file_clouddrive2_proto_rawDescGZIP() []byte {
-	file_clouddrive2_proto_rawDescOnce.Do(func() {
-		file_clouddrive2_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_clouddrive2_proto_rawDesc), len(file_clouddrive2_proto_rawDesc)))
+func file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescGZIP() []byte {
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescOnce.Do(func() {
+		file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDesc), len(file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDesc)))
 	})
-	return file_clouddrive2_proto_rawDescData
+	return file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDescData
 }
 
-var file_clouddrive2_proto_enumTypes = make([]protoimpl.EnumInfo, 32)
-var file_clouddrive2_proto_msgTypes = make([]protoimpl.MessageInfo, 241)
-var file_clouddrive2_proto_goTypes = []any{
+var file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes = make([]protoimpl.EnumInfo, 32)
+var file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes = make([]protoimpl.MessageInfo, 241)
+var file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_goTypes = []any{
 	(ProxyType)(0),                              // 0: clouddrive.ProxyType
 	(QRCodeScanMessageType)(0),                  // 1: clouddrive.QRCodeScanMessageType
 	(UpdateChannel)(0),                          // 2: clouddrive.UpdateChannel
@@ -19707,7 +19707,7 @@ var file_clouddrive2_proto_goTypes = []any{
 	(*descriptorpb.FileOptions)(nil),            // 274: google.protobuf.FileOptions
 	(*emptypb.Empty)(nil),                       // 275: google.protobuf.Empty
 }
-var file_clouddrive2_proto_depIdxs = []int32{
+var file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_depIdxs = []int32{
 	273, // 0: clouddrive.JWTToken.expiration:type_name -> google.protobuf.Timestamp
 	265, // 1: clouddrive.DownloadUrlPathInfo.additionalHeaders:type_name -> clouddrive.DownloadUrlPathInfo.AdditionalHeadersEntry
 	62,  // 2: clouddrive.SubFilesReply.subFiles:type_name -> clouddrive.CloudDriveFile
@@ -20271,32 +20271,32 @@ var file_clouddrive2_proto_depIdxs = []int32{
 	0,   // [0:147] is the sub-list for field type_name
 }
 
-func init() { file_clouddrive2_proto_init() }
-func file_clouddrive2_proto_init() {
-	if File_clouddrive2_proto != nil {
+func init() { file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_init() }
+func file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_init() {
+	if File_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto != nil {
 		return
 	}
-	file_clouddrive2_proto_msgTypes[0].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[2].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[7].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[10].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[11].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[12].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[13].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[14].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[24].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[25].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[30].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[32].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[33].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[37].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[42].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[43].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[45].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[48].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[63].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[64].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[70].OneofWrappers = []any{
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[0].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[2].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[7].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[10].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[11].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[12].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[13].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[14].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[24].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[25].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[30].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[32].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[33].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[37].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[42].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[43].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[45].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[48].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[63].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[64].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[70].OneofWrappers = []any{
 		(*CloudDrivePushMessage_TransferTaskStatus)(nil),
 		(*CloudDrivePushMessage_UpdateStatus)(nil),
 		(*CloudDrivePushMessage_ExitedMessage)(nil),
@@ -20305,79 +20305,79 @@ func file_clouddrive2_proto_init() {
 		(*CloudDrivePushMessage_LogMessage)(nil),
 		(*CloudDrivePushMessage_MergeTaskUpdate)(nil),
 	}
-	file_clouddrive2_proto_msgTypes[71].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[73].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[77].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[86].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[89].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[93].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[106].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[111].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[112].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[115].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[122].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[125].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[130].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[139].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[141].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[142].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[143].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[144].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[146].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[147].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[150].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[153].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[155].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[156].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[160].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[165].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[169].OneofWrappers = []any{
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[71].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[73].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[77].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[86].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[89].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[93].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[106].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[111].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[112].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[115].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[122].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[125].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[130].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[139].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[141].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[142].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[143].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[144].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[146].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[147].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[150].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[153].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[155].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[156].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[160].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[165].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[169].OneofWrappers = []any{
 		(*FileBackupRule_Extensions)(nil),
 		(*FileBackupRule_FileNames)(nil),
 		(*FileBackupRule_Regex)(nil),
 		(*FileBackupRule_MinSize)(nil),
 	}
-	file_clouddrive2_proto_msgTypes[170].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[172].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[176].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[178].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[190].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[191].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[194].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[196].OneofWrappers = []any{
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[170].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[172].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[176].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[178].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[190].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[191].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[194].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[196].OneofWrappers = []any{
 		(*RemoteUploadChannelReply_ReadData)(nil),
 		(*RemoteUploadChannelReply_HashData)(nil),
 		(*RemoteUploadChannelReply_StatusChanged)(nil),
 	}
-	file_clouddrive2_proto_msgTypes[197].OneofWrappers = []any{
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[197].OneofWrappers = []any{
 		(*RemoteUploadControlRequest_Cancel)(nil),
 		(*RemoteUploadControlRequest_Pause)(nil),
 		(*RemoteUploadControlRequest_Resume)(nil),
 	}
-	file_clouddrive2_proto_msgTypes[208].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[212].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[215].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[216].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[217].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[219].OneofWrappers = []any{}
-	file_clouddrive2_proto_msgTypes[220].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[208].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[212].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[215].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[216].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[217].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[219].OneofWrappers = []any{}
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes[220].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_clouddrive2_proto_rawDesc), len(file_clouddrive2_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDesc), len(file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_rawDesc)),
 			NumEnums:      32,
 			NumMessages:   241,
 			NumExtensions: 1,
 			NumServices:   1,
 		},
-		GoTypes:           file_clouddrive2_proto_goTypes,
-		DependencyIndexes: file_clouddrive2_proto_depIdxs,
-		EnumInfos:         file_clouddrive2_proto_enumTypes,
-		MessageInfos:      file_clouddrive2_proto_msgTypes,
-		ExtensionInfos:    file_clouddrive2_proto_extTypes,
+		GoTypes:           file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_goTypes,
+		DependencyIndexes: file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_depIdxs,
+		EnumInfos:         file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_enumTypes,
+		MessageInfos:      file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_msgTypes,
+		ExtensionInfos:    file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_extTypes,
 	}.Build()
-	File_clouddrive2_proto = out.File
-	file_clouddrive2_proto_goTypes = nil
-	file_clouddrive2_proto_depIdxs = nil
+	File_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto = out.File
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_goTypes = nil
+	file_internal_pkg_sdk_clouddrive2_proto_clouddrive2_proto_depIdxs = nil
 }

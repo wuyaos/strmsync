@@ -30,10 +30,11 @@ const maxResponseBodyLen = 4096 // 4KB，用于错误消息读取
 //
 // 封装与 OpenList 服务器的 HTTP 通信，提供连接管理、认证和 API 调用功能。
 type Client struct {
-	baseURL    *url.URL
-	httpClient *http.Client
-	username   string
-	password   string
+	baseURL             *url.URL
+	httpClient          *http.Client
+	username            string
+	password            string
+	downloadPathPattern string
 
 	// token 管理
 	mu    sync.Mutex
@@ -42,11 +43,12 @@ type Client struct {
 
 // Config OpenList客户端配置
 type Config struct {
-	BaseURL    string        // 服务器基础URL（如 "http://192.168.1.100:5244"）
-	Username   string        // 登录用户名（可选）
-	Password   string        // 登录密码
-	Timeout    time.Duration // HTTP请求超时时间
-	HTTPClient *http.Client  // 可选的自定义HTTP客户端
+	BaseURL             string        // 服务器基础URL（如 "http://192.168.1.100:5244"）
+	Username            string        // 登录用户名（可选）
+	Password            string        // 登录密码
+	Timeout             time.Duration // HTTP请求超时时间
+	HTTPClient          *http.Client  // 可选的自定义HTTP客户端
+	DownloadPathPattern string        // 下载路径模板，默认为"/d{path}"
 }
 
 // NewClient 创建新的 OpenList 客户端
@@ -74,11 +76,18 @@ func NewClient(cfg Config) (*Client, error) {
 		httpClient = &http.Client{Timeout: timeout}
 	}
 
+	// 设置下载路径模板
+	downloadPattern := strings.TrimSpace(cfg.DownloadPathPattern)
+	if downloadPattern == "" {
+		downloadPattern = "/d{path}" // 默认使用 /d{path} 格式
+	}
+
 	return &Client{
-		baseURL:    baseURL,
-		httpClient: httpClient,
-		username:   strings.TrimSpace(cfg.Username),
-		password:   cfg.Password,
+		baseURL:             baseURL,
+		httpClient:          httpClient,
+		username:            strings.TrimSpace(cfg.Username),
+		password:            cfg.Password,
+		downloadPathPattern: downloadPattern,
 	}, nil
 }
 
@@ -178,6 +187,74 @@ func (c *Client) List(ctx context.Context, listPath string) ([]FileItem, error) 
 	}
 
 	return results, nil
+}
+
+// Download 下载文件内容到writer
+//
+// 参数：
+//   - ctx: 上下文（可以为 nil）
+//   - filePath: 文件路径（Unix格式）
+//   - w: 目标writer
+//
+// 返回：
+//   - error: 下载失败时返回错误
+func (c *Client) Download(ctx context.Context, filePath string, w io.Writer) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if strings.TrimSpace(filePath) == "" {
+		return fmt.Errorf("openlist: file path cannot be empty")
+	}
+
+	// 确保有 token（如果需要认证）
+	if err := c.ensureToken(ctx); err != nil {
+		return err
+	}
+
+	// 构建下载URL（使用配置的路径模板）
+	cleanedPath := cleanPath(filePath)
+	downloadPath := strings.ReplaceAll(c.downloadPathPattern, "{path}", cleanedPath)
+	downloadURL := c.buildAPIPath(downloadPath)
+
+	// 创建 HTTP 请求
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
+	if err != nil {
+		return fmt.Errorf("create download request: %w", err)
+	}
+
+	// 添加认证 token
+	c.mu.Lock()
+	token := c.token
+	c.mu.Unlock()
+	if token != "" {
+		req.Header.Set("Authorization", token)
+	}
+
+	// 执行请求
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("download request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// 检查响应状态
+	if resp.StatusCode != http.StatusOK {
+		// 认证失败：清空 token
+		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+			c.clearToken()
+			return fmt.Errorf("openlist: download unauthorized")
+		}
+		// 其他错误：读取错误消息
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodyLen))
+		return fmt.Errorf("download status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
+	// 将响应写入writer
+	if _, err := io.Copy(w, resp.Body); err != nil {
+		return fmt.Errorf("copy download body: %w", err)
+	}
+
+	return nil
 }
 
 // ensureToken 确保有有效的认证 token

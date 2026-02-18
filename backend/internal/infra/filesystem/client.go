@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -32,6 +33,7 @@ type Provider interface {
 	List(ctx context.Context, path string, recursive bool, maxDepth int) ([]RemoteFile, error)
 	Watch(ctx context.Context, path string) (<-chan FileEvent, error)
 	TestConnection(ctx context.Context) error
+	Download(ctx context.Context, remotePath string, w io.Writer) error
 }
 
 type providerFactory func(*ClientImpl) (Provider, error)
@@ -289,4 +291,37 @@ func cleanRemotePath(p string) string {
 // 导出以便子包使用
 func JoinRemotePath(elem ...string) string {
 	return path.Join(elem...)
+}
+
+// ResolveMountPath 将远端路径映射到本地挂载路径（若可用）
+func (c *ClientImpl) ResolveMountPath(ctx context.Context, remotePath string) (string, error) {
+	// 只有Mount模式支持本地挂载路径
+	if c.Config.STRMMode != STRMModeMount {
+		return "", fmt.Errorf("filesystem: mount path not available (strm_mode=%s)", c.Config.STRMMode)
+	}
+
+	if strings.TrimSpace(c.Config.MountPath) == "" {
+		return "", fmt.Errorf("filesystem: mount_path not configured")
+	}
+
+	// 使用与buildMountStreamPath相同的逻辑
+	cleanPath := strings.TrimPrefix(cleanRemotePath(remotePath), "/")
+	localPath := filepath.FromSlash(cleanPath)
+	mountedPath := filepath.Join(c.Config.MountPath, localPath)
+
+	return mountedPath, nil
+}
+
+// Download 下载文件内容到writer
+func (c *ClientImpl) Download(ctx context.Context, remotePath string, w io.Writer) error {
+	// 防御 nil context
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	if c.Provider == nil {
+		return fmt.Errorf("filesystem: Provider not initialized")
+	}
+
+	return c.Provider.Download(ctx, remotePath, w)
 }

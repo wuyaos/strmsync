@@ -3,7 +3,7 @@ package filesystem
 
 import (
 	"context"
-	
+	"io"
 )
 
 // Client 数据服务器客户端接口
@@ -20,4 +20,12 @@ type Client interface {
 
 	// TestConnection 测试连接
 	TestConnection(ctx context.Context) error
+
+	// ResolveMountPath 将远端路径映射到本地挂载路径（若可用）
+	// 返回本地文件系统路径，如果不支持挂载或路径无效则返回错误
+	ResolveMountPath(ctx context.Context, remotePath string) (string, error)
+
+	// Download 下载文件内容到writer（用于API下载）
+	// 用于无法通过挂载路径访问文件时的回退方案
+	Download(ctx context.Context, remotePath string, w io.Writer) error
 }

@@ -20,6 +20,8 @@ package filesystem
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"path"
 	"strings"
@@ -36,9 +38,11 @@ import (
 
 // cloudDrive2Provider CloudDrive2文件系统实现
 type cloudDrive2Provider struct {
-	config filesystem.Config
-	logger *zap.Logger
-	client *cd2sdk.CloudDrive2Client
+	config     filesystem.Config
+	logger     *zap.Logger
+	client     *cd2sdk.CloudDrive2Client
+	baseURL    *url.URL
+	httpClient *http.Client
 }
 
 // NewCloudDrive2Provider 创建CloudDrive2 filesystem.Provider
@@ -57,9 +61,11 @@ func NewCloudDrive2Provider(c *filesystem.ClientImpl) (filesystem.Provider, erro
 	client := cd2sdk.NewCloudDrive2Client(target, c.Config.Password, cd2sdk.WithTimeout(c.Config.Timeout))
 
 	return &cloudDrive2Provider{
-		config: c.Config,
-		logger: c.Logger,
-		client: client,
+		config:     c.Config,
+		logger:     c.Logger,
+		client:     client,
+		baseURL:    c.BaseURL,
+		httpClient: c.HTTPClient,
 	}, nil
 }
 
@@ -94,6 +100,77 @@ func (p *cloudDrive2Provider) TestConnection(ctx context.Context) error {
 	}
 
 	p.logger.Info("CloudDrive2连接成功")
+	return nil
+}
+
+// Download 下载文件内容到writer
+func (p *cloudDrive2Provider) Download(ctx context.Context, remotePath string, w io.Writer) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if strings.TrimSpace(remotePath) == "" {
+		return fmt.Errorf("clouddrive2: remote path cannot be empty")
+	}
+	if p.baseURL == nil || p.httpClient == nil {
+		return fmt.Errorf("clouddrive2: baseURL or httpClient not configured")
+	}
+
+	cleanPath := filesystem.CleanRemotePath(remotePath)
+	p.logger.Debug("CloudDrive2 Download", zap.String("path", cleanPath))
+
+	// 调用gRPC获取下载URL信息
+	info, err := p.client.GetDownloadUrlPath(ctx, cleanPath, false, true, true)
+	if err != nil {
+		return fmt.Errorf("clouddrive2: get download url path failed: %w", err)
+	}
+
+	// 优先使用directUrl（云存储直链）
+	downloadURL := info.GetDirectUrl()
+	if downloadURL == "" {
+		// 使用downloadUrlPath模板构建URL
+		downloadPath := info.GetDownloadUrlPath()
+		replacer := strings.NewReplacer(
+			"{SCHEME}", p.baseURL.Scheme,
+			"{HOST}", p.baseURL.Host,
+			"{PREVIEW}", "0",
+		)
+		downloadPath = replacer.Replace(downloadPath)
+		downloadURL = strings.TrimRight(p.baseURL.String(), "/") + downloadPath
+	}
+
+	p.logger.Debug("CloudDrive2 Download URL", zap.String("url", downloadURL))
+
+	// 创建HTTP请求
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
+	if err != nil {
+		return fmt.Errorf("clouddrive2: create download request: %w", err)
+	}
+
+	// 添加UserAgent和额外headers（如果有）
+	if ua := info.GetUserAgent(); ua != "" {
+		req.Header.Set("User-Agent", ua)
+	}
+	for k, v := range info.GetAdditionalHeaders() {
+		req.Header.Set(k, v)
+	}
+
+	// 执行下载
+	resp, err := p.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("clouddrive2: download request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// 检查响应状态
+	if resp.StatusCode/100 != 2 {
+		return fmt.Errorf("clouddrive2: download status %d", resp.StatusCode)
+	}
+
+	// 将响应写入writer
+	if _, err := io.Copy(w, resp.Body); err != nil {
+		return fmt.Errorf("clouddrive2: copy download body: %w", err)
+	}
+
 	return nil
 }
 

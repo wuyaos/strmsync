@@ -17,6 +17,7 @@ package filesystem
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path"
@@ -375,6 +376,11 @@ func ensureUnderMount(mountRoot, fullPath string) error {
 		return fmt.Errorf("filesystem: list path escapes mount: %s", fullPath)
 	}
 	return nil
+}
+
+// Download local provider不支持Download，只支持挂载路径复制
+func (p *localProvider) Download(ctx context.Context, remotePath string, w io.Writer) error {
+	return fmt.Errorf("filesystem: local provider does not support Download: %w", filesystem.ErrNotSupported)
 }
 
 func init() {

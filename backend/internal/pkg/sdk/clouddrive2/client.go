@@ -482,3 +482,40 @@ func (c *CloudDrive2Client) GetMountPoints(ctx context.Context) (*pb.GetMountPoi
 
 	return resp, nil
 }
+
+// GetDownloadUrlPath 获取下载URL路径
+//
+// 用于获取文件的下载URL路径，支持直接URL（云存储直链）和模板URL。
+//
+// 参数：
+//   - ctx: 上下文（可以为 nil）
+//   - path: 文件路径
+//   - preview: 是否为预览模式
+//   - lazyRead: 是否延迟读取
+//   - getDirect: 是否获取云存储直链（如果可用）
+//
+// 返回：
+//   - *pb.DownloadUrlPathInfo: 下载URL信息
+//   - error: 调用失败时返回错误
+func (c *CloudDrive2Client) GetDownloadUrlPath(ctx context.Context, path string, preview, lazyRead, getDirect bool) (*pb.DownloadUrlPathInfo, error) {
+	if err := c.Connect(ctx); err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := c.withAuth(ctx)
+	defer cancel()
+
+	req := &pb.GetDownloadUrlPathRequest{
+		Path:         path,
+		Preview:      preview,
+		LazyRead:     lazyRead,
+		GetDirectUrl: getDirect,
+	}
+
+	resp, err := c.svc.GetDownloadUrlPath(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("clouddrive2: GetDownloadUrlPath(%s) failed: %w", path, err)
+	}
+
+	return resp, nil
+}

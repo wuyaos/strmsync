@@ -2,12 +2,17 @@
 // 新架构: 配置管理(Servers) + 任务配置(Jobs) + 执行记录(TaskRuns)
 package model
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 // DataServer 数据服务器配置模型
 // 用于配置CloudDrive2/OpenList等数据源服务器
 type DataServer struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
+	UID       string    `gorm:"size:64;uniqueIndex" json:"uid"`                    // 唯一标识（基于连接信息生成）
 	Name      string    `gorm:"uniqueIndex;not null" json:"name"`                  // 服务器名称
 	Type      string    `gorm:"index;not null" json:"type"`                        // 类型: clouddrive2/openlist
 	Host      string    `gorm:"not null" json:"host"`                              // 主机地址
@@ -23,6 +28,7 @@ type DataServer struct {
 // 用于配置Emby/Jellyfin/Plex等媒体库服务器
 type MediaServer struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
+	UID       string    `gorm:"size:64;uniqueIndex" json:"uid"`                    // 唯一标识（基于连接信息生成）
 	Name      string    `gorm:"uniqueIndex;not null" json:"name"`                  // 服务器名称
 	Type      string    `gorm:"index;not null" json:"type"`                        // 类型: emby/jellyfin/plex
 	Host      string    `gorm:"not null" json:"host"`                              // 主机地址
@@ -122,3 +128,27 @@ func (Job) TableName() string         { return "jobs" }
 func (TaskRun) TableName() string     { return "task_runs" }
 func (LogEntry) TableName() string    { return "logs" }
 func (Setting) TableName() string     { return "settings" }
+
+// BeforeCreate 在创建 DataServer 前生成 UID
+func (s *DataServer) BeforeCreate(tx *gorm.DB) error {
+	if s.UID == "" {
+		uid, err := GenerateDataServerUID(s.Type, s.Host, s.Port, s.Options, s.APIKey)
+		if err != nil {
+			return err
+		}
+		s.UID = uid
+	}
+	return nil
+}
+
+// BeforeCreate 在创建 MediaServer 前生成 UID
+func (s *MediaServer) BeforeCreate(tx *gorm.DB) error {
+	if s.UID == "" {
+		uid, err := GenerateMediaServerUID(s.Type, s.Host, s.Port, s.Options, s.APIKey)
+		if err != nil {
+			return err
+		}
+		s.UID = uid
+	}
+	return nil
+}
