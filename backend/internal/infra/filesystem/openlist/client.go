@@ -1,58 +1,49 @@
-// Package filesystem provides OpenList filesystem provider implementation.
+// Package filesystem provides OpenList filesystem operations.
 //
-// This is an internal sub-package that shares the parent filesystem package namespace.
-// It automatically registers the OpenList provider via init() and should only be
-// imported for side effects (provider registration).
-//
-// Usage:
-//   import _ "github.com/strmsync/strmsync/internal/infra/filesystem/openlist"
-//
-// The OpenList provider accesses files via OpenList HTTP API.
-// It supports both HTTP streaming and mount-based STRM modes.
-//
-// Exports:
-//   - NewOpenListProvider: Creates a Provider implementation (used by registration)
+// This package uses the OpenList SDK (internal/pkg/sdk/openlist) for API communication
+// and provides filesystem-level abstractions (List, Stat, etc.) for the sync engine.
 package filesystem
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"net/url"
 	"path"
 	"strings"
-	"sync"
-	"time"
 
 	"github.com/strmsync/strmsync/internal/engine"
-	"go.uber.org/zap"
 	"github.com/strmsync/strmsync/internal/infra/filesystem"
+	openlistsdk "github.com/strmsync/strmsync/internal/pkg/sdk/openlist"
+	"go.uber.org/zap"
 )
-
-const openListMaxResponseBodyLen = 4096 // 4KB，用于错误消息读取
 
 // openListProvider OpenList文件系统实现
 type openListProvider struct {
-	config     filesystem.Config
-	baseURL    *url.URL
-	httpClient *http.Client
-	logger     *zap.Logger
-
-	// token 管理
-	mu    sync.Mutex
-	token string
+	config  filesystem.Config
+	baseURL *url.URL
+	client  *openlistsdk.Client
+	logger  *zap.Logger
 }
 
-// newOpenListProvider 创建OpenList filesystem.Provider
+// NewOpenListProvider 创建OpenList filesystem.Provider
 func NewOpenListProvider(c *filesystem.ClientImpl) (filesystem.Provider, error) {
+	// 创建SDK客户端
+	client, err := openlistsdk.NewClient(openlistsdk.Config{
+		BaseURL:    c.BaseURL.String(),
+		Username:   c.Config.Username,
+		Password:   c.Config.Password,
+		Timeout:    c.Config.Timeout,
+		HTTPClient: c.HTTPClient,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("filesystem: create openlist client: %w", err)
+	}
+
 	return &openListProvider{
-		config:     c.Config,
-		baseURL:    c.BaseURL,
-		httpClient: c.HTTPClient,
-		logger:     c.Logger,
+		config:  c.Config,
+		baseURL: c.BaseURL,
+		client:  client,
+		logger:  c.Logger,
 	}, nil
 }
 
@@ -78,7 +69,7 @@ func (p *openListProvider) TestConnection(ctx context.Context) error {
 		ctx = context.Background()
 	}
 	p.logger.Info("测试OpenList连接", zap.String("type", filesystem.TypeOpenList.String()))
-	_, err := p.listOpenListOnce(ctx, "/")
+	_, err := p.client.List(ctx, "/")
 	if err != nil {
 		p.logger.Error("OpenList连接失败", zap.Error(err))
 		return fmt.Errorf("filesystem: test connection failed: %w", err)
@@ -88,27 +79,13 @@ func (p *openListProvider) TestConnection(ctx context.Context) error {
 }
 
 // Stat 获取单个路径的元数据
-//
-// 实现说明：
-// - OpenList 没有专用的 Stat API，使用降级策略
-// - 列出父目录内容，然后匹配目标文件/目录
-// - 路径 "/" 特殊处理为根目录
-//
-// 参数：
-//   - ctx: 上下文，用于取消和超时控制
-//   - targetPath: 要查询的远程路径（Unix 格式）
-//
-// 返回：
-//   - filesystem.RemoteFile: 文件/目录的元数据
-//   - error: 查询失败或路径不存在时返回错误
 func (p *openListProvider) Stat(ctx context.Context, targetPath string) (filesystem.RemoteFile, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	cleanPath := filesystem.CleanRemotePath(targetPath)
-	p.logger.Debug("OpenList Stat",
-		zap.String("path", cleanPath))
+	p.logger.Debug("OpenList Stat", zap.String("path", cleanPath))
 
 	// 特殊处理：根目录
 	if cleanPath == "/" {
@@ -127,19 +104,27 @@ func (p *openListProvider) Stat(ctx context.Context, targetPath string) (filesys
 	baseName := path.Base(cleanPath)
 
 	// 列出父目录
-	items, err := p.listOpenListOnce(ctx, parentPath)
+	items, err := p.client.List(ctx, parentPath)
 	if err != nil {
 		return filesystem.RemoteFile{}, fmt.Errorf("openlist: stat 列出父目录 %s 失败: %w", parentPath, err)
 	}
 
-	// 查找匹配项（按 Name 或 Path 匹配）
+	// 查找匹配项
 	for _, item := range items {
-		if item.Name == baseName || item.Path == cleanPath {
+		if item.Name == baseName {
+			fullPath := filesystem.JoinRemotePath(parentPath, item.Name)
+			result := filesystem.RemoteFile{
+				Path:    fullPath,
+				Name:    item.Name,
+				Size:    item.Size,
+				ModTime: item.Modified,
+				IsDir:   item.IsDir,
+			}
 			p.logger.Debug("OpenList Stat 完成",
-				zap.String("path", item.Path),
-				zap.Bool("is_dir", item.IsDir),
-				zap.Int64("size", item.Size))
-			return item, nil
+				zap.String("path", fullPath),
+				zap.Bool("is_dir", result.IsDir),
+				zap.Int64("size", result.Size))
+			return result, nil
 		}
 	}
 
@@ -147,20 +132,6 @@ func (p *openListProvider) Stat(ctx context.Context, targetPath string) (filesys
 }
 
 // BuildStrmInfo 构建结构化的 STRM 信息
-//
-// 实现说明：
-// - 生成基于 HTTP/HTTPS 的流媒体 URL
-// - OpenList 使用 Web API 访问文件
-// - scheme 从 baseURL 配置中获取（支持 http 和 https）
-// - 返回的 StrmInfo 包含 RawURL、BaseURL 和 Path 字段
-//
-// 参数：
-//   - ctx: 上下文（当前未使用，保留用于未来扩展）
-//   - req: BuildStrmRequest 包含 ServerID、RemotePath 和可选的 RemoteMeta
-//
-// 返回：
-//   - StrmInfo: 结构化的 STRM 元数据
-//   - error: 输入无效或构建失败时返回错误
 func (p *openListProvider) BuildStrmInfo(ctx context.Context, req syncengine.BuildStrmRequest) (syncengine.StrmInfo, error) {
 	_ = ctx // 保留用于未来的取消或追踪
 
@@ -202,43 +173,11 @@ func (p *openListProvider) BuildStrmInfo(ctx context.Context, req syncengine.Bui
 	}, nil
 }
 
-// ---------- OpenList 内部实现 ----------
-
-// openListResponse OpenList API 响应格式
-type openListResponse[T any] struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-	Data    T      `json:"data"`
-}
-
-// openListListReq OpenList /api/fs/list 请求
-type openListListReq struct {
-	Path     string `json:"path"`
-	Password string `json:"password,omitempty"` // 目录密码（可选）
-	Page     int    `json:"page"`
-	PerPage  int    `json:"per_page"`
-	Refresh  bool   `json:"refresh"`
-}
-
-// openListListData OpenList list 响应数据
-type openListListData struct {
-	Content []openListItem `json:"content"`
-	Total   int            `json:"total"`
-}
-
-// openListItem OpenList 文件/目录项
-type openListItem struct {
-	Name     string `json:"name"`
-	Size     int64  `json:"size"`
-	IsDir    bool   `json:"is_dir"`
-	Modified string `json:"modified"` // RFC3339Nano 格式
-}
-
 // listOpenList 递归列出 OpenList 目录（使用 BFS，支持深度限制）
 func (p *openListProvider) listOpenList(ctx context.Context, root string, recursive bool, maxDepth int) ([]filesystem.RemoteFile, error) {
 	var results []filesystem.RemoteFile
 
-	// 使用 BFS 队列遍历目录树，队列中存储路径和当前深度
+	// 使用 BFS 队列遍历目录树
 	type queueItem struct {
 		path  string
 		depth int
@@ -257,21 +196,30 @@ func (p *openListProvider) listOpenList(ctx context.Context, root string, recurs
 		queue = queue[1:]
 
 		// 列出当前目录
-		items, err := p.listOpenListOnce(ctx, dir)
+		items, err := p.client.List(ctx, dir)
 		if err != nil {
 			return nil, fmt.Errorf("list directory %s: %w", dir, err)
 		}
 
 		// 处理每个项目
-		for _, remoteFile := range items {
+		for _, sdkItem := range items {
+			fullPath := filesystem.JoinRemotePath(dir, sdkItem.Name)
+
+			// 转换为RemoteFile
+			remoteFile := filesystem.RemoteFile{
+				Path:    fullPath,
+				Name:    sdkItem.Name,
+				Size:    sdkItem.Size,
+				ModTime: sdkItem.Modified,
+				IsDir:   sdkItem.IsDir,
+			}
+
 			// 将所有项目（文件和目录）加入结果
 			results = append(results, remoteFile)
 
 			// 递归模式：将子目录加入队列（深度控制）
-			// 只有当子目录的内容深度(item.depth+2)不超过maxDepth时才入队
-			// 即：item.depth + 1 < maxDepth
-			if remoteFile.IsDir && recursive && item.depth+1 < maxDepth {
-				queue = append(queue, queueItem{path: remoteFile.Path, depth: item.depth + 1})
+			if sdkItem.IsDir && recursive && item.depth+1 < maxDepth {
+				queue = append(queue, queueItem{path: fullPath, depth: item.depth + 1})
 			}
 		}
 	}
@@ -283,200 +231,6 @@ func (p *openListProvider) listOpenList(ctx context.Context, root string, recurs
 		zap.Int("count", len(results)))
 
 	return results, nil
-}
-
-// listOpenListOnce 列出 OpenList 单个目录
-func (p *openListProvider) listOpenListOnce(ctx context.Context, listPath string) ([]filesystem.RemoteFile, error) {
-	// 确保有 token（如果需要认证）
-	if err := p.ensureToken(ctx); err != nil {
-		return nil, err
-	}
-
-	// 构建请求
-	reqBody := openListListReq{
-		Path:     filesystem.CleanRemotePath(listPath),
-		Password: p.config.Password, // 可能是目录密码
-		Page:     1,
-		PerPage:  0,     // 0 表示不分页，返回所有结果
-		Refresh:  false, // 不强制刷新缓存
-	}
-	payload, err := json.Marshal(reqBody)
-	if err != nil {
-		return nil, fmt.Errorf("marshal request: %w", err)
-	}
-
-	// 创建 HTTP 请求
-	endpoint := p.buildAPIPath("/api/fs/list")
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
-	if err != nil {
-		return nil, fmt.Errorf("create request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	// 添加认证 token
-	if p.token != "" {
-		req.Header.Set("Authorization", p.token)
-	}
-
-	// 执行请求
-	resp, err := p.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("http request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	// 统一处理非 2xx 响应
-	if resp.StatusCode != http.StatusOK {
-		// 认证失败：清空 token 以便下次重新登录
-		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
-			p.clearToken()
-			return nil, filesystem.ErrUnauthorized
-		}
-		// 其他错误：读取错误消息
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, openListMaxResponseBodyLen))
-		return nil, fmt.Errorf("http status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
-	}
-
-	// 解析响应
-	var out openListResponse[openListListData]
-	if err := decodeJSON(resp.Body, &out); err != nil {
-		return nil, fmt.Errorf("decode response: %w", err)
-	}
-	if out.Code != http.StatusOK {
-		return nil, fmt.Errorf("api error: code=%d message=%s", out.Code, out.Message)
-	}
-
-	// 转换为 filesystem.RemoteFile
-	var results []filesystem.RemoteFile
-	for _, item := range out.Data.Content {
-		fullPath := joinRemotePath(listPath, item.Name)
-		modTime := parseTime(item.Modified)
-
-		// 添加到结果（包括文件和目录）
-		results = append(results, filesystem.RemoteFile{
-			Path:    fullPath,
-			Name:    item.Name,
-			Size:    item.Size,
-			ModTime: modTime,
-			IsDir:   item.IsDir,
-		})
-	}
-
-	return results, nil
-}
-
-// ensureToken 确保有有效的认证 token
-func (p *openListProvider) ensureToken(ctx context.Context) error {
-	// 未配置用户名，认为无需登录
-	if strings.TrimSpace(p.config.Username) == "" {
-		return nil
-	}
-
-	// 已有 token，直接返回
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.token != "" {
-		return nil
-	}
-
-	// 执行登录
-	p.logger.Info("OpenList 登录认证", zap.String("username", p.config.Username))
-
-	loginBody := map[string]string{
-		"username": p.config.Username,
-		"password": p.config.Password,
-		"otp_code": "", // 暂不支持 OTP
-	}
-	payload, err := json.Marshal(loginBody)
-	if err != nil {
-		return fmt.Errorf("marshal login request: %w", err)
-	}
-
-	// 创建登录请求
-	endpoint := p.buildAPIPath("/api/auth/login")
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
-	if err != nil {
-		return fmt.Errorf("create login request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	// 执行登录请求
-	resp, err := p.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("login request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	// 统一处理非 2xx 响应
-	if resp.StatusCode != http.StatusOK {
-		// 认证失败
-		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
-			p.logger.Error("OpenList 登录失败：认证失败")
-			return filesystem.ErrUnauthorized
-		}
-		// 其他错误
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, openListMaxResponseBodyLen))
-		return fmt.Errorf("login http status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
-	}
-
-	// 解析登录响应
-	var out openListResponse[struct {
-		Token string `json:"token"`
-	}]
-	if err := decodeJSON(resp.Body, &out); err != nil {
-		return fmt.Errorf("decode login response: %w", err)
-	}
-	if out.Code != http.StatusOK || strings.TrimSpace(out.Data.Token) == "" {
-		return fmt.Errorf("login failed: code=%d message=%s", out.Code, out.Message)
-	}
-
-	// 保存 token
-	p.token = out.Data.Token
-	p.logger.Info("OpenList 登录成功")
-
-	return nil
-}
-
-// clearToken 清空认证 token
-func (p *openListProvider) clearToken() {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.token = ""
-}
-
-// buildAPIPath 构建完整的 API 路径
-func (p *openListProvider) buildAPIPath(endpoint string) string {
-	result := *p.baseURL
-	result.Path = filesystem.JoinURLPath(result.Path, endpoint)
-	return result.String()
-}
-
-// joinRemotePath 拼接远程路径（使用 Unix 路径分隔符）
-func joinRemotePath(parent, name string) string {
-	parent = filesystem.CleanRemotePath(parent)
-	if parent == "/" {
-		return path.Join("/", name)
-	}
-	return path.Join(parent, name)
-}
-
-// parseTime 解析 RFC3339Nano 时间（失败时返回零值）
-func parseTime(raw string) time.Time {
-	if raw == "" {
-		return time.Time{}
-	}
-	t, err := time.Parse(time.RFC3339Nano, raw)
-	if err != nil {
-		// 时间解析失败不影响功能，返回零值
-		return time.Time{}
-	}
-	return t
-}
-
-// decodeJSON 解码 JSON 响应
-func decodeJSON(r io.Reader, v any) error {
-	dec := json.NewDecoder(r)
-	return dec.Decode(v)
 }
 
 func init() {
