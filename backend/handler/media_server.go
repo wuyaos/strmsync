@@ -46,26 +46,8 @@ func (h *MediaServerHandler) CreateMediaServer(c *gin.Context) {
 		return
 	}
 
-	// 参数验证
-	var fieldErrors []FieldError
-	validateRequiredString("name", req.Name, &fieldErrors)
-	validateRequiredString("type", req.Type, &fieldErrors)
-	validateRequiredString("host", req.Host, &fieldErrors)
-
-	if req.Port == 0 {
-		fieldErrors = append(fieldErrors, FieldError{Field: "port", Message: "必填字段不能为空"})
-	} else {
-		validatePort("port", req.Port, &fieldErrors)
-	}
-
-	validateEnum("type", req.Type, []string{"emby", "jellyfin", "plex"}, &fieldErrors)
-	validateJSONString("options", req.Options, &fieldErrors)
-
-	// SSRF防护：验证host（只传host，不带port）
-	if allowed, _, msg := validateHostForSSRF(req.Host); !allowed {
-		fieldErrors = append(fieldErrors, FieldError{Field: "host", Message: msg})
-	}
-
+	// 参数验证（使用组合验证器）
+	fieldErrors := validateServerRequest(req.Name, req.Type, req.Host, req.Port, req.Options, []string{"emby", "jellyfin", "plex"})
 	if len(fieldErrors) > 0 {
 		respondValidationError(c, fieldErrors)
 		return
@@ -225,26 +207,8 @@ func (h *MediaServerHandler) UpdateMediaServer(c *gin.Context) {
 		return
 	}
 
-	// 参数验证
-	var fieldErrors []FieldError
-	validateRequiredString("name", req.Name, &fieldErrors)
-	validateRequiredString("type", req.Type, &fieldErrors)
-	validateRequiredString("host", req.Host, &fieldErrors)
-
-	if req.Port == 0 {
-		fieldErrors = append(fieldErrors, FieldError{Field: "port", Message: "必填字段不能为空"})
-	} else {
-		validatePort("port", req.Port, &fieldErrors)
-	}
-
-	validateEnum("type", req.Type, []string{"emby", "jellyfin", "plex"}, &fieldErrors)
-	validateJSONString("options", req.Options, &fieldErrors)
-
-	// SSRF防护：验证host（只传host，不带port）
-	if allowed, _, msg := validateHostForSSRF(req.Host); !allowed {
-		fieldErrors = append(fieldErrors, FieldError{Field: "host", Message: msg})
-	}
-
+	// 参数验证（使用组合验证器）
+	fieldErrors := validateServerRequest(req.Name, req.Type, req.Host, req.Port, req.Options, []string{"emby", "jellyfin", "plex"})
 	if len(fieldErrors) > 0 {
 		respondValidationError(c, fieldErrors)
 		return

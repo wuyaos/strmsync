@@ -15,7 +15,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/strmsync/strmsync/core"
 	handlers "github.com/strmsync/strmsync/handler"
+	"github.com/strmsync/strmsync/scheduler"
+	"github.com/strmsync/strmsync/syncqueue"
 	"github.com/strmsync/strmsync/utils"
+	"github.com/strmsync/strmsync/worker"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -68,8 +71,67 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	// 初始化 SyncQueue
+	queue, err := syncqueue.NewSyncQueue(db)
+	if err != nil {
+		utils.LogError("SyncQueue 初始化失败", zap.Error(err))
+		os.Exit(1)
+	}
+
+	// 初始化共享的 Repository（scheduler 和 worker 共享）
+	jobRepo, err := core.NewGormJobRepository(db)
+	if err != nil {
+		utils.LogError("JobRepository 初始化失败", zap.Error(err))
+		os.Exit(1)
+	}
+	dataServerRepo, err := core.NewGormDataServerRepository(db)
+	if err != nil {
+		utils.LogError("DataServerRepository 初始化失败", zap.Error(err))
+		os.Exit(1)
+	}
+	taskRunRepo, err := worker.NewGormTaskRunRepository(db)
+	if err != nil {
+		utils.LogError("TaskRunRepository 初始化失败", zap.Error(err))
+		os.Exit(1)
+	}
+
+	// 初始化 Scheduler
+	cronScheduler, err := scheduler.NewScheduler(scheduler.SchedulerConfig{
+		Queue:  queue,
+		Jobs:   jobRepo, // 使用共享的 Repository
+		Logger: utils.With(zap.String("component", "scheduler")),
+	})
+	if err != nil {
+		utils.LogError("Scheduler 初始化失败", zap.Error(err))
+		os.Exit(1)
+	}
+
+	// 初始化 Worker
+	workerPool, err := worker.NewWorker(worker.WorkerConfig{
+		Queue:       queue,
+		Jobs:        jobRepo,        // 使用共享的 Repository
+		DataServers: dataServerRepo, // 使用共享的 Repository
+		TaskRuns:    taskRunRepo,
+		Logger:      utils.With(zap.String("component", "worker")),
+	})
+	if err != nil {
+		utils.LogError("Worker 初始化失败", zap.Error(err))
+		os.Exit(1)
+	}
+
+	// 启动 Scheduler/Worker
+	startCtx := context.Background()
+	if err := cronScheduler.Start(startCtx); err != nil {
+		utils.LogError("Scheduler 启动失败", zap.Error(err))
+		os.Exit(1)
+	}
+	if err := workerPool.Start(startCtx); err != nil {
+		utils.LogError("Worker 启动失败", zap.Error(err))
+		os.Exit(1)
+	}
+
 	// 创建HTTP服务器
-	router := setupRouter(db)
+	router := setupRouter(db, cronScheduler, queue)
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 
 	srv := &http.Server{
@@ -101,19 +163,33 @@ func main() {
 	// 关闭日志数据库写入worker
 	utils.ShutdownLogDBWriter()
 
-	// 优雅关闭（5秒超时）
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	// 优雅关闭：各组件独立超时，顺序为 Scheduler -> HTTP -> Worker
+	// 先停调度器，不再产生新的定时任务
+	schedCtx, schedCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer schedCancel()
+	if err := cronScheduler.Stop(schedCtx); err != nil {
+		utils.LogError("Scheduler 关闭失败", zap.Error(err))
+	}
 
-	if err := srv.Shutdown(ctx); err != nil {
+	// 停止HTTP，不再接受新请求（包括手动 RunJob）
+	httpCtx, httpCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer httpCancel()
+	if err := srv.Shutdown(httpCtx); err != nil {
 		utils.LogError("服务器强制关闭", zap.Error(err))
+	}
+
+	// 最后停止Worker，让已入队的任务尽可能处理完毕
+	workerCtx, workerCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer workerCancel()
+	if err := workerPool.Stop(workerCtx); err != nil {
+		utils.LogError("Worker 关闭失败", zap.Error(err))
 	}
 
 	utils.LogInfo("服务器已退出")
 }
 
 // setupRouter 配置路由 (最小可用版本)
-func setupRouter(db *gorm.DB) *gin.Engine {
+func setupRouter(db *gorm.DB, scheduler handlers.JobScheduler, queue handlers.TaskQueue) *gin.Engine {
 	router := gin.New()
 
 	// 中间件
@@ -130,7 +206,7 @@ func setupRouter(db *gorm.DB) *gin.Engine {
 	fileHandler := handlers.NewFileHandler(db, logger)
 	dataServerHandler := handlers.NewDataServerHandler(db, logger)
 	mediaServerHandler := handlers.NewMediaServerHandler(db, logger)
-	jobHandler := handlers.NewJobHandler(db, logger)
+	jobHandler := handlers.NewJobHandler(db, logger, scheduler, queue)
 	taskRunHandler := handlers.NewTaskRunHandler(db, logger)
 
 	// API路由组

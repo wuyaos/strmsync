@@ -40,6 +40,7 @@ type Job struct {
 	ID            uint       `gorm:"primaryKey" json:"id"`
 	Name          string     `gorm:"uniqueIndex;not null" json:"name"`                               // 任务名称（唯一）
 	Enabled       bool       `gorm:"not null;default:true" json:"enabled"`                           // 是否启用
+	Cron          string     `gorm:"type:text" json:"cron"`                                          // Cron表达式(可选,用于定时调度)
 	WatchMode     string     `gorm:"not null;default:'local'" json:"watch_mode"`                     // 监控模式: local/api
 	SourcePath    string     `gorm:"not null" json:"source_path"`                                    // 监控目录
 	TargetPath    string     `gorm:"not null" json:"target_path"`                                    // 目的目录(STRM输出)
@@ -61,10 +62,26 @@ type Job struct {
 
 // TaskRun 任务执行记录模型
 // 记录每次任务执行的详细信息
+//
+// 队列功能扩展：
+// - Priority: 任务优先级（1=High, 2=Normal, 3=Low）
+// - AvailableAt: 可执行时间（支持延迟重试）
+// - Attempts: 重试次数
+// - MaxAttempts: 最大重试次数
+// - DedupKey: 去重键（唯一索引，防止重复入队）
+// - WorkerID: 执行的 Worker ID
+// - FailureKind: 失败类型（retryable/permanent/cancelled）
 type TaskRun struct {
 	ID             uint       `gorm:"primaryKey" json:"id"`
 	JobID          uint       `gorm:"index;not null" json:"job_id"`                       // 关联任务ID
-	Status         string     `gorm:"index;not null" json:"status"`                       // 执行状态: running/completed/failed/cancelled
+	Status         string     `gorm:"not null;index:idx_task_runs_status_priority_available,priority:1" json:"status"` // 执行状态: pending/running/completed/failed/cancelled
+	Priority       int        `gorm:"not null;default:2;index:idx_task_runs_status_priority_available,priority:2" json:"priority"` // 优先级: 1=High,2=Normal,3=Low
+	AvailableAt    time.Time  `gorm:"index:idx_task_runs_status_priority_available,priority:3" json:"available_at"` // 可执行时间
+	Attempts       int        `gorm:"not null;default:0" json:"attempts"`                  // 重试次数
+	MaxAttempts    int        `gorm:"not null;default:3" json:"max_attempts"`              // 最大重试次数
+	DedupKey       string     `gorm:"uniqueIndex;not null" json:"dedup_key"`               // 去重键
+	WorkerID       string     `gorm:"index" json:"worker_id"`                              // 执行的Worker ID
+	FailureKind    string     `gorm:"index" json:"failure_kind"`                           // 失败类型: retryable/permanent/cancelled
 	StartedAt      time.Time  `gorm:"index" json:"started_at"`                            // 开始时间
 	EndedAt        *time.Time `json:"ended_at"`                                           // 结束时间
 	Duration       int64      `gorm:"default:0" json:"duration"`                          // 执行时长(秒)

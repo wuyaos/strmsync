@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/strmsync/strmsync/syncengine"
 	"go.uber.org/zap"
 )
 
@@ -177,6 +178,137 @@ func (p *localProvider) TestConnection(ctx context.Context) error {
 
 	p.logger.Info("本地文件系统连接成功", zap.String("path", fullPath))
 	return nil
+}
+
+// Stat 获取单个路径的元数据
+//
+// 实现说明：
+// - 使用 os.Stat 获取本地文件系统信息
+// - 路径必须在挂载点范围内（防止路径逃逸）
+// - 返回的 Path 字段为虚拟路径（相对于挂载点的 Unix 路径）
+//
+// 参数：
+//   - ctx: 上下文（用于取消，但 os.Stat 本身不支持取消）
+//   - targetPath: 要查询的虚拟路径（Unix 格式，相对于挂载点）
+//
+// 返回：
+//   - RemoteFile: 文件/目录的元数据
+//   - error: 查询失败、路径不存在或路径逃逸时返回错误
+func (p *localProvider) Stat(ctx context.Context, targetPath string) (RemoteFile, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	// 注意：os.Stat 不支持 context 取消，这里检查一次以快速失败
+	if ctx.Err() != nil {
+		return RemoteFile{}, ctx.Err()
+	}
+
+	// 规范化路径
+	normalizedPath, err := normalizeListPath(targetPath)
+	if err != nil {
+		return RemoteFile{}, fmt.Errorf("local: 路径规范化失败: %w", err)
+	}
+
+	mountRoot := filepath.Clean(p.config.MountPath)
+	fullPath := filepath.Join(mountRoot, normalizedPath)
+
+	// 安全检查：确保路径在挂载点内
+	if err := ensureUnderMount(mountRoot, fullPath); err != nil {
+		return RemoteFile{}, err
+	}
+
+	p.logger.Debug("Local Stat",
+		zap.String("virtual_path", targetPath),
+		zap.String("physical_path", fullPath))
+
+	// 获取文件信息
+	info, err := os.Stat(fullPath)
+	if err != nil {
+		return RemoteFile{}, fmt.Errorf("local: stat %s 失败: %w", fullPath, err)
+	}
+
+	// 计算虚拟路径
+	relPath, err := filepath.Rel(mountRoot, fullPath)
+	if err != nil {
+		return RemoteFile{}, fmt.Errorf("local: 计算相对路径失败: %w", err)
+	}
+	relPath = filepath.ToSlash(relPath)
+	virtualPath := path.Clean("/" + relPath)
+
+	// 提取文件名
+	name := info.Name()
+	if virtualPath == "/" {
+		name = "/"
+	}
+
+	result := RemoteFile{
+		Path:    virtualPath,
+		Name:    name,
+		Size:    info.Size(),
+		ModTime: info.ModTime(),
+		IsDir:   info.IsDir(),
+	}
+
+	p.logger.Debug("Local Stat 完成",
+		zap.String("virtual_path", result.Path),
+		zap.Bool("is_dir", result.IsDir),
+		zap.Int64("size", result.Size))
+
+	return result, nil
+}
+
+// BuildStrmInfo 构建结构化的 STRM 信息
+//
+// 实现说明：
+// - 本地文件系统使用挂载路径作为 STRM 内容
+// - 不使用 HTTP URL，而是返回本地文件系统的绝对路径
+// - BaseURL 字段为 nil（表示本地模式）
+// - Path 字段存储完整的本地路径
+// - 安全性：与 Stat/List 保持一致，防止路径逃逸
+//
+// 参数：
+//   - ctx: 上下文（当前未使用，保留用于未来扩展）
+//   - req: BuildStrmRequest 包含 ServerID、RemotePath 和可选的 RemoteMeta
+//
+// 返回：
+//   - StrmInfo: 结构化的 STRM 元数据（本地路径）
+//   - error: 输入无效或路径逃逸时返回错误
+func (p *localProvider) BuildStrmInfo(ctx context.Context, req syncengine.BuildStrmRequest) (syncengine.StrmInfo, error) {
+	_ = ctx // 保留用于未来的取消或追踪
+
+	// 验证输入
+	if strings.TrimSpace(req.RemotePath) == "" {
+		return syncengine.StrmInfo{}, fmt.Errorf("local: remote path 不能为空: %w", syncengine.ErrInvalidInput)
+	}
+
+	// 使用与 Stat/List 一致的路径规范化逻辑
+	normalizedPath, err := normalizeListPath(req.RemotePath)
+	if err != nil {
+		return syncengine.StrmInfo{}, fmt.Errorf("local: 路径规范化失败: %w", err)
+	}
+
+	mountRoot := filepath.Clean(p.config.MountPath)
+	localAbsPath := filepath.Join(mountRoot, normalizedPath)
+
+	// 安全检查：确保路径在挂载点内（与 Stat 保持一致）
+	if err := ensureUnderMount(mountRoot, localAbsPath); err != nil {
+		return syncengine.StrmInfo{}, fmt.Errorf("local: 路径安全检查失败: %w", err)
+	}
+
+	// 规范化最终路径
+	localAbsPath = filepath.Clean(localAbsPath)
+
+	p.logger.Debug("Local BuildStrmInfo",
+		zap.String("virtual_path", req.RemotePath),
+		zap.String("local_path", localAbsPath))
+
+	// 返回本地路径作为 STRM 内容
+	// 注意：BaseURL 为 nil 表示本地模式
+	return syncengine.StrmInfo{
+		RawURL:  localAbsPath,
+		BaseURL: nil, // 本地模式不使用 BaseURL
+		Path:    localAbsPath,
+	}, nil
 }
 
 // normalizeListPath 规范化listPath为相对路径，防止路径逃逸

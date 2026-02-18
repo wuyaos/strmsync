@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/url"
+	"path"
 	"strings"
 	"time"
 
 	pb "github.com/strmsync/strmsync/filesystem/clouddrive2_proto"
+	"github.com/strmsync/strmsync/syncengine"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -435,6 +438,121 @@ func (p *cloudDrive2Provider) TestConnection(ctx context.Context) error {
 
 	p.logger.Info("CloudDrive2连接成功")
 	return nil
+}
+
+// Stat 获取单个路径的元数据
+//
+// 实现说明：
+// - 使用 CloudDrive2 的 FindFileByPath API 查询文件/目录信息
+// - 路径 "/" 特殊处理为根目录
+// - 路径分解为父目录和文件名分别传递给 API
+//
+// 参数：
+//   - ctx: 上下文，用于取消和超时控制
+//   - targetPath: 要查询的远程路径（Unix 格式）
+//
+// 返回：
+//   - RemoteFile: 文件/目录的元数据
+//   - error: 查询失败或路径不存在时返回错误
+func (p *cloudDrive2Provider) Stat(ctx context.Context, targetPath string) (RemoteFile, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	cleanPath := cleanRemotePath(targetPath)
+	p.logger.Debug("CloudDrive2 Stat",
+		zap.String("path", cleanPath))
+
+	// 特殊处理：根目录
+	if cleanPath == "/" {
+		return RemoteFile{
+			Path:  "/",
+			Name:  "/",
+			IsDir: true,
+		}, nil
+	}
+
+	// 分解路径为父目录和文件名
+	parentPath := path.Dir(cleanPath)
+	if parentPath == "." || parentPath == "" {
+		parentPath = "/"
+	}
+	baseName := path.Base(cleanPath)
+
+	// 调用 CloudDrive2 API
+	info, err := p.client.FindFileByPath(ctx, parentPath, baseName)
+	if err != nil {
+		return RemoteFile{}, fmt.Errorf("clouddrive2: stat %s 失败: %w", cleanPath, err)
+	}
+	if info == nil {
+		return RemoteFile{}, fmt.Errorf("clouddrive2: stat %s 返回空结果", cleanPath)
+	}
+
+	// 构建完整路径
+	fullPath := joinRemotePath(parentPath, info.Name)
+	modTime := parseProtoTimestamp(info.WriteTime)
+
+	result := RemoteFile{
+		Path:    fullPath,
+		Name:    info.Name,
+		Size:    info.Size,
+		ModTime: modTime,
+		IsDir:   info.IsDirectory,
+	}
+
+	p.logger.Debug("CloudDrive2 Stat 完成",
+		zap.String("path", fullPath),
+		zap.Bool("is_dir", result.IsDir),
+		zap.Int64("size", result.Size))
+
+	return result, nil
+}
+
+// BuildStrmInfo 构建结构化的 STRM 信息
+//
+// 实现说明：
+// - 生成基于 HTTP 的流媒体 URL
+// - CloudDrive2 使用 HTTP 协议直接访问文件
+// - scheme 默认使用 http（CloudDrive2 通常不使用 https）
+// - 返回的 StrmInfo 包含 RawURL、BaseURL 和 Path 字段
+//
+// 参数：
+//   - ctx: 上下文（当前未使用，保留用于未来扩展）
+//   - req: BuildStrmRequest 包含 ServerID、RemotePath 和可选的 RemoteMeta
+//
+// 返回：
+//   - StrmInfo: 结构化的 STRM 元数据
+//   - error: 输入无效或构建失败时返回错误
+func (p *cloudDrive2Provider) BuildStrmInfo(ctx context.Context, req syncengine.BuildStrmRequest) (syncengine.StrmInfo, error) {
+	_ = ctx // 保留用于未来的取消或追踪
+
+	// 验证输入
+	if strings.TrimSpace(req.RemotePath) == "" {
+		return syncengine.StrmInfo{}, fmt.Errorf("clouddrive2: remote path 不能为空: %w", syncengine.ErrInvalidInput)
+	}
+
+	cleanPath := cleanRemotePath(req.RemotePath)
+	host := strings.TrimSpace(p.client.target)
+	if host == "" {
+		return syncengine.StrmInfo{}, fmt.Errorf("clouddrive2: 主机地址为空")
+	}
+
+	// CloudDrive2 默认使用 http（gRPC 使用 h2c，HTTP API 也通常是 http）
+	scheme := "http"
+
+	// 构建 URL
+	rawURL := fmt.Sprintf("%s://%s%s", scheme, host, cleanPath)
+
+	p.logger.Debug("CloudDrive2 BuildStrmInfo",
+		zap.String("remote_path", cleanPath),
+		zap.String("scheme", scheme),
+		zap.String("raw_url", rawURL))
+
+	return syncengine.StrmInfo{
+		RawURL:  rawURL,
+		BaseURL: &url.URL{Scheme: scheme, Host: host},
+		Path:    cleanPath,
+	}, nil
 }
 
 // listCloudDrive2 递归列出CloudDrive2目录（使用BFS，支持深度限制）

@@ -153,6 +153,49 @@ func validateJSONString(field, jsonStr string, errs *[]FieldError) {
 	}
 }
 
+// validateServerRequest 验证服务器配置请求参数
+//
+// 适用于 DataServer 和 MediaServer 的 Create/Update 操作。
+//
+// 参数：
+//   - name: 服务器名称（必填）
+//   - stype: 服务器类型（必填，需在 allowedTypes 中）
+//   - host: 主机地址（必填，会进行 SSRF 检查）
+//   - port: 端口号（必填，1-65535）
+//   - options: JSON 配置字符串（可选，需为合法 JSON）
+//   - allowedTypes: 允许的类型列表（如 []string{"clouddrive2", "openlist"}）
+//
+// 返回：
+//   - []FieldError: 验证错误列表（空表示验证通过）
+func validateServerRequest(
+	name, stype, host string,
+	port int,
+	options string,
+	allowedTypes []string,
+) []FieldError {
+	var fieldErrors []FieldError
+
+	validateRequiredString("name", name, &fieldErrors)
+	validateRequiredString("type", stype, &fieldErrors)
+	validateRequiredString("host", host, &fieldErrors)
+
+	if port == 0 {
+		fieldErrors = append(fieldErrors, FieldError{Field: "port", Message: "必填字段不能为空"})
+	} else {
+		validatePort("port", port, &fieldErrors)
+	}
+
+	validateEnum("type", stype, allowedTypes, &fieldErrors)
+	validateJSONString("options", options, &fieldErrors)
+
+	// SSRF防护：验证host（只传host，不带port）
+	if allowed, _, msg := validateHostForSSRF(host); !allowed {
+		fieldErrors = append(fieldErrors, FieldError{Field: "host", Message: msg})
+	}
+
+	return fieldErrors
+}
+
 // ================== 安全日志 ==================
 
 // redactSensitive 对敏感字段进行脱敏处理

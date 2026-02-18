@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,9 +12,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/strmsync/strmsync/core"
+	"github.com/strmsync/strmsync/syncqueue"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 // JobWatchMode 任务监控模式类型
@@ -67,13 +68,30 @@ func isAllowedValue(value string, allowed []string) bool {
 type JobHandler struct {
 	db     *gorm.DB
 	logger *zap.Logger
+
+	scheduler JobScheduler
+	queue     TaskQueue
+}
+
+// JobScheduler 任务调度器接口（用于注入）
+type JobScheduler interface {
+	UpsertJob(ctx context.Context, job core.Job) error
+	RemoveJob(ctx context.Context, jobID uint) error
+}
+
+// TaskQueue 任务队列接口（用于注入）
+type TaskQueue interface {
+	Enqueue(ctx context.Context, task *core.TaskRun) error
+	Cancel(ctx context.Context, taskID uint) error
 }
 
 // NewJobHandler 创建任务处理器
-func NewJobHandler(db *gorm.DB, logger *zap.Logger) *JobHandler {
+func NewJobHandler(db *gorm.DB, logger *zap.Logger, scheduler JobScheduler, queue TaskQueue) *JobHandler {
 	return &JobHandler{
-		db:     db,
-		logger: logger,
+		db:        db,
+		logger:    logger,
+		scheduler: scheduler,
+		queue:     queue,
 	}
 }
 
@@ -239,6 +257,15 @@ func (h *JobHandler) CreateJob(c *gin.Context) {
 	h.logger.Info("创建任务成功",
 		zap.Uint("id", job.ID),
 		zap.String("name", job.Name))
+
+	// 通知调度器
+	if h.scheduler != nil {
+		if err := h.scheduler.UpsertJob(c.Request.Context(), job); err != nil {
+			h.logger.Error("调度器更新失败", zap.Error(err), zap.Uint("job_id", job.ID))
+			respondError(c, http.StatusInternalServerError, "scheduler_error", "调度器更新失败", nil)
+			return
+		}
+	}
 
 	c.JSON(http.StatusCreated, gin.H{"job": job})
 }
@@ -455,6 +482,15 @@ func (h *JobHandler) UpdateJob(c *gin.Context) {
 		zap.Uint("id", job.ID),
 		zap.String("name", job.Name))
 
+	// 通知调度器
+	if h.scheduler != nil {
+		if err := h.scheduler.UpsertJob(c.Request.Context(), job); err != nil {
+			h.logger.Error("调度器更新失败", zap.Error(err), zap.Uint("job_id", job.ID))
+			respondError(c, http.StatusInternalServerError, "scheduler_error", "调度器更新失败", nil)
+			return
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{"job": job})
 }
 
@@ -493,12 +529,27 @@ func (h *JobHandler) DeleteJob(c *gin.Context) {
 	}
 
 	h.logger.Info("删除任务成功", zap.Uint64("id", id))
+
+	// 通知调度器
+	if h.scheduler != nil {
+		if err := h.scheduler.RemoveJob(c.Request.Context(), uint(id)); err != nil {
+			h.logger.Error("调度器移除失败", zap.Error(err), zap.Uint64("job_id", id))
+			respondError(c, http.StatusInternalServerError, "scheduler_error", "调度器更新失败", nil)
+			return
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
 }
 
 // RunJob 手动触发任务执行
 // POST /api/jobs/:id/run
 func (h *JobHandler) RunJob(c *gin.Context) {
+	if h.queue == nil {
+		respondError(c, http.StatusInternalServerError, "queue_not_ready", "任务队列未初始化", nil)
+		return
+	}
+
 	id, err := parseUintParam(c, "id")
 	if err != nil {
 		respondError(c, http.StatusBadRequest, "invalid_request", "无效的ID参数", nil)
@@ -506,67 +557,53 @@ func (h *JobHandler) RunJob(c *gin.Context) {
 	}
 
 	var job core.Job
-	var taskRun core.TaskRun
-
-	txErr := h.db.Transaction(func(tx *gorm.DB) error {
-		// SELECT FOR UPDATE：锁定行，防止并发RunJob产生多个running记录
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			First(&job, uint(id)).Error; err != nil {
-			return err
-		}
-
-		if !job.Enabled {
-			return errJobDisabled
-		}
-
-		var runningCount int64
-		if err := tx.Model(&core.TaskRun{}).
-			Where("job_id = ? AND status = ?", job.ID, string(TaskRunStatusRunning)).
-			Count(&runningCount).Error; err != nil {
-			return err
-		}
-		if runningCount > 0 {
-			return errJobAlreadyRunning
-		}
-
-		taskRun = core.TaskRun{
-			JobID:     job.ID,
-			Status:    string(TaskRunStatusRunning),
-			StartedAt: time.Now(),
-		}
-		if err := tx.Create(&taskRun).Error; err != nil {
-			return err
-		}
-
-		// 同步更新Job的last_run_at和status
-		now := time.Now()
-		if err := tx.Model(&job).Updates(map[string]interface{}{
-			"last_run_at": &now,
-			"status":      string(JobStatusRunning),
-		}).Error; err != nil {
-			return err
-		}
-
-		// 手动同步struct字段（防止未来误用）
-		job.LastRunAt = &now
-		job.Status = string(JobStatusRunning)
-
-		return nil
-	})
-
-	if txErr != nil {
-		switch {
-		case txErr == gorm.ErrRecordNotFound:
+	if err := h.db.First(&job, uint(id)).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
 			respondError(c, http.StatusNotFound, "not_found", "任务不存在", nil)
-		case errors.Is(txErr, errJobDisabled):
-			respondError(c, http.StatusBadRequest, "job_disabled", "任务已禁用，无法运行", nil)
-		case errors.Is(txErr, errJobAlreadyRunning):
-			respondError(c, http.StatusConflict, "job_running", "任务已在运行中", nil)
-		default:
-			h.logger.Error("触发任务运行失败", zap.Error(txErr), zap.Uint64("id", id))
-			respondError(c, http.StatusInternalServerError, "db_error", "运行失败", nil)
+			return
 		}
+		h.logger.Error("查询任务失败", zap.Error(err), zap.Uint64("id", id))
+		respondError(c, http.StatusInternalServerError, "db_error", "查询失败", nil)
 		return
+	}
+	if !job.Enabled {
+		respondError(c, http.StatusBadRequest, "job_disabled", "任务已禁用，无法运行", nil)
+		return
+	}
+
+	// 防止重复运行：pending/running 均视为已在运行
+	var runningCount int64
+	if err := h.db.Model(&core.TaskRun{}).
+		Where("job_id = ? AND status IN ?", job.ID, []string{string(syncqueue.TaskPending), string(syncqueue.TaskRunning)}).
+		Count(&runningCount).Error; err != nil {
+		h.logger.Error("检查任务运行状态失败", zap.Error(err), zap.Uint64("id", id))
+		respondError(c, http.StatusInternalServerError, "db_error", "数据库错误", nil)
+		return
+	}
+	if runningCount > 0 {
+		respondError(c, http.StatusConflict, "job_running", "任务已在运行中", nil)
+		return
+	}
+
+	// 入队任务（手动触发：立即可执行）
+	taskRun := &core.TaskRun{
+		JobID:       job.ID,
+		Priority:    int(syncqueue.TaskPriorityNormal),
+		AvailableAt: time.Now(),
+	}
+	if err := h.queue.Enqueue(c.Request.Context(), taskRun); err != nil {
+		h.logger.Error("任务入队失败", zap.Error(err), zap.Uint("job_id", job.ID))
+		respondError(c, http.StatusInternalServerError, "queue_error", "任务入队失败", nil)
+		return
+	}
+
+	// 更新Job运行状态（保持兼容性）
+	now := time.Now()
+	if err := h.db.Model(&job).Updates(map[string]interface{}{
+		"last_run_at": &now,
+		"status":      string(JobStatusRunning),
+	}).Error; err != nil {
+		h.logger.Warn("更新任务状态失败", zap.Error(err), zap.Uint("job_id", job.ID))
 	}
 
 	h.logger.Info("触发任务运行成功",
@@ -579,6 +616,11 @@ func (h *JobHandler) RunJob(c *gin.Context) {
 // StopJob 停止正在运行的任务
 // POST /api/jobs/:id/stop
 func (h *JobHandler) StopJob(c *gin.Context) {
+	if h.queue == nil {
+		respondError(c, http.StatusInternalServerError, "queue_not_ready", "任务队列未初始化", nil)
+		return
+	}
+
 	id, err := parseUintParam(c, "id")
 	if err != nil {
 		respondError(c, http.StatusBadRequest, "invalid_request", "无效的ID参数", nil)
@@ -586,85 +628,70 @@ func (h *JobHandler) StopJob(c *gin.Context) {
 	}
 
 	var job core.Job
-	var taskRun core.TaskRun
-
-	txErr := h.db.Transaction(func(tx *gorm.DB) error {
-		// 锁定Job记录（在SQLite中会获取写锁）
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			First(&job, uint(id)).Error; err != nil {
-			return err
-		}
-
-		now := time.Now()
-
-		// 使用单条SQL批量更新所有running记录为cancelled
-		// SQLite中，使用CASE保护负duration: duration = MAX(0, seconds)
-		result := tx.Exec(`
-			UPDATE task_runs
-			SET status = ?,
-				ended_at = ?,
-				duration = CASE
-					WHEN CAST((julianday(?) - julianday(started_at)) * 86400 AS INTEGER) < 0 THEN 0
-					ELSE CAST((julianday(?) - julianday(started_at)) * 86400 AS INTEGER)
-				END
-			WHERE job_id = ? AND status = ?`,
-			string(TaskRunStatusCancelled),
-			now,
-			now,
-			now,
-			job.ID,
-			string(TaskRunStatusRunning))
-
-		if result.Error != nil {
-			return result.Error
-		}
-
-		// 检查是否有记录被更新（用RowsAffected消除竞态）
-		if result.RowsAffected == 0 {
-			return errNoRunningTask
-		}
-
-		// 如果取消了多条running记录，记录警告
-		if result.RowsAffected > 1 {
-			h.logger.Warn("检测到多条running记录，统一取消",
-				zap.Uint("job_id", job.ID),
-				zap.Int64("count", result.RowsAffected))
-		}
-
-		// 查询最新的已取消记录（用于返回）
-		if err := tx.Where("job_id = ? AND status = ?", job.ID, string(TaskRunStatusCancelled)).
-			Order("started_at DESC").
-			First(&taskRun).Error; err != nil {
-			return err
-		}
-
-		// 更新Job状态为idle
-		if err := tx.Model(&job).Update("status", string(JobStatusIdle)).Error; err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	if txErr != nil {
-		switch {
-		case txErr == gorm.ErrRecordNotFound:
+	if err := h.db.First(&job, uint(id)).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
 			respondError(c, http.StatusNotFound, "not_found", "任务不存在", nil)
-		case errors.Is(txErr, errNoRunningTask):
-			respondError(c, http.StatusConflict, "no_running_task", "没有正在运行的任务", nil)
-		default:
-			h.logger.Error("停止任务失败", zap.Error(txErr), zap.Uint64("id", id))
-			respondError(c, http.StatusInternalServerError, "db_error", "停止失败", nil)
+			return
 		}
+		h.logger.Error("查询任务失败", zap.Error(err), zap.Uint64("id", id))
+		respondError(c, http.StatusInternalServerError, "db_error", "查询失败", nil)
 		return
+	}
+
+	// 查找所有 pending 和 running 状态的任务（均需取消）
+	var activeTasks []core.TaskRun
+	if err := h.db.
+		Where("job_id = ? AND status IN ?", job.ID,
+			[]string{string(syncqueue.TaskPending), string(syncqueue.TaskRunning)}).
+		Order("id DESC").
+		Find(&activeTasks).Error; err != nil {
+		h.logger.Error("查询活跃任务失败", zap.Error(err), zap.Uint("job_id", job.ID))
+		respondError(c, http.StatusInternalServerError, "db_error", "查询失败", nil)
+		return
+	}
+	if len(activeTasks) == 0 {
+		respondError(c, http.StatusConflict, "no_running_task", "没有正在运行的任务", nil)
+		return
+	}
+
+	// 取消所有活跃任务，记录失败但继续处理其余任务
+	var failedIDs []uint
+	for _, task := range activeTasks {
+		if err := h.queue.Cancel(c.Request.Context(), task.ID); err != nil {
+			h.logger.Error("取消任务失败", zap.Error(err), zap.Uint("task_id", task.ID))
+			failedIDs = append(failedIDs, task.ID)
+		}
+	}
+	if len(failedIDs) > 0 {
+		respondError(c, http.StatusInternalServerError, "queue_error",
+			fmt.Sprintf("部分任务取消失败: %v", failedIDs), nil)
+		return
+	}
+
+	// 重新查询最新状态（Cancel 可能已更新 DB）
+	taskIDs := make([]uint, 0, len(activeTasks))
+	for _, t := range activeTasks {
+		taskIDs = append(taskIDs, t.ID)
+	}
+	var cancelledTasks []core.TaskRun
+	if err := h.db.Where("id IN ?", taskIDs).Order("id DESC").Find(&cancelledTasks).Error; err != nil {
+		h.logger.Error("查询取消结果失败", zap.Error(err))
+		respondError(c, http.StatusInternalServerError, "db_error", "查询失败", nil)
+		return
+	}
+
+	// 更新Job状态为idle（保持兼容性）
+	if err := h.db.Model(&job).Update("status", string(JobStatusIdle)).Error; err != nil {
+		h.logger.Warn("更新任务状态失败", zap.Error(err), zap.Uint("job_id", job.ID))
 	}
 
 	h.logger.Info("停止任务成功",
 		zap.Uint("job_id", job.ID),
-		zap.Uint("task_run_id", taskRun.ID))
+		zap.Int("cancelled_count", len(cancelledTasks)))
 
 	c.JSON(http.StatusOK, gin.H{
-		"task_run": taskRun,
-		"message":  fmt.Sprintf("任务已停止，执行时长: %d秒", taskRun.Duration),
+		"task_runs": cancelledTasks,
+		"cancelled": len(cancelledTasks),
+		"message":   fmt.Sprintf("已取消 %d 个任务", len(cancelledTasks)),
 	})
 }

@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/strmsync/strmsync/syncengine"
 	"go.uber.org/zap"
 )
 
@@ -70,6 +71,121 @@ func (p *openListProvider) TestConnection(ctx context.Context) error {
 	}
 	p.logger.Info("OpenList连接成功")
 	return nil
+}
+
+// Stat 获取单个路径的元数据
+//
+// 实现说明：
+// - OpenList 没有专用的 Stat API，使用降级策略
+// - 列出父目录内容，然后匹配目标文件/目录
+// - 路径 "/" 特殊处理为根目录
+//
+// 参数：
+//   - ctx: 上下文，用于取消和超时控制
+//   - targetPath: 要查询的远程路径（Unix 格式）
+//
+// 返回：
+//   - RemoteFile: 文件/目录的元数据
+//   - error: 查询失败或路径不存在时返回错误
+func (p *openListProvider) Stat(ctx context.Context, targetPath string) (RemoteFile, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	cleanPath := cleanRemotePath(targetPath)
+	p.logger.Debug("OpenList Stat",
+		zap.String("path", cleanPath))
+
+	// 特殊处理：根目录
+	if cleanPath == "/" {
+		return RemoteFile{
+			Path:  "/",
+			Name:  "/",
+			IsDir: true,
+		}, nil
+	}
+
+	// 分解路径为父目录和文件名
+	parentPath := path.Dir(cleanPath)
+	if parentPath == "." || parentPath == "" {
+		parentPath = "/"
+	}
+	baseName := path.Base(cleanPath)
+
+	// 列出父目录
+	items, err := p.listOpenListOnce(ctx, parentPath)
+	if err != nil {
+		return RemoteFile{}, fmt.Errorf("openlist: stat 列出父目录 %s 失败: %w", parentPath, err)
+	}
+
+	// 查找匹配项（按 Name 或 Path 匹配）
+	for _, item := range items {
+		if item.Name == baseName || item.Path == cleanPath {
+			p.logger.Debug("OpenList Stat 完成",
+				zap.String("path", item.Path),
+				zap.Bool("is_dir", item.IsDir),
+				zap.Int64("size", item.Size))
+			return item, nil
+		}
+	}
+
+	return RemoteFile{}, fmt.Errorf("openlist: 路径不存在: %s", cleanPath)
+}
+
+// BuildStrmInfo 构建结构化的 STRM 信息
+//
+// 实现说明：
+// - 生成基于 HTTP/HTTPS 的流媒体 URL
+// - OpenList 使用 Web API 访问文件
+// - scheme 从 baseURL 配置中获取（支持 http 和 https）
+// - 返回的 StrmInfo 包含 RawURL、BaseURL 和 Path 字段
+//
+// 参数：
+//   - ctx: 上下文（当前未使用，保留用于未来扩展）
+//   - req: BuildStrmRequest 包含 ServerID、RemotePath 和可选的 RemoteMeta
+//
+// 返回：
+//   - StrmInfo: 结构化的 STRM 元数据
+//   - error: 输入无效或构建失败时返回错误
+func (p *openListProvider) BuildStrmInfo(ctx context.Context, req syncengine.BuildStrmRequest) (syncengine.StrmInfo, error) {
+	_ = ctx // 保留用于未来的取消或追踪
+
+	// 验证输入
+	if strings.TrimSpace(req.RemotePath) == "" {
+		return syncengine.StrmInfo{}, fmt.Errorf("openlist: remote path 不能为空: %w", syncengine.ErrInvalidInput)
+	}
+
+	cleanPath := cleanRemotePath(req.RemotePath)
+
+	// 获取 baseURL
+	if p.baseURL == nil {
+		return syncengine.StrmInfo{}, fmt.Errorf("openlist: baseURL 未配置")
+	}
+
+	host := strings.TrimSpace(p.baseURL.Host)
+	if host == "" {
+		return syncengine.StrmInfo{}, fmt.Errorf("openlist: 主机地址为空")
+	}
+
+	// 从配置中获取 scheme（http 或 https）
+	scheme := strings.ToLower(strings.TrimSpace(p.baseURL.Scheme))
+	if scheme == "" {
+		scheme = "http" // 默认使用 http
+	}
+
+	// 构建 URL
+	rawURL := fmt.Sprintf("%s://%s%s", scheme, host, cleanPath)
+
+	p.logger.Debug("OpenList BuildStrmInfo",
+		zap.String("remote_path", cleanPath),
+		zap.String("scheme", scheme),
+		zap.String("raw_url", rawURL))
+
+	return syncengine.StrmInfo{
+		RawURL:  rawURL,
+		BaseURL: &url.URL{Scheme: scheme, Host: host},
+		Path:    cleanPath,
+	}, nil
 }
 
 // ---------- OpenList 内部实现 ----------

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -50,26 +51,8 @@ func (h *DataServerHandler) CreateDataServer(c *gin.Context) {
 		return
 	}
 
-	// 参数验证
-	var fieldErrors []FieldError
-	validateRequiredString("name", req.Name, &fieldErrors)
-	validateRequiredString("type", req.Type, &fieldErrors)
-	validateRequiredString("host", req.Host, &fieldErrors)
-
-	if req.Port == 0 {
-		fieldErrors = append(fieldErrors, FieldError{Field: "port", Message: "必填字段不能为空"})
-	} else {
-		validatePort("port", req.Port, &fieldErrors)
-	}
-
-	validateEnum("type", req.Type, []string{"clouddrive2", "openlist"}, &fieldErrors)
-	validateJSONString("options", req.Options, &fieldErrors)
-
-	// SSRF防护：验证host（只传host，不带port）
-	if allowed, _, msg := validateHostForSSRF(req.Host); !allowed {
-		fieldErrors = append(fieldErrors, FieldError{Field: "host", Message: msg})
-	}
-
+	// 参数验证（使用组合验证器）
+	fieldErrors := validateServerRequest(req.Name, req.Type, req.Host, req.Port, req.Options, allowedDataServerTypes())
 	if len(fieldErrors) > 0 {
 		respondValidationError(c, fieldErrors)
 		return
@@ -229,26 +212,8 @@ func (h *DataServerHandler) UpdateDataServer(c *gin.Context) {
 		return
 	}
 
-	// 参数验证
-	var fieldErrors []FieldError
-	validateRequiredString("name", req.Name, &fieldErrors)
-	validateRequiredString("type", req.Type, &fieldErrors)
-	validateRequiredString("host", req.Host, &fieldErrors)
-
-	if req.Port == 0 {
-		fieldErrors = append(fieldErrors, FieldError{Field: "port", Message: "必填字段不能为空"})
-	} else {
-		validatePort("port", req.Port, &fieldErrors)
-	}
-
-	validateEnum("type", req.Type, []string{"clouddrive2", "openlist"}, &fieldErrors)
-	validateJSONString("options", req.Options, &fieldErrors)
-
-	// SSRF防护：验证host（只传host，不带port）
-	if allowed, _, msg := validateHostForSSRF(req.Host); !allowed {
-		fieldErrors = append(fieldErrors, FieldError{Field: "host", Message: msg})
-	}
-
+	// 参数验证（使用组合验证器）
+	fieldErrors := validateServerRequest(req.Name, req.Type, req.Host, req.Port, req.Options, allowedDataServerTypes())
 	if len(fieldErrors) > 0 {
 		respondValidationError(c, fieldErrors)
 		return
@@ -588,4 +553,16 @@ func testOpenListConnection(server core.DataServer, logger *zap.Logger) Connecti
 			"api_code":    apiResp.Code,
 		},
 	}
+}
+
+// allowedDataServerTypes 返回允许的数据服务器类型列表
+//
+// 生产环境仅允许 clouddrive2 和 openlist。
+// 测试环境（ALLOW_LOCAL_DATASERVER=true）额外允许 local 类型。
+func allowedDataServerTypes() []string {
+	types := []string{"clouddrive2", "openlist"}
+	if strings.EqualFold(os.Getenv("ALLOW_LOCAL_DATASERVER"), "true") {
+		types = append(types, "local")
+	}
+	return types
 }
