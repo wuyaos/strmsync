@@ -13,10 +13,11 @@ import (
 
 // Executor 任务执行器实现
 type Executor struct {
-	fileMonitor   ports.FileMonitor
-	syncPlanner   ports.SyncPlanner
-	strmGenerator ports.StrmGenerator
-	logger        *zap.Logger
+	fileMonitor      ports.FileMonitor
+	syncPlanner      ports.SyncPlanner
+	strmGenerator    ports.StrmGenerator
+	metaReplicator   ports.MetadataReplicator
+	logger           *zap.Logger
 }
 
 // NewExecutor 创建任务执行器
@@ -24,13 +25,15 @@ func NewExecutor(
 	fileMonitor ports.FileMonitor,
 	syncPlanner ports.SyncPlanner,
 	strmGenerator ports.StrmGenerator,
+	metaReplicator ports.MetadataReplicator,
 	logger *zap.Logger,
 ) ports.TaskExecutor {
 	return &Executor{
-		fileMonitor:   fileMonitor,
-		syncPlanner:   syncPlanner,
-		strmGenerator: strmGenerator,
-		logger:        logger,
+		fileMonitor:    fileMonitor,
+		syncPlanner:    syncPlanner,
+		strmGenerator:  strmGenerator,
+		metaReplicator: metaReplicator,
+		logger:         logger,
 	}
 }
 
@@ -84,30 +87,112 @@ func (e *Executor) Execute(ctx context.Context, execCtx *ports.ExecutionContext)
 		return nil
 	})
 
-	// 3. 执行同步计划（同步执行，会阻塞直到planItemCh关闭）
-	e.logger.Info("开始应用同步计划")
-	succeeded, failed, genErr := e.strmGenerator.Apply(gCtx, planItemCh)
+	// 3. 路由计划项到不同的处理器（fan-out）
+	e.logger.Info("启动计划项路由器")
+	strmCh := make(chan ports.SyncPlanItem, 100)
+	metaCh := make(chan ports.SyncPlanItem, 100)
 
-	// 4. 等待所有error收集goroutine完成
-	// errgroup.Wait会等待所有Go()启动的goroutine完成
+	// 路由goroutine：根据Kind分发计划项
+	g.Go(func() error {
+		defer close(strmCh)
+		defer close(metaCh)
+
+		strmCount := 0
+		metaCount := 0
+
+		for item := range planItemCh {
+			switch item.Kind {
+			case ports.PlanItemStrm:
+				select {
+				case <-gCtx.Done():
+					e.logger.Info("路由器停止（STRM）",
+						zap.Int("strm_routed", strmCount),
+						zap.Int("meta_routed", metaCount))
+					return gCtx.Err()
+				case strmCh <- item:
+					strmCount++
+				}
+			case ports.PlanItemMetadata:
+				select {
+				case <-gCtx.Done():
+					e.logger.Info("路由器停止（Metadata）",
+						zap.Int("strm_routed", strmCount),
+						zap.Int("meta_routed", metaCount))
+					return gCtx.Err()
+				case metaCh <- item:
+					metaCount++
+				}
+			default:
+				e.logger.Warn("未知计划项类型",
+					zap.String("kind", item.Kind.String()),
+					zap.String("source_path", item.SourcePath))
+			}
+		}
+
+		e.logger.Info("计划项路由完成",
+			zap.Int("strm_routed", strmCount),
+			zap.Int("meta_routed", metaCount))
+		return nil
+	})
+
+	// 4. 并发执行STRM生成和元数据复制
+	e.logger.Info("开始应用同步计划（并发执行）")
+
+	var strmSucceeded, strmFailed int
+	var metaSucceeded, metaFailed int
+	var strmErr, metaErr error
+
+	// STRM生成goroutine
+	g.Go(func() error {
+		e.logger.Info("STRM生成器开始处理")
+		strmSucceeded, strmFailed, strmErr = e.strmGenerator.Apply(gCtx, strmCh)
+		e.logger.Info("STRM生成器完成",
+			zap.Int("succeeded", strmSucceeded),
+			zap.Int("failed", strmFailed),
+			zap.Error(strmErr))
+		return nil // 不中断其他goroutine
+	})
+
+	// 元数据复制goroutine
+	g.Go(func() error {
+		e.logger.Info("元数据复制器开始处理")
+		metaSucceeded, metaFailed, metaErr = e.metaReplicator.Apply(gCtx, metaCh)
+		e.logger.Info("元数据复制器完成",
+			zap.Int("succeeded", metaSucceeded),
+			zap.Int("failed", metaFailed),
+			zap.Error(metaErr))
+		return nil // 不中断其他goroutine
+	})
+
+	// 5. 等待所有goroutine完成
 	if waitErr := g.Wait(); waitErr != nil {
-		// errgroup中的错误（通常不会有，因为我们在goroutine内部只是记录错误）
 		e.logger.Error("等待组件完成时出错", zap.Error(waitErr))
 	}
 
-	// 5. 处理generator错误
+	// 6. 合并处理结果
+	totalSucceeded := strmSucceeded + metaSucceeded
+	totalFailed := strmFailed + metaFailed
+
+	// 处理错误
 	var execErr error
-	if genErr != nil && genErr != context.Canceled {
-		execErr = fmt.Errorf("generator: %w", genErr)
+	if strmErr != nil && strmErr != context.Canceled {
+		execErr = fmt.Errorf("strm generator: %w", strmErr)
+	}
+	if metaErr != nil && metaErr != context.Canceled {
+		if execErr != nil {
+			execErr = fmt.Errorf("%v; metadata replicator: %w", execErr, metaErr)
+		} else {
+			execErr = fmt.Errorf("metadata replicator: %w", metaErr)
+		}
 	}
 
-	// 6. 更新摘要
+	// 7. 更新摘要
 	summary.EndedAt = time.Now()
 	summary.Duration = int64(summary.EndedAt.Sub(startTime).Seconds())
-	summary.CreatedCount = succeeded // TODO: 区分create/update/delete
+	summary.CreatedCount = totalSucceeded // TODO: 区分create/update/delete
 	summary.UpdatedCount = 0
 	summary.DeletedCount = 0
-	summary.FailedCount = failed
+	summary.FailedCount = totalFailed
 
 	if execErr != nil {
 		summary.ErrorMessage = execErr.Error()
@@ -116,8 +201,12 @@ func (e *Executor) Execute(ctx context.Context, execCtx *ports.ExecutionContext)
 	e.logger.Info("任务执行完成",
 		zap.Uint("job_id", execCtx.JobID),
 		zap.Uint("task_run_id", execCtx.TaskRunID),
-		zap.Int("succeeded", succeeded),
-		zap.Int("failed", failed),
+		zap.Int("strm_succeeded", strmSucceeded),
+		zap.Int("strm_failed", strmFailed),
+		zap.Int("meta_succeeded", metaSucceeded),
+		zap.Int("meta_failed", metaFailed),
+		zap.Int("total_succeeded", totalSucceeded),
+		zap.Int("total_failed", totalFailed),
 		zap.Int64("duration_seconds", summary.Duration),
 		zap.Error(execErr))
 

@@ -102,12 +102,44 @@ func (o SyncOperation) String() string {
 	}
 }
 
+// PlanItemKind 同步计划项类型
+type PlanItemKind int
+
+const (
+	PlanItemStrm     PlanItemKind = iota + 1 // 生成STRM文件
+	PlanItemMetadata                          // 复制/下载元数据文件
+)
+
+// String 实现Stringer接口
+func (k PlanItemKind) String() string {
+	switch k {
+	case PlanItemStrm:
+		return "strm"
+	case PlanItemMetadata:
+		return "metadata"
+	default:
+		return "unknown"
+	}
+}
+
+// IsValid 验证PlanItemKind是否有效
+func (k PlanItemKind) IsValid() bool {
+	switch k {
+	case PlanItemStrm, PlanItemMetadata:
+		return true
+	default:
+		return false
+	}
+}
+
 // SyncPlanItem 同步计划项
 type SyncPlanItem struct {
 	Op             SyncOperation // 操作类型
+	Kind           PlanItemKind  // 计划项类型（STRM或元数据）
 	SourcePath     string        // 源文件路径（CloudDrive2虚拟路径）
-	TargetStrmPath string        // 目标strm文件路径（本地文件系统）
-	StreamURL      string        // 流媒体URL（写入strm文件的内容）
+	TargetStrmPath string        // 目标strm文件路径（本地文件系统，Kind=Strm时使用）
+	TargetMetaPath string        // 目标元数据文件路径（本地文件系统，Kind=Metadata时使用）
+	StreamURL      string        // 流媒体URL（写入strm文件的内容，Kind=Strm时使用）
 	Size           int64         // 源文件大小
 	ModTime        time.Time     // 源文件修改时间
 }
@@ -143,7 +175,9 @@ type JobConfig struct {
 	SourcePath      string        // 源路径
 	TargetPath      string        // 目标路径
 	Recursive       bool          // 是否递归
-	Extensions      []string      // 允许的扩展名（如[".mkv", ".mp4"]）
+	Extensions      []string      // 允许的扩展名（如[".mkv", ".mp4"]，已废弃，兼容保留）
+	MediaExtensions []string      // 媒体文件扩展名（生成STRM）
+	MetaExtensions  []string      // 元数据文件扩展名（复制/下载）
 	Interval        int           // 扫描间隔（秒，仅api模式）
 	Enabled         bool          // 是否启用
 	AutoScanLibrary bool          // 完成后是否自动扫描媒体库

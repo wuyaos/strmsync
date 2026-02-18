@@ -195,6 +195,224 @@ func (e *Engine) RunOnce(ctx context.Context, remotePath string) (SyncStats, err
 	return stats, nil
 }
 
+// RunIncremental 仅处理特定事件对应的文件（增量同步）
+//
+// 工作流程：
+// 1. 处理删除事件（计算输出路径并删除）
+// 2. 过滤新增/更新事件（扩展名过滤）
+// 3. 并发处理文件（复用 processFile）
+//
+// 参数：
+//   - ctx: 上下文，用于取消
+//   - events: 文件变更事件列表
+//
+// 返回：
+//   - SyncStats: 同步统计信息
+//   - error: 同步失败时返回错误（部分文件失败不返回错误，记录在 SyncStats.Errors 中）
+func (e *Engine) RunIncremental(ctx context.Context, events []EngineEvent) (SyncStats, error) {
+	// 防止并发执行
+	if !e.running.CompareAndSwap(false, true) {
+		return SyncStats{}, fmt.Errorf("syncengine: 引擎正在运行中")
+	}
+	defer e.running.Store(false)
+
+	stats := SyncStats{
+		StartTime: time.Now(),
+	}
+
+	e.logger.Info("开始增量同步任务",
+		zap.Int("event_count", len(events)),
+		zap.String("output_root", e.opts.OutputRoot),
+		zap.Int("max_concurrency", e.opts.MaxConcurrency),
+		zap.Bool("dry_run", e.opts.DryRun))
+
+	if len(events) == 0 {
+		stats.EndTime = time.Now()
+		stats.Duration = stats.EndTime.Sub(stats.StartTime)
+		return stats, nil
+	}
+
+	// appendError 添加错误到 stats（限制最多100个）
+	appendError := func(path string, err error) {
+		if len(stats.Errors) >= 100 {
+			return
+		}
+		stats.Errors = append(stats.Errors, SyncError{
+			FilePath: path,
+			Error:    err.Error(),
+			Time:     time.Now(),
+		})
+	}
+
+	// resolveEventPath 获取事件的有效路径
+	resolveEventPath := func(event EngineEvent) (string, error) {
+		if strings.TrimSpace(event.AbsPath) != "" {
+			return event.AbsPath, nil
+		}
+		if strings.TrimSpace(event.RelPath) != "" {
+			return event.RelPath, nil
+		}
+		return "", fmt.Errorf("事件路径为空")
+	}
+
+	// removeEmptyParents 尝试删除空父目录（仅限 OutputRoot 之下）
+	// 注意：这里直接使用 os.Remove 而不是 writer.Delete，因为 writer.Delete 专用于文件
+	removeEmptyParents := func(outputPath string) {
+		rootAbs, err := filepath.Abs(e.opts.OutputRoot)
+		if err != nil {
+			return
+		}
+		dir := filepath.Dir(outputPath)
+		for {
+			absDir, err := filepath.Abs(dir)
+			if err != nil {
+				return
+			}
+			// 已到达或超出 OutputRoot，停止
+			rel, err := filepath.Rel(rootAbs, absDir)
+			if err != nil {
+				return
+			}
+			if rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+				return
+			}
+			// 尝试删除目录（仅当为空时成功）
+			// 如果目录非空、不存在或其他错误，均停止删除
+			if err := os.Remove(dir); err != nil {
+				return
+			}
+			// 成功删除，继续向上
+			dir = filepath.Dir(dir)
+		}
+	}
+
+	// 步骤1: 处理删除事件
+	for _, event := range events {
+		if ctx.Err() != nil {
+			return stats, ctx.Err()
+		}
+		switch event.Type {
+		case DriverEventDelete:
+			if event.IsDir {
+				atomic.AddInt64(&stats.TotalDirs, 1)
+				continue
+			}
+			path, err := resolveEventPath(event)
+			if err != nil {
+				atomic.AddInt64(&stats.FailedFiles, 1)
+				appendError("", err)
+				continue
+			}
+
+			// 复用 filterFiles 的扩展名过滤逻辑（避免删除不相关文件）
+			deleteEntry := RemoteEntry{
+				Path:  path,
+				Name:  filepath.Base(path),
+				IsDir: false,
+			}
+			if len(e.filterFiles([]RemoteEntry{deleteEntry}, &stats)) == 0 {
+				// 被过滤（扩展名不匹配），跳过此删除事件
+				continue
+			}
+
+			outputPath, err := e.calculateOutputPath(path)
+			if err != nil {
+				atomic.AddInt64(&stats.FailedFiles, 1)
+				appendError(path, fmt.Errorf("计算输出路径失败: %w", err))
+				continue
+			}
+
+			// Dry Run 模式 - 只统计，不实际删除
+			if e.opts.DryRun {
+				e.logger.Debug("Dry Run: 删除 STRM 文件",
+					zap.String("output_path", outputPath))
+				atomic.AddInt64(&stats.DeletedOrphans, 1)
+				continue
+			}
+
+			if err := e.writer.Delete(ctx, outputPath); err != nil && !isNotExist(err) {
+				atomic.AddInt64(&stats.FailedFiles, 1)
+				appendError(path, fmt.Errorf("删除 STRM 文件失败: %w", err))
+				e.logger.Warn("删除 STRM 文件失败",
+					zap.String("output_path", outputPath),
+					zap.Error(err))
+				continue
+			}
+
+			atomic.AddInt64(&stats.DeletedOrphans, 1)
+			e.logger.Debug("删除 STRM 文件",
+				zap.String("output_path", outputPath))
+			removeEmptyParents(outputPath)
+		case DriverEventCreate, DriverEventUpdate:
+			// 交由后续处理
+			continue
+		default:
+			atomic.AddInt64(&stats.FailedFiles, 1)
+			appendError("", fmt.Errorf("未处理的事件类型: %s", event.Type.String()))
+		}
+	}
+
+	// 步骤2: 收集新增/更新事件并转换为 RemoteEntry
+	entries := make([]RemoteEntry, 0, len(events))
+	for _, event := range events {
+		if ctx.Err() != nil {
+			return stats, ctx.Err()
+		}
+		switch event.Type {
+		case DriverEventCreate, DriverEventUpdate:
+			if event.IsDir {
+				atomic.AddInt64(&stats.TotalDirs, 1)
+				continue
+			}
+			path, err := resolveEventPath(event)
+			if err != nil {
+				atomic.AddInt64(&stats.FailedFiles, 1)
+				appendError("", err)
+				continue
+			}
+			entries = append(entries, RemoteEntry{
+				Path:    path,
+				Name:    filepath.Base(path),
+				Size:    event.Size,
+				ModTime: event.ModTime,
+				IsDir:   false,
+			})
+		case DriverEventDelete:
+			continue
+		default:
+			atomic.AddInt64(&stats.FailedFiles, 1)
+			appendError("", fmt.Errorf("未处理的事件类型: %s", event.Type.String()))
+		}
+	}
+
+	// 步骤3: 过滤文件（按扩展名）
+	files := e.filterFiles(entries, &stats)
+	e.logger.Info("增量文件过滤完成",
+		zap.Int("matched_files", len(files)),
+		zap.Int64("filtered_files", stats.FilteredFiles))
+
+	// 步骤4: 并发处理文件（复用 processFile）
+	if err := e.processFiles(ctx, files, &stats); err != nil {
+		return stats, fmt.Errorf("处理文件失败: %w", err)
+	}
+
+	stats.EndTime = time.Now()
+	stats.Duration = stats.EndTime.Sub(stats.StartTime)
+
+	e.logger.Info("增量同步任务完成",
+		zap.Int64("processed", stats.ProcessedFiles),
+		zap.Int64("created", stats.CreatedFiles),
+		zap.Int64("updated", stats.UpdatedFiles),
+		zap.Int64("updated_by_modtime", stats.UpdatedByModTime),
+		zap.Int64("skipped", stats.SkippedFiles),
+		zap.Int64("skipped_unchanged", stats.SkippedUnchanged),
+		zap.Int64("failed", stats.FailedFiles),
+		zap.Int64("deleted_orphans", stats.DeletedOrphans),
+		zap.Duration("duration", stats.Duration))
+
+	return stats, nil
+}
+
 // scanRemoteFiles 扫描远程文件列表
 func (e *Engine) scanRemoteFiles(ctx context.Context, remotePath string) ([]RemoteEntry, error) {
 	entries, err := e.driver.List(ctx, remotePath, ListOptions{

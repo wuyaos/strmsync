@@ -7,47 +7,86 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/strmsync/strmsync/internal/app/ports"
+	"go.uber.org/zap"
 )
 
 // Generator strm文件生成器实现
 type Generator struct {
-	targetRoot string // 目标根路径（绝对路径），用于限制空目录删除和路径校验
+	targetRoot string      // 目标根路径（绝对路径），用于限制空目录删除和路径校验
+	logger     *zap.Logger // 日志器
 }
 
 // NewGenerator 创建strm文件生成器
 // targetRoot: 目标根路径，应为绝对路径，用于限制操作范围
-func NewGenerator(targetRoot string) ports.StrmGenerator {
+func NewGenerator(targetRoot string, logger *zap.Logger) ports.StrmGenerator {
 	// 转换为绝对路径并Clean
 	absRoot, err := filepath.Abs(targetRoot)
 	if err != nil {
+		logger.Warn("无法获取绝对路径，使用清理后的路径",
+			zap.String("target_root", targetRoot),
+			zap.Error(err))
 		absRoot = filepath.Clean(targetRoot)
 	}
+
+	logger.Info("创建STRM生成器", zap.String("target_root", absRoot))
+
 	return &Generator{
 		targetRoot: absRoot,
+		logger:     logger,
 	}
 }
 
 // Apply 执行同步计划
 func (g *Generator) Apply(ctx context.Context, items <-chan ports.SyncPlanItem) (succeeded int, failed int, err error) {
+	g.logger.Info("开始处理STRM计划项")
+	startTime := time.Now()
+
 	for {
 		select {
 		case <-ctx.Done():
+			elapsed := time.Since(startTime)
+			g.logger.Warn("STRM生成被取消",
+				zap.Int("succeeded", succeeded),
+				zap.Int("failed", failed),
+				zap.Duration("elapsed", elapsed),
+				zap.Error(ctx.Err()))
 			return succeeded, failed, ctx.Err()
 
 		case item, ok := <-items:
 			if !ok {
 				// Channel关闭，所有项目已处理完成
+				elapsed := time.Since(startTime)
+				g.logger.Info("STRM生成完成",
+					zap.Int("succeeded", succeeded),
+					zap.Int("failed", failed),
+					zap.Duration("elapsed", elapsed))
 				return succeeded, failed, nil
+			}
+
+			// 只处理STRM类型的计划项
+			if item.Kind != ports.PlanItemStrm {
+				g.logger.Debug("跳过非STRM计划项",
+					zap.String("kind", item.Kind.String()),
+					zap.String("source_path", item.SourcePath))
+				continue
 			}
 
 			// 处理单个同步项
 			if err := g.applyItem(ctx, &item); err != nil {
+				g.logger.Error("STRM项处理失败",
+					zap.String("op", item.Op.String()),
+					zap.String("source_path", item.SourcePath),
+					zap.String("target_path", item.TargetStrmPath),
+					zap.Error(err))
 				failed++
-				// 记录错误但继续处理（不要因为单个文件失败而中断整个任务）
-				// TODO: 记录详细错误日志
 			} else {
+				g.logger.Debug("STRM项处理成功",
+					zap.String("op", item.Op.String()),
+					zap.String("source_path", item.SourcePath),
+					zap.String("target_path", item.TargetStrmPath))
 				succeeded++
 			}
 		}
@@ -100,6 +139,12 @@ func (g *Generator) validatePath(targetPath string) error {
 
 // createOrUpdateStrm 创建或更新strm文件
 func (g *Generator) createOrUpdateStrm(ctx context.Context, item *ports.SyncPlanItem) error {
+	g.logger.Debug("创建/更新STRM文件",
+		zap.String("target", item.TargetStrmPath),
+		zap.String("url", item.StreamURL))
+
+	startTime := time.Now()
+
 	// 1. 确保目标目录存在
 	targetDir := filepath.Dir(item.TargetStrmPath)
 	if err := os.MkdirAll(targetDir, 0o755); err != nil {
@@ -114,19 +159,28 @@ func (g *Generator) createOrUpdateStrm(ctx context.Context, item *ports.SyncPlan
 	// 3. 设置文件修改时间（可选，保持与源文件一致）
 	if !item.ModTime.IsZero() {
 		if err := os.Chtimes(item.TargetStrmPath, item.ModTime, item.ModTime); err != nil {
-			// 设置时间失败不是致命错误，记录但不返回错误
-			// TODO: 记录警告日志
+			g.logger.Warn("设置STRM文件时间失败",
+				zap.String("path", item.TargetStrmPath),
+				zap.Error(err))
 		}
 	}
+
+	elapsed := time.Since(startTime)
+	g.logger.Info("STRM文件写入成功",
+		zap.String("target", item.TargetStrmPath),
+		zap.Int("bytes", len(item.StreamURL)),
+		zap.Duration("elapsed", elapsed))
 
 	return nil
 }
 
 // deleteStrm 删除strm文件
 func (g *Generator) deleteStrm(ctx context.Context, item *ports.SyncPlanItem) error {
+	g.logger.Debug("删除STRM文件", zap.String("path", item.TargetStrmPath))
+
 	// 1. 检查文件是否存在
 	if _, err := os.Stat(item.TargetStrmPath); os.IsNotExist(err) {
-		// 文件不存在，认为是成功（幂等性）
+		g.logger.Debug("STRM文件不存在，跳过删除", zap.String("path", item.TargetStrmPath))
 		return nil
 	}
 
@@ -135,11 +189,14 @@ func (g *Generator) deleteStrm(ctx context.Context, item *ports.SyncPlanItem) er
 		return fmt.Errorf("delete strm file %s: %w", item.TargetStrmPath, err)
 	}
 
+	g.logger.Info("STRM文件已删除", zap.String("path", item.TargetStrmPath))
+
 	// 3. 尝试删除空目录（可选）
 	targetDir := filepath.Dir(item.TargetStrmPath)
 	if err := g.removeEmptyDirs(targetDir); err != nil {
-		// 删除空目录失败不是致命错误
-		// TODO: 记录警告日志
+		g.logger.Debug("删除空目录失败（非致命）",
+			zap.String("dir", targetDir),
+			zap.Error(err))
 	}
 
 	return nil

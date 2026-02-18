@@ -61,6 +61,13 @@ type StrmGenerator interface {
 	Apply(ctx context.Context, items <-chan SyncPlanItem) (succeeded int, failed int, err error)
 }
 
+// MetadataReplicator 元数据文件复制器
+type MetadataReplicator interface {
+	// Apply 执行元数据文件复制/下载（创建/更新/删除元数据文件）
+	// 返回成功和失败的数量
+	Apply(ctx context.Context, items <-chan SyncPlanItem) (succeeded int, failed int, err error)
+}
+
 // TaskRunService TaskRun记录管理服务
 type TaskRunService interface {
 	// Start 创建并开始TaskRun

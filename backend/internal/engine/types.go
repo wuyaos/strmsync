@@ -138,6 +138,31 @@ type DriverEvent struct {
 	IsDir bool
 }
 
+// EngineEvent 表示一个文件变更事件（用于增量同步）
+//
+// EngineEvent 是 engine 内部使用的事件抽象，用于将外部事件（如 DriverEvent、
+// ports.SyncPlanItem 等）转换为增量处理的统一输入。
+type EngineEvent struct {
+	// Type 是事件类型（创建、更新或删除）
+	Type DriverEventType
+
+	// AbsPath 是完整的远程路径（如 /Movies/movie.mkv）
+	// 这是主要路径字段，用于构建 StrmInfo 和计算输出路径
+	AbsPath string
+
+	// RelPath 是相对于 sourceRoot 的路径（可选，仅用于日志）
+	RelPath string
+
+	// Size 是文件大小（字节）
+	Size int64
+
+	// ModTime 是最后修改时间
+	ModTime time.Time
+
+	// IsDir 表示事件是否针对目录（目录事件会被跳过）
+	IsDir bool
+}
+
 // ListOptions 配置 Driver.List 方法的列表行为
 type ListOptions struct {
 	// Recursive 表示是否递归列出文件
