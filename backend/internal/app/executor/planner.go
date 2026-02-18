@@ -1,5 +1,5 @@
 // Package planner 实现同步计划器
-package service
+package executor
 
 import (
 	"context"

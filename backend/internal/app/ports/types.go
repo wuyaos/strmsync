@@ -1,4 +1,4 @@
-// Package types 定义Service层的核心类型
+// Package ports 定义应用层的端口类型
 package ports
 
 import "time"

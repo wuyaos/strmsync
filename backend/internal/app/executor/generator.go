@@ -1,5 +1,5 @@
 // Package strm 实现strm文件生成器
-package service
+package executor
 
 import (
 	"context"

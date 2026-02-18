@@ -49,7 +49,7 @@ func NewFileService(db *gorm.DB, logger *zap.Logger) ports.FileService {
 	}
 }
 
-func (s *fileService) List(ctx context.Context, req ports.FileListRequest) ([]filesystem.RemoteFile, error) {
+func (s *fileService) List(ctx context.Context, req ports.FileListRequest) ([]ports.RemoteFile, error) {
 	if req.ServerID == 0 {
 		return nil, fmt.Errorf("server_id is required")
 	}
@@ -150,5 +150,17 @@ func (s *fileService) List(ctx context.Context, req ports.FileListRequest) ([]fi
 		return nil, fmt.Errorf("list files: %w", err)
 	}
 
-	return files, nil
+	// 转换为ports类型
+	result := make([]ports.RemoteFile, len(files))
+	for i, f := range files {
+		result[i] = ports.RemoteFile{
+			Path:    f.Path,
+			Name:    f.Name,
+			Size:    f.Size,
+			ModTime: f.ModTime,
+			IsDir:   f.IsDir,
+		}
+	}
+
+	return result, nil
 }

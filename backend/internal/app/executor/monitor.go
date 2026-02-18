@@ -1,5 +1,5 @@
 // Package filemonitor 实现本地文件系统监控器
-package service
+package executor
 
 import (
 	"context"

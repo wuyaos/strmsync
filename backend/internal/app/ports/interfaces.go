@@ -1,16 +1,14 @@
-// Package service 定义Service层的核心接口
+// Package ports 定义应用层的端口（接口和契约）
 package ports
 
 import (
 	"context"
-
-	"github.com/strmsync/strmsync/internal/infra/filesystem"
 )
 
 // FileService 文件服务接口
 type FileService interface {
 	// List 获取文件列表
-	List(ctx context.Context, req FileListRequest) ([]filesystem.RemoteFile, error)
+	List(ctx context.Context, req FileListRequest) ([]RemoteFile, error)
 }
 
 // JobService Job业务逻辑服务
