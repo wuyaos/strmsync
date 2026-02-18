@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"github.com/strmsync/strmsync/internal/domain/model"
 	"context"
 	"errors"
 	"sync"
@@ -8,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/strmsync/strmsync/internal/infra/persistence"
 	"github.com/strmsync/strmsync/internal/queue"
 	"go.uber.org/zap"
 )
@@ -20,11 +20,11 @@ import (
 // mockQueue 模拟任务队列
 type mockQueue struct {
 	mu       sync.Mutex
-	tasks    []*core.TaskRun
+	tasks    []*model.TaskRun
 	enqueued int32
 }
 
-func (q *mockQueue) Enqueue(ctx context.Context, task *core.TaskRun) error {
+func (q *mockQueue) Enqueue(ctx context.Context, task *model.TaskRun) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	for _, t := range q.tasks {
@@ -45,21 +45,21 @@ func (q *mockQueue) count() int {
 // mockJobRepo 模拟 Job 仓储
 type mockJobRepo struct {
 	mu   sync.RWMutex
-	jobs map[uint]core.Job
+	jobs map[uint]model.Job
 }
 
-func newMockJobRepo(jobs ...core.Job) *mockJobRepo {
-	repo := &mockJobRepo{jobs: make(map[uint]core.Job)}
+func newMockJobRepo(jobs ...model.Job) *mockJobRepo {
+	repo := &mockJobRepo{jobs: make(map[uint]model.Job)}
 	for _, j := range jobs {
 		repo.jobs[j.ID] = j
 	}
 	return repo
 }
 
-func (r *mockJobRepo) ListEnabledJobs(ctx context.Context) ([]core.Job, error) {
+func (r *mockJobRepo) ListEnabledJobs(ctx context.Context) ([]model.Job, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	var result []core.Job
+	var result []model.Job
 	for _, j := range r.jobs {
 		if j.Enabled {
 			result = append(result, j)
@@ -68,12 +68,12 @@ func (r *mockJobRepo) ListEnabledJobs(ctx context.Context) ([]core.Job, error) {
 	return result, nil
 }
 
-func (r *mockJobRepo) GetByID(ctx context.Context, id uint) (core.Job, error) {
+func (r *mockJobRepo) GetByID(ctx context.Context, id uint) (model.Job, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	j, ok := r.jobs[id]
 	if !ok {
-		return core.Job{}, errors.New("job not found")
+		return model.Job{}, errors.New("job not found")
 	}
 	return j, nil
 }
@@ -170,7 +170,7 @@ func TestScheduler_StartStop(t *testing.T) {
 // 因此使用 @every 1s 并通过 waitForCount 轮询等待。
 func TestScheduler_Restart(t *testing.T) {
 	queue := &mockQueue{}
-	job := core.Job{ID: 1, Name: "test", Enabled: true, Cron: "@every 1s"}
+	job := model.Job{ID: 1, Name: "test", Enabled: true, Cron: "@every 1s"}
 	jobs := newMockJobRepo(job)
 
 	s, err := NewScheduler(SchedulerConfig{
@@ -229,7 +229,7 @@ func TestScheduler_OperationsRequireRunning(t *testing.T) {
 	ctx := context.Background()
 
 	// 未启动时应拒绝操作
-	if err := s.UpsertJob(ctx, core.Job{ID: 1}); err == nil {
+	if err := s.UpsertJob(ctx, model.Job{ID: 1}); err == nil {
 		t.Error("UpsertJob should fail when not running")
 	}
 	if err := s.RemoveJob(ctx, 1); err == nil {
@@ -265,7 +265,7 @@ func TestScheduler_UpsertJob(t *testing.T) {
 	defer s.Stop(ctx)
 
 	// 添加一个新任务
-	job := core.Job{ID: 1, Name: "test-upsert", Enabled: true, Cron: "@every 1s"}
+	job := model.Job{ID: 1, Name: "test-upsert", Enabled: true, Cron: "@every 1s"}
 	jobs.mu.Lock()
 	jobs.jobs[1] = job
 	jobs.mu.Unlock()
@@ -284,7 +284,7 @@ func TestScheduler_UpsertJob(t *testing.T) {
 
 func TestScheduler_RemoveJob(t *testing.T) {
 	queue := &mockQueue{}
-	job := core.Job{ID: 1, Name: "test-remove", Enabled: true, Cron: "@every 1s"}
+	job := model.Job{ID: 1, Name: "test-remove", Enabled: true, Cron: "@every 1s"}
 	jobs := newMockJobRepo(job)
 
 	s, err := NewScheduler(SchedulerConfig{
@@ -326,7 +326,7 @@ func TestScheduler_RemoveJob(t *testing.T) {
 
 func TestScheduler_InvalidCronSpec(t *testing.T) {
 	queue := &mockQueue{}
-	job := core.Job{ID: 1, Name: "bad-cron", Enabled: true, Cron: "not-a-valid-cron"}
+	job := model.Job{ID: 1, Name: "bad-cron", Enabled: true, Cron: "not-a-valid-cron"}
 	jobs := newMockJobRepo(job)
 
 	s, err := NewScheduler(SchedulerConfig{
@@ -348,7 +348,7 @@ func TestScheduler_InvalidCronSpec(t *testing.T) {
 
 func TestScheduler_DisabledJob(t *testing.T) {
 	queue := &mockQueue{}
-	job := core.Job{ID: 1, Name: "disabled", Enabled: false, Cron: "@every 1s"}
+	job := model.Job{ID: 1, Name: "disabled", Enabled: false, Cron: "@every 1s"}
 	jobs := newMockJobRepo(job)
 
 	s, err := NewScheduler(SchedulerConfig{

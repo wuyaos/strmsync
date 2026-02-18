@@ -12,6 +12,9 @@ import (
 	"github.com/strmsync/strmsync/internal/infra/writer"
 	"github.com/strmsync/strmsync/internal/engine"
 	"go.uber.org/zap"
+
+	// 注册 filesystem providers
+	_ "github.com/strmsync/strmsync/internal/infra/filesystem/local"
 )
 
 // TestEngineBasic 测试引擎基本功能

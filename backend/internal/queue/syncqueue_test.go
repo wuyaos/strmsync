@@ -1,6 +1,7 @@
 package syncqueue
 
 import (
+	"github.com/strmsync/strmsync/internal/domain/model"
 	"context"
 	"errors"
 	"net"
@@ -8,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/strmsync/strmsync/internal/infra/persistence"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -23,7 +23,7 @@ func newTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	if err := db.AutoMigrate(&core.TaskRun{}); err != nil {
+	if err := db.AutoMigrate(&model.TaskRun{}); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 	// 每次测试前清空数据
@@ -179,12 +179,12 @@ func TestEnqueue_DefaultValues(t *testing.T) {
 		t.Fatalf("new queue: %v", err)
 	}
 
-	task := &core.TaskRun{JobID: 1}
+	task := &model.TaskRun{JobID: 1}
 	if err := q.Enqueue(context.Background(), task); err != nil {
 		t.Fatalf("enqueue: %v", err)
 	}
 
-	var stored core.TaskRun
+	var stored model.TaskRun
 	if err := db.First(&stored, task.ID).Error; err != nil {
 		t.Fatalf("load task: %v", err)
 	}
@@ -216,12 +216,12 @@ func TestEnqueue_DuplicateKey(t *testing.T) {
 		t.Fatalf("new queue: %v", err)
 	}
 
-	task := &core.TaskRun{JobID: 1, DedupKey: "unique-key-1"}
+	task := &model.TaskRun{JobID: 1, DedupKey: "unique-key-1"}
 	if err := q.Enqueue(context.Background(), task); err != nil {
 		t.Fatalf("enqueue first: %v", err)
 	}
 
-	dup := &core.TaskRun{JobID: 1, DedupKey: "unique-key-1"}
+	dup := &model.TaskRun{JobID: 1, DedupKey: "unique-key-1"}
 	err = q.Enqueue(context.Background(), dup)
 	if !errors.Is(err, ErrDuplicateTask) {
 		t.Fatalf("expected ErrDuplicateTask, got %v", err)
@@ -252,7 +252,7 @@ func TestClaimNext_PriorityOrdering(t *testing.T) {
 	}
 
 	now := time.Now().Add(-time.Second)
-	tasks := []*core.TaskRun{
+	tasks := []*model.TaskRun{
 		{JobID: 1, Priority: int(TaskPriorityNormal), AvailableAt: now, DedupKey: "a"},
 		{JobID: 2, Priority: int(TaskPriorityHigh), AvailableAt: now, DedupKey: "b"},
 		{JobID: 3, Priority: int(TaskPriorityLow), AvailableAt: now, DedupKey: "c"},
@@ -306,7 +306,7 @@ func TestClaimNext_RespectsAvailableAt(t *testing.T) {
 	}
 
 	// 创建一个未来才可执行的任务
-	future := &core.TaskRun{
+	future := &model.TaskRun{
 		JobID:       1,
 		Priority:    int(TaskPriorityHigh),
 		AvailableAt: time.Now().Add(1 * time.Hour),
@@ -351,7 +351,7 @@ func TestComplete(t *testing.T) {
 	}
 
 	// 直接创建一个 Running 状态的任务
-	task := core.TaskRun{
+	task := model.TaskRun{
 		JobID:     1,
 		Status:    string(TaskRunning),
 		Priority:  int(TaskPriorityNormal),
@@ -366,7 +366,7 @@ func TestComplete(t *testing.T) {
 		t.Fatalf("complete: %v", err)
 	}
 
-	var stored core.TaskRun
+	var stored model.TaskRun
 	if err := db.First(&stored, task.ID).Error; err != nil {
 		t.Fatalf("load task: %v", err)
 	}
@@ -386,7 +386,7 @@ func TestComplete_InvalidTransition(t *testing.T) {
 	}
 
 	// 创建一个 Pending 状态的任务，不能直接 Complete
-	task := core.TaskRun{
+	task := model.TaskRun{
 		JobID:    1,
 		Status:   string(TaskPending),
 		Priority: int(TaskPriorityNormal),
@@ -413,7 +413,7 @@ func TestFail_Retryable(t *testing.T) {
 		t.Fatalf("new queue: %v", err)
 	}
 
-	task := core.TaskRun{
+	task := model.TaskRun{
 		JobID:       1,
 		Status:      string(TaskRunning),
 		Priority:    int(TaskPriorityNormal),
@@ -431,7 +431,7 @@ func TestFail_Retryable(t *testing.T) {
 		t.Fatalf("fail: %v", err)
 	}
 
-	var stored core.TaskRun
+	var stored model.TaskRun
 	if err := db.First(&stored, task.ID).Error; err != nil {
 		t.Fatalf("load task: %v", err)
 	}
@@ -454,7 +454,7 @@ func TestFail_Permanent(t *testing.T) {
 		t.Fatalf("new queue: %v", err)
 	}
 
-	task := core.TaskRun{
+	task := model.TaskRun{
 		JobID:       1,
 		Status:      string(TaskRunning),
 		Priority:    int(TaskPriorityNormal),
@@ -472,7 +472,7 @@ func TestFail_Permanent(t *testing.T) {
 		t.Fatalf("fail: %v", err)
 	}
 
-	var stored core.TaskRun
+	var stored model.TaskRun
 	if err := db.First(&stored, task.ID).Error; err != nil {
 		t.Fatalf("load task: %v", err)
 	}
@@ -492,7 +492,7 @@ func TestFail_MaxAttemptsExceeded(t *testing.T) {
 		t.Fatalf("new queue: %v", err)
 	}
 
-	task := core.TaskRun{
+	task := model.TaskRun{
 		JobID:       1,
 		Status:      string(TaskRunning),
 		Priority:    int(TaskPriorityNormal),
@@ -510,7 +510,7 @@ func TestFail_MaxAttemptsExceeded(t *testing.T) {
 		t.Fatalf("fail: %v", err)
 	}
 
-	var stored core.TaskRun
+	var stored model.TaskRun
 	if err := db.First(&stored, task.ID).Error; err != nil {
 		t.Fatalf("load task: %v", err)
 	}
@@ -531,7 +531,7 @@ func TestCancel_Pending(t *testing.T) {
 		t.Fatalf("new queue: %v", err)
 	}
 
-	task := core.TaskRun{
+	task := model.TaskRun{
 		JobID:    1,
 		Status:   string(TaskPending),
 		Priority: int(TaskPriorityNormal),
@@ -545,7 +545,7 @@ func TestCancel_Pending(t *testing.T) {
 		t.Fatalf("cancel: %v", err)
 	}
 
-	var stored core.TaskRun
+	var stored model.TaskRun
 	if err := db.First(&stored, task.ID).Error; err != nil {
 		t.Fatalf("load task: %v", err)
 	}
@@ -561,7 +561,7 @@ func TestCancel_Running(t *testing.T) {
 		t.Fatalf("new queue: %v", err)
 	}
 
-	task := core.TaskRun{
+	task := model.TaskRun{
 		JobID:     1,
 		Status:    string(TaskRunning),
 		Priority:  int(TaskPriorityNormal),
@@ -576,7 +576,7 @@ func TestCancel_Running(t *testing.T) {
 		t.Fatalf("cancel: %v", err)
 	}
 
-	var stored core.TaskRun
+	var stored model.TaskRun
 	if err := db.First(&stored, task.ID).Error; err != nil {
 		t.Fatalf("load task: %v", err)
 	}
@@ -592,7 +592,7 @@ func TestCancel_InvalidTransition(t *testing.T) {
 		t.Fatalf("new queue: %v", err)
 	}
 
-	task := core.TaskRun{
+	task := model.TaskRun{
 		JobID:    1,
 		Status:   string(TaskCompleted),
 		Priority: int(TaskPriorityNormal),
@@ -619,7 +619,7 @@ func TestList_Filters(t *testing.T) {
 		t.Fatalf("new queue: %v", err)
 	}
 
-	tasks := []core.TaskRun{
+	tasks := []model.TaskRun{
 		{JobID: 1, Status: string(TaskPending), Priority: int(TaskPriorityNormal), DedupKey: "list-a"},
 		{JobID: 2, Status: string(TaskRunning), Priority: int(TaskPriorityHigh), DedupKey: "list-b", WorkerID: "w1"},
 		{JobID: 3, Status: string(TaskCompleted), Priority: int(TaskPriorityLow), DedupKey: "list-c"},
@@ -672,7 +672,7 @@ func TestFullWorkflow_EnqueueClaimComplete(t *testing.T) {
 	}
 
 	// 1. 入队
-	task := &core.TaskRun{JobID: 1, DedupKey: "workflow-1"}
+	task := &model.TaskRun{JobID: 1, DedupKey: "workflow-1"}
 	if err := q.Enqueue(context.Background(), task); err != nil {
 		t.Fatalf("enqueue: %v", err)
 	}
@@ -692,7 +692,7 @@ func TestFullWorkflow_EnqueueClaimComplete(t *testing.T) {
 	}
 
 	// 4. 验证最终状态
-	var stored core.TaskRun
+	var stored model.TaskRun
 	if err := db.First(&stored, task.ID).Error; err != nil {
 		t.Fatalf("load task: %v", err)
 	}
@@ -718,7 +718,7 @@ func TestFullWorkflow_EnqueueClaimFailRetry(t *testing.T) {
 	}
 
 	// 1. 入队
-	task := &core.TaskRun{JobID: 1, DedupKey: "workflow-retry"}
+	task := &model.TaskRun{JobID: 1, DedupKey: "workflow-retry"}
 	if err := q.Enqueue(context.Background(), task); err != nil {
 		t.Fatalf("enqueue: %v", err)
 	}
@@ -736,7 +736,7 @@ func TestFullWorkflow_EnqueueClaimFailRetry(t *testing.T) {
 	}
 
 	// 4. 验证已转为 Pending 且 available_at 在未来
-	var stored core.TaskRun
+	var stored model.TaskRun
 	if err := db.First(&stored, task.ID).Error; err != nil {
 		t.Fatalf("load task: %v", err)
 	}

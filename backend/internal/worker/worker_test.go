@@ -1,12 +1,12 @@
 package worker
 
 import (
+	"github.com/strmsync/strmsync/internal/domain/model"
 	"context"
 	"errors"
 	"testing"
 	"time"
 
-	"github.com/strmsync/strmsync/internal/infra/persistence"
 	"github.com/strmsync/strmsync/internal/engine"
 	"github.com/strmsync/strmsync/internal/queue"
 )
@@ -16,7 +16,7 @@ import (
 // =============================================================
 
 func TestBuildEngineOptions_Basic(t *testing.T) {
-	job := core.Job{
+	job := model.Job{
 		ID:         1,
 		TargetPath: "/output/strm",
 	}
@@ -31,7 +31,7 @@ func TestBuildEngineOptions_Basic(t *testing.T) {
 }
 
 func TestBuildEngineOptions_EmptyTargetPath(t *testing.T) {
-	job := core.Job{
+	job := model.Job{
 		ID:         1,
 		TargetPath: "",
 	}
@@ -43,7 +43,7 @@ func TestBuildEngineOptions_EmptyTargetPath(t *testing.T) {
 }
 
 func TestBuildEngineOptions_WithOptions(t *testing.T) {
-	job := core.Job{
+	job := model.Job{
 		ID:         1,
 		TargetPath: "/output",
 		Options:    `{"max_concurrency":8,"file_extensions":[".mkv",".mp4"],"dry_run":true,"force_update":false,"mod_time_epsilon_seconds":5}`,
@@ -71,7 +71,7 @@ func TestBuildEngineOptions_WithOptions(t *testing.T) {
 }
 
 func TestBuildEngineOptions_InvalidJSON(t *testing.T) {
-	job := core.Job{
+	job := model.Job{
 		ID:         1,
 		TargetPath: "/output",
 		Options:    `{invalid json`,
@@ -284,7 +284,7 @@ func TestClampInt64(t *testing.T) {
 // =============================================================
 
 func TestBuildFilesystemConfig_CloudDrive2(t *testing.T) {
-	server := core.DataServer{
+	server := model.DataServer{
 		ID:     1,
 		Name:   "test-cd2",
 		Type:   "clouddrive2",
@@ -310,7 +310,7 @@ func TestBuildFilesystemConfig_CloudDrive2(t *testing.T) {
 }
 
 func TestBuildFilesystemConfig_WithOptions(t *testing.T) {
-	server := core.DataServer{
+	server := model.DataServer{
 		ID:      1,
 		Name:    "test-with-opts",
 		Type:    "openlist",
@@ -342,7 +342,7 @@ func TestBuildFilesystemConfig_WithOptions(t *testing.T) {
 }
 
 func TestBuildFilesystemConfig_InvalidType(t *testing.T) {
-	server := core.DataServer{
+	server := model.DataServer{
 		ID:   1,
 		Name: "bad-type",
 		Type: "unknown_type",
@@ -355,7 +355,7 @@ func TestBuildFilesystemConfig_InvalidType(t *testing.T) {
 }
 
 func TestBuildFilesystemConfig_EmptyType(t *testing.T) {
-	server := core.DataServer{
+	server := model.DataServer{
 		ID:   1,
 		Name: "empty-type",
 		Type: "",
@@ -368,7 +368,7 @@ func TestBuildFilesystemConfig_EmptyType(t *testing.T) {
 }
 
 func TestBuildFilesystemConfig_InvalidSTRMMode(t *testing.T) {
-	server := core.DataServer{
+	server := model.DataServer{
 		ID:      1,
 		Name:    "bad-strm-mode",
 		Type:    "clouddrive2",
@@ -417,18 +417,26 @@ func TestNewWorker_NilJobs(t *testing.T) {
 
 type mockJobRepo struct{}
 
-func (r *mockJobRepo) GetByID(ctx context.Context, id uint) (core.Job, error) {
-	return core.Job{}, errors.New("not implemented")
+func (r *mockJobRepo) GetByID(ctx context.Context, id uint) (model.Job, error) {
+	return model.Job{}, errors.New("not implemented")
 }
 
 func (r *mockJobRepo) UpdateStatus(ctx context.Context, id uint, status string) error {
 	return nil
 }
 
+func (r *mockJobRepo) UpdateLastRunAt(ctx context.Context, id uint, lastRunAt time.Time) error {
+	return nil
+}
+
+func (r *mockJobRepo) ListEnabledJobs(ctx context.Context) ([]model.Job, error) {
+	return nil, errors.New("not implemented")
+}
+
 type mockDataServerRepo struct{}
 
-func (r *mockDataServerRepo) GetByID(ctx context.Context, id uint) (core.DataServer, error) {
-	return core.DataServer{}, errors.New("not implemented")
+func (r *mockDataServerRepo) GetByID(ctx context.Context, id uint) (model.DataServer, error) {
+	return model.DataServer{}, errors.New("not implemented")
 }
 
 type mockTaskRunRepo struct{}
@@ -439,7 +447,7 @@ func (r *mockTaskRunRepo) UpdateProgress(ctx context.Context, taskID uint, progr
 
 type mockTaskQueue struct{}
 
-func (q *mockTaskQueue) ClaimNext(ctx context.Context, workerID string) (*core.TaskRun, error) {
+func (q *mockTaskQueue) ClaimNext(ctx context.Context, workerID string) (*model.TaskRun, error) {
 	return nil, nil
 }
 
