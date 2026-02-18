@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/strmsync/strmsync/core"
+	"github.com/strmsync/strmsync/internal/domain/model"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -55,7 +55,7 @@ func (h *MediaServerHandler) CreateMediaServer(c *gin.Context) {
 
 	// 唯一性检查
 	var count int64
-	if err := h.db.Model(&core.MediaServer{}).
+	if err := h.db.Model(&model.MediaServer{}).
 		Where("name = ?", strings.TrimSpace(req.Name)).
 		Count(&count).Error; err != nil {
 		h.logger.Error("检查媒体服务器名称唯一性失败", zap.Error(err))
@@ -74,7 +74,7 @@ func (h *MediaServerHandler) CreateMediaServer(c *gin.Context) {
 	}
 
 	// 创建媒体服务器
-	server := core.MediaServer{
+	server := model.MediaServer{
 		Name:    strings.TrimSpace(req.Name),
 		Type:    strings.TrimSpace(req.Type),
 		Host:    strings.TrimSpace(req.Host),
@@ -117,7 +117,7 @@ func (h *MediaServerHandler) CreateMediaServer(c *gin.Context) {
 func (h *MediaServerHandler) ListMediaServers(c *gin.Context) {
 	pagination := parsePagination(c, 1, 50, 200)
 
-	query := h.db.Model(&core.MediaServer{})
+	query := h.db.Model(&model.MediaServer{})
 
 	// 类型过滤
 	if serverType := strings.TrimSpace(c.Query("type")); serverType != "" {
@@ -142,7 +142,7 @@ func (h *MediaServerHandler) ListMediaServers(c *gin.Context) {
 	}
 
 	// 查询列表
-	var servers []core.MediaServer
+	var servers []model.MediaServer
 	if err := query.Order("created_at DESC").
 		Offset(pagination.Offset).
 		Limit(pagination.PageSize).
@@ -169,7 +169,7 @@ func (h *MediaServerHandler) GetMediaServer(c *gin.Context) {
 		return
 	}
 
-	var server core.MediaServer
+	var server model.MediaServer
 	if err := h.db.First(&server, uint(id)).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			respondError(c, http.StatusNotFound, "not_found", "媒体服务器不存在", nil)
@@ -215,7 +215,7 @@ func (h *MediaServerHandler) UpdateMediaServer(c *gin.Context) {
 	}
 
 	// 查询现有记录
-	var server core.MediaServer
+	var server model.MediaServer
 	if err := h.db.First(&server, uint(id)).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			respondError(c, http.StatusNotFound, "not_found", "媒体服务器不存在", nil)
@@ -230,7 +230,7 @@ func (h *MediaServerHandler) UpdateMediaServer(c *gin.Context) {
 	newName := strings.TrimSpace(req.Name)
 	if newName != server.Name {
 		var count int64
-		if err := h.db.Model(&core.MediaServer{}).
+		if err := h.db.Model(&model.MediaServer{}).
 			Where("name = ? AND id <> ?", newName, server.ID).
 			Count(&count).Error; err != nil {
 			h.logger.Error("检查媒体服务器名称唯一性失败", zap.Error(err))
@@ -293,7 +293,7 @@ func (h *MediaServerHandler) DeleteMediaServer(c *gin.Context) {
 
 	// 检查是否被Job引用
 	var count int64
-	if err := h.db.Model(&core.Job{}).
+	if err := h.db.Model(&model.Job{}).
 		Where("media_server_id = ?", id).
 		Count(&count).Error; err != nil {
 		h.logger.Error("检查媒体服务器引用失败", zap.Error(err), zap.Uint64("id", id))
@@ -307,7 +307,7 @@ func (h *MediaServerHandler) DeleteMediaServer(c *gin.Context) {
 	}
 
 	// 执行删除
-	result := h.db.Delete(&core.MediaServer{}, uint(id))
+	result := h.db.Delete(&model.MediaServer{}, uint(id))
 	if result.Error != nil {
 		h.logger.Error("删除媒体服务器失败", zap.Error(result.Error), zap.Uint64("id", id))
 		respondError(c, http.StatusInternalServerError, "db_error", "删除失败", nil)
@@ -332,7 +332,7 @@ func (h *MediaServerHandler) TestMediaServerConnection(c *gin.Context) {
 		return
 	}
 
-	var server core.MediaServer
+	var server model.MediaServer
 	if err := h.db.First(&server, uint(id)).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			respondError(c, http.StatusNotFound, "not_found", "媒体服务器不存在", nil)
@@ -398,7 +398,7 @@ func (h *MediaServerHandler) TestMediaServerConnection(c *gin.Context) {
 }
 
 // testEmbyConnection 测试Emby连接
-func testEmbyConnection(server core.MediaServer, logger *zap.Logger) ConnectionTestResult {
+func testEmbyConnection(server model.MediaServer, logger *zap.Logger) ConnectionTestResult {
 	start := time.Now()
 	apiURL := fmt.Sprintf("http://%s:%d/System/Info/Public", server.Host, server.Port)
 
@@ -457,7 +457,7 @@ func testEmbyConnection(server core.MediaServer, logger *zap.Logger) ConnectionT
 }
 
 // testJellyfinConnection 测试Jellyfin连接
-func testJellyfinConnection(server core.MediaServer, logger *zap.Logger) ConnectionTestResult {
+func testJellyfinConnection(server model.MediaServer, logger *zap.Logger) ConnectionTestResult {
 	start := time.Now()
 	apiURL := fmt.Sprintf("http://%s:%d/System/Info/Public", server.Host, server.Port)
 
@@ -516,7 +516,7 @@ func testJellyfinConnection(server core.MediaServer, logger *zap.Logger) Connect
 }
 
 // testPlexConnection 测试Plex连接
-func testPlexConnection(server core.MediaServer, logger *zap.Logger) ConnectionTestResult {
+func testPlexConnection(server model.MediaServer, logger *zap.Logger) ConnectionTestResult {
 	start := time.Now()
 	apiURL := fmt.Sprintf("http://%s:%d/identity", server.Host, server.Port)
 

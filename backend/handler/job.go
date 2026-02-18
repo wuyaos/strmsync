@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/strmsync/strmsync/core"
-	"github.com/strmsync/strmsync/syncqueue"
+	"github.com/strmsync/strmsync/internal/domain/model"
+	"github.com/strmsync/strmsync/internal/queue"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -75,13 +75,13 @@ type JobHandler struct {
 
 // JobScheduler 任务调度器接口（用于注入）
 type JobScheduler interface {
-	UpsertJob(ctx context.Context, job core.Job) error
+	UpsertJob(ctx context.Context, job model.Job) error
 	RemoveJob(ctx context.Context, jobID uint) error
 }
 
 // TaskQueue 任务队列接口（用于注入）
 type TaskQueue interface {
-	Enqueue(ctx context.Context, task *core.TaskRun) error
+	Enqueue(ctx context.Context, task *model.TaskRun) error
 	Cancel(ctx context.Context, taskID uint) error
 }
 
@@ -151,7 +151,7 @@ func (h *JobHandler) validateRelatedServers(req *jobRequest) []FieldError {
 
 	if req.DataServerID != nil && *req.DataServerID > 0 {
 		var count int64
-		if err := h.db.Model(&core.DataServer{}).
+		if err := h.db.Model(&model.DataServer{}).
 			Where("id = ?", *req.DataServerID).
 			Count(&count).Error; err != nil {
 			h.logger.Error("检查数据服务器存在性失败", zap.Error(err))
@@ -164,7 +164,7 @@ func (h *JobHandler) validateRelatedServers(req *jobRequest) []FieldError {
 
 	if req.MediaServerID != nil && *req.MediaServerID > 0 {
 		var count int64
-		if err := h.db.Model(&core.MediaServer{}).
+		if err := h.db.Model(&model.MediaServer{}).
 			Where("id = ?", *req.MediaServerID).
 			Count(&count).Error; err != nil {
 			h.logger.Error("检查媒体服务器存在性失败", zap.Error(err))
@@ -205,7 +205,7 @@ func (h *JobHandler) CreateJob(c *gin.Context) {
 
 	// 唯一性检查
 	var count int64
-	if err := h.db.Model(&core.Job{}).
+	if err := h.db.Model(&model.Job{}).
 		Where("name = ?", strings.TrimSpace(req.Name)).
 		Count(&count).Error; err != nil {
 		h.logger.Error("检查任务名称唯一性失败", zap.Error(err))
@@ -223,7 +223,7 @@ func (h *JobHandler) CreateJob(c *gin.Context) {
 		enabled = *req.Enabled
 	}
 
-	job := core.Job{
+	job := model.Job{
 		Name:          strings.TrimSpace(req.Name),
 		Enabled:       enabled,
 		WatchMode:     string(JobWatchMode(strings.TrimSpace(req.WatchMode))),
@@ -275,7 +275,7 @@ func (h *JobHandler) CreateJob(c *gin.Context) {
 func (h *JobHandler) ListJobs(c *gin.Context) {
 	pagination := parsePagination(c, 1, 50, 200)
 
-	query := h.db.Model(&core.Job{}).
+	query := h.db.Model(&model.Job{}).
 		Preload("DataServer").
 		Preload("MediaServer")
 
@@ -344,7 +344,7 @@ func (h *JobHandler) ListJobs(c *gin.Context) {
 	}
 
 	// 查询列表
-	var jobs []core.Job
+	var jobs []model.Job
 	if err := query.Order("created_at DESC").
 		Offset(pagination.Offset).
 		Limit(pagination.PageSize).
@@ -371,7 +371,7 @@ func (h *JobHandler) GetJob(c *gin.Context) {
 		return
 	}
 
-	var job core.Job
+	var job model.Job
 	if err := h.db.
 		Preload("DataServer").
 		Preload("MediaServer").
@@ -410,7 +410,7 @@ func (h *JobHandler) UpdateJob(c *gin.Context) {
 	}
 
 	// 查询现有记录
-	var job core.Job
+	var job model.Job
 	if err := h.db.First(&job, uint(id)).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			respondError(c, http.StatusNotFound, "not_found", "任务不存在", nil)
@@ -435,7 +435,7 @@ func (h *JobHandler) UpdateJob(c *gin.Context) {
 	newName := strings.TrimSpace(req.Name)
 	if newName != job.Name {
 		var count int64
-		if err := h.db.Model(&core.Job{}).
+		if err := h.db.Model(&model.Job{}).
 			Where("name = ? AND id <> ?", newName, job.ID).
 			Count(&count).Error; err != nil {
 			h.logger.Error("检查任务名称唯一性失败", zap.Error(err))
@@ -505,7 +505,7 @@ func (h *JobHandler) DeleteJob(c *gin.Context) {
 
 	// 检查是否存在running的TaskRun
 	var runningCount int64
-	if err := h.db.Model(&core.TaskRun{}).
+	if err := h.db.Model(&model.TaskRun{}).
 		Where("job_id = ? AND status = ?", id, string(TaskRunStatusRunning)).
 		Count(&runningCount).Error; err != nil {
 		h.logger.Error("检查任务运行状态失败", zap.Error(err), zap.Uint64("id", id))
@@ -517,7 +517,7 @@ func (h *JobHandler) DeleteJob(c *gin.Context) {
 		return
 	}
 
-	result := h.db.Delete(&core.Job{}, uint(id))
+	result := h.db.Delete(&model.Job{}, uint(id))
 	if result.Error != nil {
 		h.logger.Error("删除任务失败", zap.Error(result.Error), zap.Uint64("id", id))
 		respondError(c, http.StatusInternalServerError, "db_error", "删除失败", nil)
@@ -556,7 +556,7 @@ func (h *JobHandler) RunJob(c *gin.Context) {
 		return
 	}
 
-	var job core.Job
+	var job model.Job
 	if err := h.db.First(&job, uint(id)).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			respondError(c, http.StatusNotFound, "not_found", "任务不存在", nil)
@@ -573,7 +573,7 @@ func (h *JobHandler) RunJob(c *gin.Context) {
 
 	// 防止重复运行：pending/running 均视为已在运行
 	var runningCount int64
-	if err := h.db.Model(&core.TaskRun{}).
+	if err := h.db.Model(&model.TaskRun{}).
 		Where("job_id = ? AND status IN ?", job.ID, []string{string(syncqueue.TaskPending), string(syncqueue.TaskRunning)}).
 		Count(&runningCount).Error; err != nil {
 		h.logger.Error("检查任务运行状态失败", zap.Error(err), zap.Uint64("id", id))
@@ -586,7 +586,7 @@ func (h *JobHandler) RunJob(c *gin.Context) {
 	}
 
 	// 入队任务（手动触发：立即可执行）
-	taskRun := &core.TaskRun{
+	taskRun := &model.TaskRun{
 		JobID:       job.ID,
 		Priority:    int(syncqueue.TaskPriorityNormal),
 		AvailableAt: time.Now(),
@@ -627,7 +627,7 @@ func (h *JobHandler) StopJob(c *gin.Context) {
 		return
 	}
 
-	var job core.Job
+	var job model.Job
 	if err := h.db.First(&job, uint(id)).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			respondError(c, http.StatusNotFound, "not_found", "任务不存在", nil)
@@ -639,7 +639,7 @@ func (h *JobHandler) StopJob(c *gin.Context) {
 	}
 
 	// 查找所有 pending 和 running 状态的任务（均需取消）
-	var activeTasks []core.TaskRun
+	var activeTasks []model.TaskRun
 	if err := h.db.
 		Where("job_id = ? AND status IN ?", job.ID,
 			[]string{string(syncqueue.TaskPending), string(syncqueue.TaskRunning)}).
@@ -673,7 +673,7 @@ func (h *JobHandler) StopJob(c *gin.Context) {
 	for _, t := range activeTasks {
 		taskIDs = append(taskIDs, t.ID)
 	}
-	var cancelledTasks []core.TaskRun
+	var cancelledTasks []model.TaskRun
 	if err := h.db.Where("id IN ?", taskIDs).Order("id DESC").Find(&cancelledTasks).Error; err != nil {
 		h.logger.Error("查询取消结果失败", zap.Error(err))
 		respondError(c, http.StatusInternalServerError, "db_error", "查询失败", nil)

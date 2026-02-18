@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/strmsync/strmsync/core"
-	"github.com/strmsync/strmsync/utils"
+	"github.com/strmsync/strmsync/internal/domain/model"
+	"github.com/strmsync/strmsync/internal/pkg/logger"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -37,7 +37,7 @@ func (h *LogHandler) ListLogs(c *gin.Context) {
 		pageSize = 200
 	}
 
-	query := h.db.Model(&core.LogEntry{})
+	query := h.db.Model(&model.LogEntry{})
 
 	// 级别过滤
 	if level := strings.TrimSpace(c.Query("level")); level != "" {
@@ -76,16 +76,16 @@ func (h *LogHandler) ListLogs(c *gin.Context) {
 	// 统计总数
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
-		utils.LogError("统计日志总数失败", zap.Error(err))
+		logger.LogError("统计日志总数失败", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
 		return
 	}
 
 	// 查询日志列表
-	var logs []core.LogEntry
+	var logs []model.LogEntry
 	offset := (page - 1) * pageSize
 	if err := query.Order("created_at DESC").Offset(offset).Limit(pageSize).Find(&logs).Error; err != nil {
-		utils.LogError("查询日志列表失败", zap.Error(err))
+		logger.LogError("查询日志列表失败", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
 		return
 	}
@@ -113,14 +113,14 @@ func (h *LogHandler) CleanupLogs(c *gin.Context) {
 
 	cutoff := time.Now().AddDate(0, 0, -req.Days)
 
-	result := h.db.Where("created_at < ?", cutoff).Delete(&core.LogEntry{})
+	result := h.db.Where("created_at < ?", cutoff).Delete(&model.LogEntry{})
 	if result.Error != nil {
-		utils.LogError("清理日志失败", zap.Error(result.Error))
+		logger.LogError("清理日志失败", zap.Error(result.Error))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "清理失败"})
 		return
 	}
 
-	utils.LogInfo("清理日志成功", zap.Int("days", req.Days), zap.Int64("deleted", result.RowsAffected))
+	logger.LogInfo("清理日志成功", zap.Int("days", req.Days), zap.Int64("deleted", result.RowsAffected))
 	c.JSON(http.StatusOK, gin.H{
 		"message": "清理成功",
 		"deleted": result.RowsAffected,

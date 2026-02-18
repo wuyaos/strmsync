@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/strmsync/strmsync/internal/pkg/logger"
 	"github.com/fsnotify/fsnotify"
-	"github.com/strmsync/strmsync/utils"
 	"go.uber.org/zap"
 )
 
@@ -43,7 +43,7 @@ func WithLogger(logger *zap.Logger) Option {
 // NewMonitor 创建文件监控器
 func NewMonitor(opts ...Option) FileMonitor {
 	m := &Monitor{
-		logger: utils.L(),
+		logger: logger.L(),
 		// 临时文件扩展名（小写）
 		tempExts: map[string]struct{}{
 			".tmp":        {},
@@ -72,7 +72,7 @@ func NewMonitor(opts ...Option) FileMonitor {
 
 	// 确保 logger 非空
 	if m.logger == nil {
-		m.logger = utils.L()
+		m.logger = logger.L()
 	}
 
 	return m

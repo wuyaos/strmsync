@@ -13,55 +13,63 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/strmsync/strmsync/core"
+	"github.com/strmsync/strmsync/internal/domain/model"
+	"github.com/strmsync/strmsync/internal/pkg/logger"
+	"github.com/strmsync/strmsync/internal/pkg/requestid"
+	"github.com/strmsync/strmsync/internal/infra/persistence"
+	"github.com/strmsync/strmsync/internal/infra/persistence/repository"
 	handlers "github.com/strmsync/strmsync/handler"
-	"github.com/strmsync/strmsync/scheduler"
-	"github.com/strmsync/strmsync/syncqueue"
-	"github.com/strmsync/strmsync/utils"
-	"github.com/strmsync/strmsync/worker"
+	"github.com/strmsync/strmsync/internal/scheduler"
+	"github.com/strmsync/strmsync/internal/queue"
+	"github.com/strmsync/strmsync/internal/worker"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+
+	// 导入filesystem provider实现以触发注册
+	_ "github.com/strmsync/strmsync/internal/infra/filesystem/clouddrive2"
+	_ "github.com/strmsync/strmsync/internal/infra/filesystem/local"
+	_ "github.com/strmsync/strmsync/internal/infra/filesystem/openlist"
 )
 
 func main() {
 	// 从环境变量加载配置
-	cfg, err := core.LoadFromEnv()
+	cfg, err := persistence.LoadFromEnv()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "配置加载失败: %v\n", err)
 		os.Exit(1)
 	}
 
 	// 初始化日志系统
-	if err := utils.InitLogger(cfg.Log.Level, cfg.Log.Path); err != nil {
+	if err := logger.InitLogger(cfg.Log.Level, cfg.Log.Path); err != nil {
 		fmt.Fprintf(os.Stderr, "日志初始化失败: %v\n", err)
 		os.Exit(1)
 	}
-	defer utils.SyncLogger()
+	defer logger.SyncLogger()
 
-	utils.LogInfo("STRMSync 启动中...",
+	logger.LogInfo("STRMSync 启动中...",
 		zap.String("version", "2.0.0-alpha"),
 		zap.Int("port", cfg.Server.Port))
 
 	// 初始化数据库
-	if err := core.Init(cfg.Database.Path); err != nil {
-		utils.LogError("数据库初始化失败", zap.Error(err))
+	if err := persistence.Init(cfg.Database.Path); err != nil {
+		logger.LogError("数据库初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
-	defer core.Close()
+	defer persistence.Close()
 
-	utils.LogInfo("数据库初始化成功", zap.String("path", cfg.Database.Path))
+	logger.LogInfo("数据库初始化成功", zap.String("path", cfg.Database.Path))
 
 	// 获取数据库连接
-	db, err := core.GetDB()
+	db, err := persistence.GetDB()
 	if err != nil {
-		utils.LogError("获取数据库连接失败", zap.Error(err))
+		logger.LogError("获取数据库连接失败", zap.Error(err))
 		os.Exit(1)
 	}
 
 	// 配置日志写入数据库（如果启用）
 	if cfg.Log.ToDB {
-		utils.SetLogToDBEnabled(true, 1024)
-		utils.LogInfo("日志数据库写入已启用")
+		logger.SetLogToDBEnabled(true, 1024)
+		logger.LogInfo("日志数据库写入已启用")
 	}
 
 	// 设置Gin模式
@@ -74,24 +82,24 @@ func main() {
 	// 初始化 SyncQueue
 	queue, err := syncqueue.NewSyncQueue(db)
 	if err != nil {
-		utils.LogError("SyncQueue 初始化失败", zap.Error(err))
+		logger.LogError("SyncQueue 初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
 
 	// 初始化共享的 Repository（scheduler 和 worker 共享）
-	jobRepo, err := core.NewGormJobRepository(db)
+	jobRepo, err := repository.NewGormJobRepository(db)
 	if err != nil {
-		utils.LogError("JobRepository 初始化失败", zap.Error(err))
+		logger.LogError("JobRepository 初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
-	dataServerRepo, err := core.NewGormDataServerRepository(db)
+	dataServerRepo, err := repository.NewGormDataServerRepository(db)
 	if err != nil {
-		utils.LogError("DataServerRepository 初始化失败", zap.Error(err))
+		logger.LogError("DataServerRepository 初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
 	taskRunRepo, err := worker.NewGormTaskRunRepository(db)
 	if err != nil {
-		utils.LogError("TaskRunRepository 初始化失败", zap.Error(err))
+		logger.LogError("TaskRunRepository 初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
 
@@ -99,10 +107,10 @@ func main() {
 	cronScheduler, err := scheduler.NewScheduler(scheduler.SchedulerConfig{
 		Queue:  queue,
 		Jobs:   jobRepo, // 使用共享的 Repository
-		Logger: utils.With(zap.String("component", "scheduler")),
+		Logger: logger.With(zap.String("component", "scheduler")),
 	})
 	if err != nil {
-		utils.LogError("Scheduler 初始化失败", zap.Error(err))
+		logger.LogError("Scheduler 初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
 
@@ -112,21 +120,21 @@ func main() {
 		Jobs:        jobRepo,        // 使用共享的 Repository
 		DataServers: dataServerRepo, // 使用共享的 Repository
 		TaskRuns:    taskRunRepo,
-		Logger:      utils.With(zap.String("component", "worker")),
+		Logger:      logger.With(zap.String("component", "worker")),
 	})
 	if err != nil {
-		utils.LogError("Worker 初始化失败", zap.Error(err))
+		logger.LogError("Worker 初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
 
 	// 启动 Scheduler/Worker
 	startCtx := context.Background()
 	if err := cronScheduler.Start(startCtx); err != nil {
-		utils.LogError("Scheduler 启动失败", zap.Error(err))
+		logger.LogError("Scheduler 启动失败", zap.Error(err))
 		os.Exit(1)
 	}
 	if err := workerPool.Start(startCtx); err != nil {
-		utils.LogError("Worker 启动失败", zap.Error(err))
+		logger.LogError("Worker 启动失败", zap.Error(err))
 		os.Exit(1)
 	}
 
@@ -144,48 +152,48 @@ func main() {
 
 	// 启动服务器（goroutine）
 	go func() {
-		utils.LogInfo("HTTP服务器启动中", zap.String("addr", addr))
+		logger.LogInfo("HTTP服务器启动中", zap.String("addr", addr))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			utils.LogError("HTTP服务器错误", zap.Error(err))
+			logger.LogError("HTTP服务器错误", zap.Error(err))
 			os.Exit(1)
 		}
 	}()
 
-	utils.LogInfo("STRMSync 启动成功")
+	logger.LogInfo("STRMSync 启动成功")
 
 	// 等待中断信号（优雅关闭）
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	utils.LogInfo("服务器关闭中...")
+	logger.LogInfo("服务器关闭中...")
 
 	// 关闭日志数据库写入worker
-	utils.ShutdownLogDBWriter()
+	logger.ShutdownLogDBWriter()
 
 	// 优雅关闭：各组件独立超时，顺序为 Scheduler -> HTTP -> Worker
 	// 先停调度器，不再产生新的定时任务
 	schedCtx, schedCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer schedCancel()
 	if err := cronScheduler.Stop(schedCtx); err != nil {
-		utils.LogError("Scheduler 关闭失败", zap.Error(err))
+		logger.LogError("Scheduler 关闭失败", zap.Error(err))
 	}
 
 	// 停止HTTP，不再接受新请求（包括手动 RunJob）
 	httpCtx, httpCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer httpCancel()
 	if err := srv.Shutdown(httpCtx); err != nil {
-		utils.LogError("服务器强制关闭", zap.Error(err))
+		logger.LogError("服务器强制关闭", zap.Error(err))
 	}
 
 	// 最后停止Worker，让已入队的任务尽可能处理完毕
 	workerCtx, workerCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer workerCancel()
 	if err := workerPool.Stop(workerCtx); err != nil {
-		utils.LogError("Worker 关闭失败", zap.Error(err))
+		logger.LogError("Worker 关闭失败", zap.Error(err))
 	}
 
-	utils.LogInfo("服务器已退出")
+	logger.LogInfo("服务器已退出")
 }
 
 // setupRouter 配置路由 (最小可用版本)
@@ -198,7 +206,7 @@ func setupRouter(db *gorm.DB, scheduler handlers.JobScheduler, queue handlers.Ta
 	router.Use(ginLogger(db))
 
 	// 获取logger
-	logger := utils.With(zap.String("module", "api"))
+	logger := logger.With(zap.String("module", "api"))
 
 	// 创建处理器
 	logHandler := handlers.NewLogHandler(db, logger)
@@ -299,7 +307,7 @@ func requestIDMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := strings.TrimSpace(c.GetHeader(requestIDHeader))
 		if id == "" {
-			id = utils.NewRequestID()
+			id = requestid.NewRequestID()
 		}
 		if id != "" {
 			c.Set(requestIDKey, id)
@@ -340,7 +348,7 @@ func ginLogger(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// 记录到zap日志
-		utils.LogInfo("HTTP请求", fields...)
+		logger.LogInfo("HTTP请求", fields...)
 
 		// 同时写入数据库日志
 		module := "api"
@@ -361,7 +369,7 @@ func ginLogger(db *gorm.DB) gin.HandlerFunc {
 			action = &userAction
 		}
 
-		utils.WriteLogToDB(db, &core.LogEntry{
+		logger.WriteLogToDB(db, &model.LogEntry{
 			Level:      level,
 			Module:     &module,
 			Message:    message,
@@ -374,11 +382,11 @@ func ginLogger(db *gorm.DB) gin.HandlerFunc {
 // healthCheckHandler 健康检查处理器
 func healthCheckHandler(c *gin.Context) {
 	// 检查数据库连接
-	db, err := core.GetDB()
+	db, err := persistence.GetDB()
 	dbStatus := "ok"
 	if err != nil {
 		dbStatus = "error"
-		utils.LogError("健康检查: 数据库错误", zap.Error(err))
+		logger.LogError("健康检查: 数据库错误", zap.Error(err))
 	} else {
 		sqlDB, err := db.DB()
 		if err != nil || sqlDB.Ping() != nil {

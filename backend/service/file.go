@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/strmsync/strmsync/core"
-	"github.com/strmsync/strmsync/filesystem"
+	"github.com/strmsync/strmsync/internal/domain/model"
+	"github.com/strmsync/strmsync/internal/infra/filesystem"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -54,7 +54,7 @@ func (s *fileService) List(ctx context.Context, req FileListRequest) ([]filesyst
 	}
 
 	// 加载DataServer
-	var server core.DataServer
+	var server model.DataServer
 	if err := s.db.WithContext(ctx).First(&server, req.ServerID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("%w: id=%d", ErrDataServerNotFound, req.ServerID)

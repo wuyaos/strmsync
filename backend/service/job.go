@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/strmsync/strmsync/core"
+	"github.com/strmsync/strmsync/internal/domain/model"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -165,7 +165,7 @@ func (s *jobService) Run(ctx context.Context, jobID JobID) (TaskRunID, error) {
 // ensureTaskRunCancelled 确保TaskRun被标记为cancelled（防御性检查）
 func (s *jobService) ensureTaskRunCancelled(ctx context.Context, taskRunID TaskRunID) error {
 	// 检查TaskRun当前状态
-	var taskRun core.TaskRun
+	var taskRun model.TaskRun
 	if err := s.db.WithContext(ctx).First(&taskRun, taskRunID).Error; err != nil {
 		return err
 	}
@@ -233,7 +233,7 @@ func (s *jobService) GetRunningTaskRun(ctx context.Context, jobID JobID) (TaskRu
 // loadAndValidateJob 加载并验证Job配置
 func (s *jobService) loadAndValidateJob(ctx context.Context, jobID JobID) (*JobConfig, error) {
 	// 1. 加载Job（使用行锁）
-	var job core.Job
+	var job model.Job
 	if err := s.db.WithContext(ctx).
 		Clauses(clause.Locking{Strength: "UPDATE"}).
 		First(&job, jobID).Error; err != nil {
@@ -285,7 +285,7 @@ func (s *jobService) loadAndValidateJob(ctx context.Context, jobID JobID) (*JobC
 		config.DataServerID = *job.DataServerID
 
 		// 验证DataServer存在
-		var dataServer core.DataServer
+		var dataServer model.DataServer
 		if err := s.db.WithContext(ctx).First(&dataServer, config.DataServerID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, fmt.Errorf("data_server not found: id=%d", config.DataServerID)
@@ -302,7 +302,7 @@ func (s *jobService) loadAndValidateJob(ctx context.Context, jobID JobID) (*JobC
 	if job.MediaServerID != nil {
 		config.MediaServerID = *job.MediaServerID
 
-		var mediaServer core.MediaServer
+		var mediaServer model.MediaServer
 		if err := s.db.WithContext(ctx).First(&mediaServer, config.MediaServerID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, fmt.Errorf("media_server not found: id=%d", config.MediaServerID)
@@ -325,7 +325,7 @@ func (s *jobService) loadAndValidateJob(ctx context.Context, jobID JobID) (*JobC
 // updateJobStatus 更新Job状态
 func (s *jobService) updateJobStatus(ctx context.Context, jobID JobID, status string) error {
 	if err := s.db.WithContext(ctx).
-		Model(&core.Job{}).
+		Model(&model.Job{}).
 		Where("id = ?", jobID).
 		Update("status", status).Error; err != nil {
 		return fmt.Errorf("update job status: %w", err)

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/strmsync/strmsync/core"
+	"github.com/strmsync/strmsync/internal/domain/model"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -31,7 +31,7 @@ func NewTaskRunHandler(db *gorm.DB, logger *zap.Logger) *TaskRunHandler {
 func (h *TaskRunHandler) ListTaskRuns(c *gin.Context) {
 	pagination := parsePagination(c, 1, 50, 200)
 
-	query := h.db.Model(&core.TaskRun{}).
+	query := h.db.Model(&model.TaskRun{}).
 		Preload("Job")
 
 	// job_id过滤
@@ -70,7 +70,7 @@ func (h *TaskRunHandler) ListTaskRuns(c *gin.Context) {
 	}
 
 	// 查询列表（按开始时间降序）
-	var runs []core.TaskRun
+	var runs []model.TaskRun
 	if err := query.Order("started_at DESC").
 		Offset(pagination.Offset).
 		Limit(pagination.PageSize).
@@ -97,7 +97,7 @@ func (h *TaskRunHandler) GetTaskRun(c *gin.Context) {
 		return
 	}
 
-	var run core.TaskRun
+	var run model.TaskRun
 	if err := h.db.
 		Preload("Job").
 		Preload("Job.DataServer").

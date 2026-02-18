@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/strmsync/strmsync/filesystem"
-	"github.com/strmsync/strmsync/core"
+	cd2 "github.com/strmsync/strmsync/internal/infra/filesystem/clouddrive2"
+	"github.com/strmsync/strmsync/internal/domain/model"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -60,7 +60,7 @@ func (h *DataServerHandler) CreateDataServer(c *gin.Context) {
 
 	// 唯一性检查
 	var count int64
-	if err := h.db.Model(&core.DataServer{}).
+	if err := h.db.Model(&model.DataServer{}).
 		Where("name = ?", strings.TrimSpace(req.Name)).
 		Count(&count).Error; err != nil {
 		h.logger.Error("检查数据服务器名称唯一性失败", zap.Error(err))
@@ -79,7 +79,7 @@ func (h *DataServerHandler) CreateDataServer(c *gin.Context) {
 	}
 
 	// 创建数据服务器
-	server := core.DataServer{
+	server := model.DataServer{
 		Name:    strings.TrimSpace(req.Name),
 		Type:    strings.TrimSpace(req.Type),
 		Host:    strings.TrimSpace(req.Host),
@@ -122,7 +122,7 @@ func (h *DataServerHandler) CreateDataServer(c *gin.Context) {
 func (h *DataServerHandler) ListDataServers(c *gin.Context) {
 	pagination := parsePagination(c, 1, 50, 200)
 
-	query := h.db.Model(&core.DataServer{})
+	query := h.db.Model(&model.DataServer{})
 
 	// 类型过滤
 	if serverType := strings.TrimSpace(c.Query("type")); serverType != "" {
@@ -147,7 +147,7 @@ func (h *DataServerHandler) ListDataServers(c *gin.Context) {
 	}
 
 	// 查询列表
-	var servers []core.DataServer
+	var servers []model.DataServer
 	if err := query.Order("created_at DESC").
 		Offset(pagination.Offset).
 		Limit(pagination.PageSize).
@@ -174,7 +174,7 @@ func (h *DataServerHandler) GetDataServer(c *gin.Context) {
 		return
 	}
 
-	var server core.DataServer
+	var server model.DataServer
 	if err := h.db.First(&server, uint(id)).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			respondError(c, http.StatusNotFound, "not_found", "数据服务器不存在", nil)
@@ -220,7 +220,7 @@ func (h *DataServerHandler) UpdateDataServer(c *gin.Context) {
 	}
 
 	// 查询现有记录
-	var server core.DataServer
+	var server model.DataServer
 	if err := h.db.First(&server, uint(id)).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			respondError(c, http.StatusNotFound, "not_found", "数据服务器不存在", nil)
@@ -235,7 +235,7 @@ func (h *DataServerHandler) UpdateDataServer(c *gin.Context) {
 	newName := strings.TrimSpace(req.Name)
 	if newName != server.Name {
 		var count int64
-		if err := h.db.Model(&core.DataServer{}).
+		if err := h.db.Model(&model.DataServer{}).
 			Where("name = ? AND id <> ?", newName, server.ID).
 			Count(&count).Error; err != nil {
 			h.logger.Error("检查数据服务器名称唯一性失败", zap.Error(err))
@@ -298,7 +298,7 @@ func (h *DataServerHandler) DeleteDataServer(c *gin.Context) {
 
 	// 检查是否被Job引用
 	var count int64
-	if err := h.db.Model(&core.Job{}).
+	if err := h.db.Model(&model.Job{}).
 		Where("data_server_id = ?", id).
 		Count(&count).Error; err != nil {
 		h.logger.Error("检查数据服务器引用失败", zap.Error(err), zap.Uint64("id", id))
@@ -312,7 +312,7 @@ func (h *DataServerHandler) DeleteDataServer(c *gin.Context) {
 	}
 
 	// 执行删除
-	result := h.db.Delete(&core.DataServer{}, uint(id))
+	result := h.db.Delete(&model.DataServer{}, uint(id))
 	if result.Error != nil {
 		h.logger.Error("删除数据服务器失败", zap.Error(result.Error), zap.Uint64("id", id))
 		respondError(c, http.StatusInternalServerError, "db_error", "删除失败", nil)
@@ -337,7 +337,7 @@ func (h *DataServerHandler) TestDataServerConnection(c *gin.Context) {
 		return
 	}
 
-	var server core.DataServer
+	var server model.DataServer
 	if err := h.db.First(&server, uint(id)).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			respondError(c, http.StatusNotFound, "not_found", "数据服务器不存在", nil)
@@ -404,15 +404,15 @@ func (h *DataServerHandler) TestDataServerConnection(c *gin.Context) {
 //
 // CloudDrive2 使用 gRPC/HTTP2 协议，通过调用 GetSystemInfo（公开接口）
 // 来验证服务器连接和认证信息
-func testCloudDrive2Connection(server core.DataServer, logger *zap.Logger) ConnectionTestResult {
+func testCloudDrive2Connection(server model.DataServer, logger *zap.Logger) ConnectionTestResult {
 	start := time.Now()
 	target := fmt.Sprintf("%s:%d", server.Host, server.Port)
 
 	// 创建 gRPC 客户端
-	client := filesystem.NewCloudDrive2Client(
+	client := cd2.NewCloudDrive2Client(
 		target,
 		server.APIKey,
-		filesystem.WithTimeout(10*time.Second),
+		cd2.WithTimeout(10*time.Second),
 	)
 	defer func() {
 		if err := client.Close(); err != nil {
@@ -472,7 +472,7 @@ func testCloudDrive2Connection(server core.DataServer, logger *zap.Logger) Conne
 }
 
 // testOpenListConnection 测试OpenList连接
-func testOpenListConnection(server core.DataServer, logger *zap.Logger) ConnectionTestResult {
+func testOpenListConnection(server model.DataServer, logger *zap.Logger) ConnectionTestResult {
 	start := time.Now()
 	apiURL := fmt.Sprintf("http://%s:%d/api/fs/list", server.Host, server.Port)
 

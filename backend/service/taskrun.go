@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/strmsync/strmsync/core"
+	"github.com/strmsync/strmsync/internal/domain/model"
 	"gorm.io/gorm"
 )
 
@@ -25,7 +25,7 @@ func NewTaskRunService(db *gorm.DB) TaskRunService {
 // Start 创建并开始TaskRun
 func (s *taskRunService) Start(ctx context.Context, jobID JobID) (TaskRunID, error) {
 	now := time.Now()
-	taskRun := &core.TaskRun{
+	taskRun := &model.TaskRun{
 		JobID:     jobID,
 		Status:    "running",
 		StartedAt: now,
@@ -46,7 +46,7 @@ func (s *taskRunService) UpdateProgress(ctx context.Context, taskRunID TaskRunID
 	}
 
 	if err := s.db.WithContext(ctx).
-		Model(&core.TaskRun{}).
+		Model(&model.TaskRun{}).
 		Where("id = ?", taskRunID).
 		Updates(updates).Error; err != nil {
 		return fmt.Errorf("taskrun: update_progress: %w", err)
@@ -83,10 +83,10 @@ func (s *taskRunService) Complete(ctx context.Context, taskRunID TaskRunID, summ
 		"files_deleted": summary.DeletedCount,
 	}
 
-	var taskRun core.TaskRun
+	var taskRun model.TaskRun
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// 更新记录
-		if err := tx.Model(&core.TaskRun{}).
+		if err := tx.Model(&model.TaskRun{}).
 			Where("id = ?", taskRunID).
 			Updates(updates).Error; err != nil {
 			return err
@@ -99,7 +99,7 @@ func (s *taskRunService) Complete(ctx context.Context, taskRunID TaskRunID, summ
 
 		// 更新Job的last_run_at
 		now := time.Now()
-		if err := tx.Model(&core.Job{}).
+		if err := tx.Model(&model.Job{}).
 			Where("id = ?", taskRun.JobID).
 			Updates(map[string]interface{}{
 				"last_run_at": &now,
@@ -123,7 +123,7 @@ func (s *taskRunService) Fail(ctx context.Context, taskRunID TaskRunID, taskErr 
 	now := time.Now()
 
 	// 读取TaskRun以获取started_at
-	var taskRun core.TaskRun
+	var taskRun model.TaskRun
 	if err := s.db.WithContext(ctx).First(&taskRun, taskRunID).Error; err != nil {
 		return fmt.Errorf("taskrun: fail: get task_run: %w", err)
 	}
@@ -148,14 +148,14 @@ func (s *taskRunService) Fail(ctx context.Context, taskRunID TaskRunID, taskErr 
 
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// 更新TaskRun
-		if err := tx.Model(&core.TaskRun{}).
+		if err := tx.Model(&model.TaskRun{}).
 			Where("id = ?", taskRunID).
 			Updates(updates).Error; err != nil {
 			return err
 		}
 
 		// 更新Job状态为error
-		if err := tx.Model(&core.Job{}).
+		if err := tx.Model(&model.Job{}).
 			Where("id = ?", taskRun.JobID).
 			Updates(map[string]interface{}{
 				"status": "error",
@@ -178,7 +178,7 @@ func (s *taskRunService) Cancel(ctx context.Context, taskRunID TaskRunID) error 
 	now := time.Now()
 
 	// 读取TaskRun以获取started_at和当前状态
-	var taskRun core.TaskRun
+	var taskRun model.TaskRun
 	if err := s.db.WithContext(ctx).First(&taskRun, taskRunID).Error; err != nil {
 		return fmt.Errorf("taskrun: cancel: get task_run: %w", err)
 	}
@@ -202,7 +202,7 @@ func (s *taskRunService) Cancel(ctx context.Context, taskRunID TaskRunID) error 
 
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// 原子更新：仅当status为running时才更新（防止并发冲突）
-		result := tx.Model(&core.TaskRun{}).
+		result := tx.Model(&model.TaskRun{}).
 			Where("id = ? AND status = ?", taskRunID, "running").
 			Updates(updates)
 
@@ -216,7 +216,7 @@ func (s *taskRunService) Cancel(ctx context.Context, taskRunID TaskRunID) error 
 		}
 
 		// 更新Job状态为idle
-		if err := tx.Model(&core.Job{}).
+		if err := tx.Model(&model.Job{}).
 			Where("id = ?", taskRun.JobID).
 			Updates(map[string]interface{}{
 				"status": "idle",
