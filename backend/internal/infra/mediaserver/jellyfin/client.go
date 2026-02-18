@@ -1,4 +1,15 @@
-// Package mediaserver 实现Jellyfin媒体服务器客户端
+// Package mediaserver provides Jellyfin media server adapter implementation.
+//
+// This is an internal sub-package that shares the parent mediaserver package namespace.
+// It provides the Jellyfin-specific adapter implementation that handles API endpoint
+// paths and authentication headers.
+//
+// The jellyfinAdapter is created automatically by the parent package's factory function
+// (newAdapter) based on server type. It should not be instantiated directly.
+//
+// Jellyfin-specific behaviors:
+//   - API endpoints use standard paths (no prefix)
+//   - Uses "Authorization: MediaBrowser Token=" header for authentication
 package mediaserver
 
 import (

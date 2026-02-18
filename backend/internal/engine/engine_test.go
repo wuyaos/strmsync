@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/strmsync/strmsync/internal/infra/filesystem"
-	"github.com/strmsync/strmsync/internal/infra/writer"
+	"github.com/strmsync/strmsync/internal/infra/strmwriter"
 	"github.com/strmsync/strmsync/internal/engine"
 	"go.uber.org/zap"
 

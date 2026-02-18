@@ -1,4 +1,17 @@
-// Package filesystem 实现本地文件系统客户端
+// Package filesystem provides local filesystem provider implementation.
+//
+// This is an internal sub-package that shares the parent filesystem package namespace.
+// It automatically registers the Local provider via init() and should only be
+// imported for side effects (provider registration).
+//
+// Usage:
+//   import _ "github.com/strmsync/strmsync/internal/infra/filesystem/local"
+//
+// The Local provider accesses files directly from the local filesystem.
+// It only supports mount-based STRM mode (no HTTP streaming).
+//
+// Exports:
+//   - NewLocalProvider: Creates a Provider implementation (used by registration)
 package filesystem
 
 import (

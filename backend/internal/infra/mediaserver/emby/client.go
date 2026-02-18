@@ -1,4 +1,15 @@
-// Package mediaserver 实现Emby媒体服务器客户端
+// Package mediaserver provides Emby media server adapter implementation.
+//
+// This is an internal sub-package that shares the parent mediaserver package namespace.
+// It provides the Emby-specific adapter implementation that handles API endpoint
+// paths and authentication headers.
+//
+// The embyAdapter is created automatically by the parent package's factory function
+// (newAdapter) based on server type. It should not be instantiated directly.
+//
+// Emby-specific behaviors:
+//   - API endpoints require "/emby" prefix
+//   - Uses "X-Emby-Token" header for authentication
 package mediaserver
 
 import (

@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	cd2 "github.com/strmsync/strmsync/internal/infra/filesystem/clouddrive2"
+	cd2sdk "github.com/strmsync/strmsync/internal/pkg/sdk/clouddrive2"
 	"github.com/strmsync/strmsync/internal/domain/model"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -409,10 +409,10 @@ func testCloudDrive2Connection(server model.DataServer, logger *zap.Logger) Conn
 	target := fmt.Sprintf("%s:%d", server.Host, server.Port)
 
 	// 创建 gRPC 客户端
-	client := cd2.NewCloudDrive2Client(
+	client := cd2sdk.NewCloudDrive2Client(
 		target,
 		server.APIKey,
-		cd2.WithTimeout(10*time.Second),
+		cd2sdk.WithTimeout(10*time.Second),
 	)
 	defer func() {
 		if err := client.Close(); err != nil {

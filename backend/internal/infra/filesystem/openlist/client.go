@@ -1,4 +1,17 @@
-// Package filesystem 实现OpenList文件系统客户端
+// Package filesystem provides OpenList filesystem provider implementation.
+//
+// This is an internal sub-package that shares the parent filesystem package namespace.
+// It automatically registers the OpenList provider via init() and should only be
+// imported for side effects (provider registration).
+//
+// Usage:
+//   import _ "github.com/strmsync/strmsync/internal/infra/filesystem/openlist"
+//
+// The OpenList provider accesses files via OpenList HTTP API.
+// It supports both HTTP streaming and mount-based STRM modes.
+//
+// Exports:
+//   - NewOpenListProvider: Creates a Provider implementation (used by registration)
 package filesystem
 
 import (
