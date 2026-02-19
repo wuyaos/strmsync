@@ -47,11 +47,19 @@ func main() {
 	defer logger.SyncLogger()
 
 	logger.LogInfo("STRMSync 启动中...",
+		zap.String("app", "STRMSync"),
 		zap.String("version", "2.0.0-alpha"),
-		zap.Int("port", cfg.Server.Port))
+		zap.String("host", cfg.Server.Host),
+		zap.Int("port", cfg.Server.Port),
+		zap.String("db_path", cfg.Database.Path),
+		zap.String("log_level", cfg.Log.Level),
+		zap.String("log_path", cfg.Log.Path),
+		zap.Bool("log_to_db", cfg.Log.ToDB),
+		zap.Bool("log_sql", cfg.Log.SQL),
+		zap.Int("log_sql_slow_ms", cfg.Log.SQLSlowMs))
 
 	// 初始化数据库
-	if err := dbpkg.Init(cfg.Database.Path); err != nil {
+	if err := dbpkg.InitWithConfig(cfg.Database.Path, &cfg.Log); err != nil {
 		logger.LogError("数据库初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
@@ -177,7 +185,10 @@ func main() {
 		}
 	}()
 
-	logger.LogInfo("STRMSync 启动成功")
+	logger.LogInfo("STRMSync 启动成功",
+		zap.String("app", "STRMSync"),
+		zap.String("version", "2.0.0-alpha"),
+		zap.String("addr", addr))
 
 	// 等待中断信号（优雅关闭）
 	quit := make(chan os.Signal, 1)
@@ -232,8 +243,9 @@ func setupRouter(db *gorm.DB, scheduler httphandlers.JobScheduler, queue httphan
 	fileHandler := httphandlers.NewFileHandler(db, logger)
 	dataServerHandler := httphandlers.NewDataServerHandler(db, logger)
 	mediaServerHandler := httphandlers.NewMediaServerHandler(db, logger)
+	serverTypeHandler := httphandlers.NewServerTypeHandler()
 	jobHandler := httphandlers.NewJobHandler(db, logger, scheduler, queue)
-	taskRunHandler := httphandlers.NewTaskRunHandler(db, logger)
+	taskRunHandler := httphandlers.NewTaskRunHandler(db, logger, queue)
 
 	// API路由组
 	api := router.Group("/api")
@@ -271,6 +283,14 @@ func setupRouter(db *gorm.DB, scheduler httphandlers.JobScheduler, queue httphan
 			dataServers.PUT("/:id", dataServerHandler.UpdateDataServer)
 			dataServers.DELETE("/:id", dataServerHandler.DeleteDataServer)
 			dataServers.POST("/:id/test", dataServerHandler.TestDataServerConnection)
+			dataServers.POST("/test", dataServerHandler.TestDataServerTemp)
+		}
+
+		// 服务器类型定义
+		serverTypes := api.Group("/servers/types")
+		{
+			serverTypes.GET("", serverTypeHandler.ListServerTypes)
+			serverTypes.GET("/:type", serverTypeHandler.GetServerType)
 		}
 
 		// 媒体服务器管理
@@ -282,6 +302,7 @@ func setupRouter(db *gorm.DB, scheduler httphandlers.JobScheduler, queue httphan
 			mediaServers.PUT("/:id", mediaServerHandler.UpdateMediaServer)
 			mediaServers.DELETE("/:id", mediaServerHandler.DeleteMediaServer)
 			mediaServers.POST("/:id/test", mediaServerHandler.TestMediaServerConnection)
+			mediaServers.POST("/test", mediaServerHandler.TestMediaServerTemp)
 		}
 
 		// 任务管理
@@ -293,7 +314,10 @@ func setupRouter(db *gorm.DB, scheduler httphandlers.JobScheduler, queue httphan
 			jobs.PUT("/:id", jobHandler.UpdateJob)
 			jobs.DELETE("/:id", jobHandler.DeleteJob)
 			jobs.POST("/:id/run", jobHandler.RunJob)
+			jobs.POST("/:id/trigger", jobHandler.RunJob) // 前端兼容别名
 			jobs.POST("/:id/stop", jobHandler.StopJob)
+			jobs.PUT("/:id/enable", jobHandler.EnableJob)
+			jobs.PUT("/:id/disable", jobHandler.DisableJob)
 		}
 
 		// 执行记录查询
@@ -301,6 +325,8 @@ func setupRouter(db *gorm.DB, scheduler httphandlers.JobScheduler, queue httphan
 		{
 			runs.GET("", taskRunHandler.ListTaskRuns)
 			runs.GET("/:id", taskRunHandler.GetTaskRun)
+			runs.POST("/:id/cancel", taskRunHandler.CancelRun)
+			runs.GET("/stats", taskRunHandler.GetRunStats)
 		}
 	}
 
