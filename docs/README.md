@@ -4,6 +4,13 @@
 
 ## 📂 文档列表
 
+### 应用API文档
+
+| 文档 | 说明 | 状态 |
+|------|------|------|
+| [HTTP_API.md](HTTP_API.md) | 后端HTTP API完整文档 | ✅ 完成 |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | 生产环境部署指南 | ✅ 完成 |
+
 ### CloudDrive2相关文档（已完成集成）
 
 | 文档 | 说明 | 状态 |
@@ -13,35 +20,40 @@
 | [CloudDrive2_API.md](CloudDrive2_API.md) | CloudDrive2 gRPC API完整文档 | 📚 参考 |
 | [clouddrive.proto](clouddrive.proto) | Proto定义文件（v0.9.24） | 📚 参考 |
 
-### 第三方API文档（待集成）
+### 第三方API文档
 
 | 文档 | 说明 | 状态 |
 |------|------|------|
-| [Emby_Jellyfin_API.md](Emby_Jellyfin_API.md) | Emby/Jellyfin API文档 | ⏳ 待实现 |
-| [OpenList_API.md](OpenList_API.md) | OpenList REST API文档 | ⏳ 待实现 |
+| [Emby_Jellyfin_API.md](Emby_Jellyfin_API.md) | Emby/Jellyfin API文档 | 📚 参考 |
+| [OpenList_API.md](OpenList_API.md) | OpenList REST API文档 | 📚 参考 |
 
 ### 架构和设计文档
 
 | 文档 | 说明 | 状态 |
 |------|------|------|
-| [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | 详细实施方案（STRM规则、数据库、服务架构） | 📚 设计参考 |
+| [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) | 项目结构说明 | 📚 参考 |
+| [IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md) | 实施进度记录 | 📚 参考 |
+| [OPTIMIZATION_PLAN.md](OPTIMIZATION_PLAN.md) | 优化方案 | 📚 参考 |
+| [REFACTOR.md](REFACTOR.md) | 重构记录 | 📚 参考 |
 
 ---
 
 ## 🗂️ 文档用途
 
 ### 开发参考
-- **CloudDrive2集成**: 查看Integration和Test Report了解当前实现
-- **API文档**: 集成其他服务时参考对应的API文档
-- **架构文档**: 了解系统设计和部署方案
+- **HTTP_API**: 前后端开发时查看API规范和响应格式
+- **DEPLOYMENT**: 生产环境部署和运维参考
+- **CloudDrive2集成**: 查看Integration了解gRPC集成实现
+- **第三方API**: 集成其他服务时参考对应的API文档
 
 ### 问题排查
-- **Known_Issues**: 遇到CloudDrive2相关问题先查看已知问题
+- **DEPLOYMENT**: 故障排查和日志查看
+- **CloudDrive2_Known_Issues**: CloudDrive2相关问题（如存在）
 - **gRPC_Setup**: 开发环境问题参考设置指南
 
-### 未来开发
-- **Emby/Jellyfin**: MediaServer集成时参考
-- **OpenList**: 第二数据源集成时参考
+### 快速上手
+- **HTTP_API**: 了解可用的API接口和调用方式
+- **DEPLOYMENT**: 快速部署指南和环境配置
 
 ---
 
@@ -81,4 +93,4 @@
 ---
 
 **维护者**: STRMSync Team
-**最后更新**: 2026-02-18
+**最后更新**: 2026-02-19
