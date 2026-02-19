@@ -204,7 +204,7 @@ func TestJobHandler_CreateJob_Success(t *testing.T) {
 	router := setupJobRouter(handler)
 
 	// 创建关联的数据服务器（直接写 DB，绕过 SSRF 限制）
-	ds := insertDataServer(t, db, "ds-create", "openlist", "192.168.1.100", 8080)
+	ds := insertDataServer(t, db, "ds-create", "openlist", "127.0.0.1", 8080)
 
 	dsID := ds.ID
 	payload := map[string]interface{}{

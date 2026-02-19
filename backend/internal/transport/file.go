@@ -127,6 +127,24 @@ func (h *FileHandler) listCloudDrive2Directories(c *gin.Context, path, host, por
 		return
 	}
 
+	// 检查HTTP状态码
+	if resp.StatusCode != http.StatusOK {
+		preview := string(body)
+		if len(preview) > 200 {
+			preview = preview[:200] + "..."
+		}
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("CloudDrive2 API返回HTTP %d: %s", resp.StatusCode, preview),
+		})
+		return
+	}
+
+	// 检查响应体是否为空
+	if len(body) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "CloudDrive2 API返回空响应"})
+		return
+	}
+
 	// 解析响应
 	var apiResp struct {
 		Code int `json:"code"`
@@ -208,6 +226,24 @@ func (h *FileHandler) listOpenListDirectories(c *gin.Context, path, host, port s
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "读取响应失败: " + err.Error()})
+		return
+	}
+
+	// 检查HTTP状态码
+	if resp.StatusCode != http.StatusOK {
+		preview := string(body)
+		if len(preview) > 200 {
+			preview = preview[:200] + "..."
+		}
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("OpenList API返回HTTP %d: %s", resp.StatusCode, preview),
+		})
+		return
+	}
+
+	// 检查响应体是否为空
+	if len(body) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "OpenList API返回空响应"})
 		return
 	}
 

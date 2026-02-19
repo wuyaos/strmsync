@@ -58,7 +58,7 @@ func TestBackfillServerUIDs_WithEmptyUIDs(t *testing.T) {
 	// 注意：不指定uid字段，让它保持NULL（uniqueIndex允许多个NULL）
 	db.Exec(`INSERT INTO data_servers (name, type, host, port, api_key, enabled, options, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		"test-server", "clouddrive2", "192.168.1.100", 19798, "key", true, "{}", time.Now(), time.Now())
+		"test-server", "clouddrive2", "127.0.0.1", 19798, "key", true, "{}", time.Now(), time.Now())
 
 	// 创建没有UID的MediaServer记录
 	db.Exec(`INSERT INTO media_servers (name, type, host, port, api_key, enabled, options, created_at, updated_at)
@@ -117,7 +117,7 @@ func TestBackfillServerUIDs_WithExistingUIDs(t *testing.T) {
 	dataServer := &model.DataServer{
 		Name:    "test-server",
 		Type:    "clouddrive2",
-		Host:    "192.168.1.100",
+		Host:    "127.0.0.1",
 		Port:    19798,
 		APIKey:  "key",
 		Enabled: true,
@@ -158,7 +158,7 @@ func TestBackfillServerUIDs_Conflict(t *testing.T) {
 	dataServer1 := &model.DataServer{
 		Name:    "server1",
 		Type:    "clouddrive2",
-		Host:    "192.168.1.100",
+		Host:    "127.0.0.1",
 		Port:    19798,
 		APIKey:  "key",
 		Enabled: true,
@@ -173,7 +173,7 @@ func TestBackfillServerUIDs_Conflict(t *testing.T) {
 	// 创建第二个服务器（相同连接信息，但没有UID）
 	db.Exec(`INSERT INTO data_servers (name, type, host, port, api_key, enabled, options, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		"server2", "clouddrive2", "192.168.1.100", 19798, "key", true, "{}", time.Now(), time.Now())
+		"server2", "clouddrive2", "127.0.0.1", 19798, "key", true, "{}", time.Now(), time.Now())
 
 	// 执行回填
 	stats, err := BackfillServerUIDs(context.Background(), db, logger)
@@ -304,7 +304,7 @@ func TestBackfillConflictDetection(t *testing.T) {
 	server1 := &model.DataServer{
 		Name:    "primary-server",
 		Type:    "clouddrive2",
-		Host:    "192.168.1.100",
+		Host:    "127.0.0.1",
 		Port:    19798,
 		APIKey:  "shared-key",
 		Enabled: true,
@@ -317,7 +317,7 @@ func TestBackfillConflictDetection(t *testing.T) {
 	// 手动插入server2（绕过BeforeCreate）
 	db.Exec(`INSERT INTO data_servers (name, type, host, port, api_key, enabled, options, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		"secondary-server", "clouddrive2", "192.168.1.100", 19798, "shared-key", true, "{}", time.Now(), time.Now())
+		"secondary-server", "clouddrive2", "127.0.0.1", 19798, "shared-key", true, "{}", time.Now(), time.Now())
 
 	stats, err := BackfillServerUIDs(context.Background(), db, logger)
 	if err != nil {

@@ -35,9 +35,11 @@ type DatabaseConfig struct {
 
 // LogConfig 日志设置
 type LogConfig struct {
-	Level string // 日志级别
-	Path  string // 日志目录
-	ToDB  bool   // 是否写入数据库
+	Level     string // 日志级别
+	Path      string // 日志目录
+	ToDB      bool   // 是否写入数据库
+	SQL       bool   // 是否启用SQL日志
+	SQLSlowMs int    // SQL慢查询阈值（毫秒，0表示记录所有）
 }
 
 // SecurityConfig 安全相关设置
@@ -76,9 +78,11 @@ func LoadFromEnv() (*Config, error) {
 			Path: getEnv("DB_PATH", "data.db"),
 		},
 		Log: LogConfig{
-			Level: getEnv("LOG_LEVEL", "info"),
-			Path:  getEnv("LOG_PATH", "logs"),
-			ToDB:  getEnvBool("LOG_TO_DB", false),
+			Level:     getEnv("LOG_LEVEL", "info"),
+			Path:      getEnv("LOG_PATH", "logs"),
+			ToDB:      getEnvBool("LOG_TO_DB", true),
+			SQL:       getEnvBool("LOG_SQL", false),
+			SQLSlowMs: getEnvInt("LOG_SQL_SLOW_MS", 0),
 		},
 		Security: SecurityConfig{
 			EncryptionKey: getEnv("ENCRYPTION_KEY", ""),
@@ -165,6 +169,9 @@ func Validate(cfg *Config) error {
 		// 有效级别
 	default:
 		return fmt.Errorf("日志级别必须是 debug|info|warn|error 之一，当前值: %q", cfg.Log.Level)
+	}
+	if cfg.Log.SQLSlowMs < 0 {
+		return fmt.Errorf("SQL 慢查询阈值不能为负数，当前值: %d", cfg.Log.SQLSlowMs)
 	}
 
 	// 安全验证

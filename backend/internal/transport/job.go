@@ -695,3 +695,95 @@ func (h *JobHandler) StopJob(c *gin.Context) {
 		"message":   fmt.Sprintf("已取消 %d 个任务", len(cancelledTasks)),
 	})
 }
+
+// EnableJob 启用任务
+// PUT /api/jobs/:id/enable
+func (h *JobHandler) EnableJob(c *gin.Context) {
+	id, err := parseUintParam(c, "id")
+	if err != nil {
+		respondError(c, http.StatusBadRequest, "invalid_request", "无效的ID参数", nil)
+		return
+	}
+
+	var job model.Job
+	if err := h.db.First(&job, uint(id)).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			respondError(c, http.StatusNotFound, "not_found", "任务不存在", nil)
+			return
+		}
+		h.logger.Error("查询任务失败", zap.Error(err), zap.Uint64("id", id))
+		respondError(c, http.StatusInternalServerError, "db_error", "查询失败", nil)
+		return
+	}
+
+	if job.Enabled {
+		c.JSON(http.StatusOK, gin.H{"job": job})
+		return
+	}
+
+	if err := h.db.Model(&job).Update("enabled", true).Error; err != nil {
+		h.logger.Error("启用任务失败", zap.Error(err), zap.Uint("job_id", job.ID))
+		respondError(c, http.StatusInternalServerError, "db_error", "更新失败", nil)
+		return
+	}
+	job.Enabled = true
+
+	h.logger.Info("启用任务成功", zap.Uint("job_id", job.ID))
+
+	// 通知调度器
+	if h.scheduler != nil {
+		if err := h.scheduler.UpsertJob(c.Request.Context(), job); err != nil {
+			h.logger.Error("调度器更新失败", zap.Error(err), zap.Uint("job_id", job.ID))
+			respondError(c, http.StatusInternalServerError, "scheduler_error", "调度器更新失败", nil)
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"job": job})
+}
+
+// DisableJob 禁用任务
+// PUT /api/jobs/:id/disable
+func (h *JobHandler) DisableJob(c *gin.Context) {
+	id, err := parseUintParam(c, "id")
+	if err != nil {
+		respondError(c, http.StatusBadRequest, "invalid_request", "无效的ID参数", nil)
+		return
+	}
+
+	var job model.Job
+	if err := h.db.First(&job, uint(id)).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			respondError(c, http.StatusNotFound, "not_found", "任务不存在", nil)
+			return
+		}
+		h.logger.Error("查询任务失败", zap.Error(err), zap.Uint64("id", id))
+		respondError(c, http.StatusInternalServerError, "db_error", "查询失败", nil)
+		return
+	}
+
+	if !job.Enabled {
+		c.JSON(http.StatusOK, gin.H{"job": job})
+		return
+	}
+
+	if err := h.db.Model(&job).Update("enabled", false).Error; err != nil {
+		h.logger.Error("禁用任务失败", zap.Error(err), zap.Uint("job_id", job.ID))
+		respondError(c, http.StatusInternalServerError, "db_error", "更新失败", nil)
+		return
+	}
+	job.Enabled = false
+
+	h.logger.Info("禁用任务成功", zap.Uint("job_id", job.ID))
+
+	// 通知调度器
+	if h.scheduler != nil {
+		if err := h.scheduler.RemoveJob(c.Request.Context(), job.ID); err != nil {
+			h.logger.Error("调度器移除失败", zap.Error(err), zap.Uint("job_id", job.ID))
+			respondError(c, http.StatusInternalServerError, "scheduler_error", "调度器更新失败", nil)
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"job": job})
+}

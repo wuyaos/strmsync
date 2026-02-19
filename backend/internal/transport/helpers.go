@@ -3,6 +3,7 @@ package http
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -27,6 +28,14 @@ type ErrorResponse struct {
 	FieldErrors []FieldError `json:"field_errors,omitempty"` // 字段级错误（可选）
 }
 
+// ValidationErrorResponse 参数验证错误响应格式（结构化）
+// 用于返回字段级验证错误，便于前端精确展示
+type ValidationErrorResponse struct {
+	Code    int                 `json:"code"`    // HTTP 状态码
+	Message string              `json:"message"` // 错误消息
+	Errors  map[string][]string `json:"errors"`  // 字段错误映射 {"field_name": ["error1", "error2"]}
+}
+
 // respondError 返回统一格式的错误响应
 func respondError(c *gin.Context, status int, code, message string, fieldErrors []FieldError) {
 	c.JSON(status, ErrorResponse{
@@ -37,8 +46,13 @@ func respondError(c *gin.Context, status int, code, message string, fieldErrors 
 }
 
 // respondValidationError 返回参数验证错误（400）
+// 使用结构化错误响应格式，便于前端展示
 func respondValidationError(c *gin.Context, fieldErrors []FieldError) {
-	respondError(c, http.StatusBadRequest, "invalid_request", "请求参数无效", fieldErrors)
+	c.JSON(http.StatusBadRequest, ValidationErrorResponse{
+		Code:    http.StatusBadRequest,
+		Message: "validation failed",
+		Errors:  fieldErrorsToMap(fieldErrors),
+	})
 }
 
 // ================== 分页参数 ==================
@@ -152,6 +166,177 @@ func validateJSONString(field, jsonStr string, errs *[]FieldError) {
 		})
 	}
 }
+
+// parseOptionsMap 解析 options JSON 字符串为 map
+func parseOptionsMap(options string) (map[string]interface{}, error) {
+	options = strings.TrimSpace(options)
+	if options == "" {
+		return map[string]interface{}{}, nil
+	}
+
+	var out map[string]interface{}
+	if err := json.Unmarshal([]byte(options), &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// getOptionString 从 options map 中获取字符串值
+func getOptionString(options map[string]interface{}, key string) string {
+	if options == nil {
+		return ""
+	}
+	val, ok := options[key]
+	if !ok || val == nil {
+		return ""
+	}
+	if s, ok := val.(string); ok {
+		return strings.TrimSpace(s)
+	}
+	return strings.TrimSpace(fmt.Sprintf("%v", val))
+}
+
+// validateOptionRequiredString 验证 options 中的必填字符串字段
+func validateOptionRequiredString(field string, options map[string]interface{}, errs *[]FieldError) {
+	if strings.TrimSpace(getOptionString(options, field)) == "" {
+		*errs = append(*errs, FieldError{
+			Field:   field,
+			Message: "必填字段不能为空",
+		})
+	}
+}
+
+// validateOptionEnum 验证 options 中的枚举字段
+func validateOptionEnum(field string, options map[string]interface{}, allowed []string, errs *[]FieldError) {
+	value := strings.TrimSpace(getOptionString(options, field))
+	if value == "" {
+		return
+	}
+	for _, allowedValue := range allowed {
+		if value == allowedValue {
+			return
+		}
+	}
+	*errs = append(*errs, FieldError{
+		Field:   field,
+		Message: "无效的值，允许值为: " + strings.Join(allowed, ", "),
+	})
+}
+
+// fieldErrorsToMap 将 FieldError 切片转换为映射格式
+// 用于结构化错误响应
+func fieldErrorsToMap(fieldErrors []FieldError) map[string][]string {
+	result := make(map[string][]string)
+	for _, fe := range fieldErrors {
+		field := strings.TrimSpace(fe.Field)
+		if field == "" {
+			field = "_"
+		}
+		result[field] = append(result[field], fe.Message)
+	}
+	return result
+}
+
+// validateDataServerRequest 验证数据服务器配置请求参数（包含类型特定规则）
+//
+// 此函数针对数据服务器（local/clouddrive2/openlist）进行类型特定的验证
+// 根据服务器类型的不同，应用不同的验证规则
+//
+// 参数：
+//   - name: 服务器名称（必填）
+//   - stype: 服务器类型（必填，local/clouddrive2/openlist）
+//   - host: 主机地址（根据类型要求不同）
+//   - port: 端口号（根据类型要求不同）
+//   - apiKey: API 密钥（根据类型要求不同）
+//   - options: JSON 配置字符串（包含扩展字段）
+//
+// 返回：
+//   - []FieldError: 字段验证错误列表（为空表示验证通过）
+func validateDataServerRequest(
+	name, stype, host string,
+	port int,
+	apiKey string,
+	options string,
+) []FieldError {
+	var fieldErrors []FieldError
+
+	// 基础字段验证
+	validateRequiredString("name", name, &fieldErrors)
+	validateRequiredString("type", stype, &fieldErrors)
+
+	stype = strings.TrimSpace(stype)
+	validateEnum("type", stype, allowedDataServerTypes(), &fieldErrors)
+	validateJSONString("options", options, &fieldErrors)
+
+	// 解析 options
+	optionsMap, err := parseOptionsMap(options)
+	if err != nil {
+		fieldErrors = append(fieldErrors, FieldError{
+			Field:   "options",
+			Message: "无效的JSON格式: " + err.Error(),
+		})
+		return fieldErrors
+	}
+
+	// 类型特定验证
+	switch stype {
+	case "local":
+		// Local 类型：路径验证（host/port 由后端自动设置）
+		validateOptionRequiredString("access_path", optionsMap, &fieldErrors)
+
+	case "clouddrive2":
+		// CloudDrive2 类型：需要 host、port、api_token、访问目录、挂载目录
+		validateRequiredString("host", host, &fieldErrors)
+		if port == 0 {
+			fieldErrors = append(fieldErrors, FieldError{Field: "port", Message: "必填字段不能为空"})
+		} else {
+			validatePort("port", port, &fieldErrors)
+		}
+		if strings.TrimSpace(apiKey) == "" {
+			fieldErrors = append(fieldErrors, FieldError{Field: "api_key", Message: "必填字段不能为空"})
+		}
+		// 路径验证：访问目录与挂载目录均必填
+		validateOptionRequiredString("access_path", optionsMap, &fieldErrors)
+		validateOptionRequiredString("mount_path", optionsMap, &fieldErrors)
+
+	case "openlist":
+		// OpenList 类型：需要 host、port、用户名密码
+		validateRequiredString("host", host, &fieldErrors)
+		if port == 0 {
+			fieldErrors = append(fieldErrors, FieldError{Field: "port", Message: "必填字段不能为空"})
+		} else {
+			validatePort("port", port, &fieldErrors)
+		}
+		// 认证信息验证：用户名/密码必填
+		validateOptionRequiredString("username", optionsMap, &fieldErrors)
+		validateOptionRequiredString("password", optionsMap, &fieldErrors)
+
+		// 路径验证：要么都不填（API方式），要么都填（本地方式）
+		accessPath := getOptionString(optionsMap, "access_path")
+		mountPath := getOptionString(optionsMap, "mount_path")
+		hasAccessPath := strings.TrimSpace(accessPath) != ""
+		hasMountPath := strings.TrimSpace(mountPath) != ""
+
+		if hasAccessPath || hasMountPath {
+			// 如果填了其中一个，则两个都必填
+			validateOptionRequiredString("access_path", optionsMap, &fieldErrors)
+			validateOptionRequiredString("mount_path", optionsMap, &fieldErrors)
+		}
+
+	default:
+		fieldErrors = append(fieldErrors, FieldError{Field: "type", Message: "不支持的服务器类型"})
+	}
+
+	// SSRF 检查（非 local 类型）
+	if stype != "local" && strings.TrimSpace(host) != "" {
+		if allowed, _, msg := validateHostForSSRF(host); !allowed {
+			fieldErrors = append(fieldErrors, FieldError{Field: "host", Message: msg})
+		}
+	}
+
+	return fieldErrors
+}
+
 
 // validateServerRequest 验证服务器配置请求参数
 //

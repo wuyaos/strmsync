@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -25,6 +24,23 @@ type DataServerHandler struct {
 	logger *zap.Logger
 }
 
+// dataServerRequest 数据服务器请求结构
+type dataServerRequest struct {
+	Name    string `json:"name"`
+	Type    string `json:"type"` // local/clouddrive2/openlist
+	Host    string `json:"host"`
+	Port    int    `json:"port"`
+	APIKey  string `json:"api_key"`
+	Enabled *bool  `json:"enabled"`
+	Options string `json:"options"`
+	// QoS 字段（独立列，可覆盖全局默认值）
+	RequestTimeoutMs *int `json:"request_timeout_ms,omitempty"`
+	ConnectTimeoutMs *int `json:"connect_timeout_ms,omitempty"`
+	RetryMax         *int `json:"retry_max,omitempty"`
+	RetryBackoffMs   *int `json:"retry_backoff_ms,omitempty"`
+	MaxConcurrent    *int `json:"max_concurrent,omitempty"`
+}
+
 // NewDataServerHandler 创建数据服务器处理器
 func NewDataServerHandler(db *gorm.DB, logger *zap.Logger) *DataServerHandler {
 	return &DataServerHandler{
@@ -36,23 +52,15 @@ func NewDataServerHandler(db *gorm.DB, logger *zap.Logger) *DataServerHandler {
 // CreateDataServer 创建数据服务器
 // POST /api/servers/data
 func (h *DataServerHandler) CreateDataServer(c *gin.Context) {
-	var req struct {
-		Name    string `json:"name"`
-		Type    string `json:"type"` // clouddrive2/openlist
-		Host    string `json:"host"`
-		Port    int    `json:"port"`
-		APIKey  string `json:"api_key"`
-		Enabled *bool  `json:"enabled"`
-		Options string `json:"options"`
-	}
+	var req dataServerRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		respondError(c, http.StatusBadRequest, "invalid_request", "请求体格式错误", nil)
 		return
 	}
 
-	// 参数验证（使用组合验证器）
-	fieldErrors := validateServerRequest(req.Name, req.Type, req.Host, req.Port, req.Options, allowedDataServerTypes())
+	// 参数验证（使用类型特定验证器）
+	fieldErrors := validateDataServerRequest(req.Name, req.Type, req.Host, req.Port, req.APIKey, req.Options)
 	if len(fieldErrors) > 0 {
 		respondValidationError(c, fieldErrors)
 		return
@@ -78,21 +86,59 @@ func (h *DataServerHandler) CreateDataServer(c *gin.Context) {
 		enabled = *req.Enabled
 	}
 
+	// QoS 默认值（允许前端不传，使用数据库默认值）
+	requestTimeoutMs := 30000
+	if req.RequestTimeoutMs != nil {
+		requestTimeoutMs = *req.RequestTimeoutMs
+	}
+	connectTimeoutMs := 10000
+	if req.ConnectTimeoutMs != nil {
+		connectTimeoutMs = *req.ConnectTimeoutMs
+	}
+	retryMax := 3
+	if req.RetryMax != nil {
+		retryMax = *req.RetryMax
+	}
+	retryBackoffMs := 1000
+	if req.RetryBackoffMs != nil {
+		retryBackoffMs = *req.RetryBackoffMs
+	}
+	maxConcurrent := 10
+	if req.MaxConcurrent != nil {
+		maxConcurrent = *req.MaxConcurrent
+	}
+
 	// 创建数据服务器
 	server := model.DataServer{
-		Name:    strings.TrimSpace(req.Name),
-		Type:    strings.TrimSpace(req.Type),
-		Host:    strings.TrimSpace(req.Host),
-		Port:    req.Port,
-		APIKey:  strings.TrimSpace(req.APIKey),
-		Enabled: enabled,
-		Options: strings.TrimSpace(req.Options),
+		Name:             strings.TrimSpace(req.Name),
+		Type:             strings.TrimSpace(req.Type),
+		Host:             strings.TrimSpace(req.Host),
+		Port:             req.Port,
+		APIKey:           strings.TrimSpace(req.APIKey),
+		Enabled:          enabled,
+		Options:          strings.TrimSpace(req.Options),
+		RequestTimeoutMs: requestTimeoutMs,
+		ConnectTimeoutMs: connectTimeoutMs,
+		RetryMax:         retryMax,
+		RetryBackoffMs:   retryBackoffMs,
+		MaxConcurrent:    maxConcurrent,
+	}
+
+	// Local 类型特殊处理：强制设置 host 和 port
+	if strings.EqualFold(server.Type, "local") {
+		server.Host = "localhost"
+		server.Port = 0
 	}
 
 	if err := h.db.Create(&server).Error; err != nil {
 		// 检查是否为唯一约束错误
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") ||
 			strings.Contains(err.Error(), "duplicate key") {
+			// 区分是名称重复还是配置重复（UID冲突）
+			if strings.Contains(err.Error(), "uid") || strings.Contains(err.Error(), "UID") {
+				respondError(c, http.StatusConflict, "duplicate_config", "相同配置的服务器已存在，请修改服务器配置", nil)
+				return
+			}
 			respondError(c, http.StatusConflict, "duplicate_name", "服务器名称已存在", nil)
 			return
 		}
@@ -197,23 +243,15 @@ func (h *DataServerHandler) UpdateDataServer(c *gin.Context) {
 		return
 	}
 
-	var req struct {
-		Name    string `json:"name"`
-		Type    string `json:"type"` // clouddrive2/openlist
-		Host    string `json:"host"`
-		Port    int    `json:"port"`
-		APIKey  string `json:"api_key"`
-		Enabled *bool  `json:"enabled"`
-		Options string `json:"options"`
-	}
+	var req dataServerRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		respondError(c, http.StatusBadRequest, "invalid_request", "请求体格式错误", nil)
 		return
 	}
 
-	// 参数验证（使用组合验证器）
-	fieldErrors := validateServerRequest(req.Name, req.Type, req.Host, req.Port, req.Options, allowedDataServerTypes())
+	// 参数验证（使用类型特定验证器）
+	fieldErrors := validateDataServerRequest(req.Name, req.Type, req.Host, req.Port, req.APIKey, req.Options)
 	if len(fieldErrors) > 0 {
 		respondValidationError(c, fieldErrors)
 		return
@@ -259,10 +297,38 @@ func (h *DataServerHandler) UpdateDataServer(c *gin.Context) {
 		server.Enabled = *req.Enabled
 	}
 
+	// 更新 QoS 字段（如果前端提供）
+	if req.RequestTimeoutMs != nil {
+		server.RequestTimeoutMs = *req.RequestTimeoutMs
+	}
+	if req.ConnectTimeoutMs != nil {
+		server.ConnectTimeoutMs = *req.ConnectTimeoutMs
+	}
+	if req.RetryMax != nil {
+		server.RetryMax = *req.RetryMax
+	}
+	if req.RetryBackoffMs != nil {
+		server.RetryBackoffMs = *req.RetryBackoffMs
+	}
+	if req.MaxConcurrent != nil {
+		server.MaxConcurrent = *req.MaxConcurrent
+	}
+
+	// Local 类型特殊处理：强制设置 host 和 port
+	if strings.EqualFold(server.Type, "local") {
+		server.Host = "localhost"
+		server.Port = 0
+	}
+
 	if err := h.db.Save(&server).Error; err != nil {
 		// 检查是否为唯一约束错误
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") ||
 			strings.Contains(err.Error(), "duplicate key") {
+			// 区分是名称重复还是配置重复（UID冲突）
+			if strings.Contains(err.Error(), "uid") || strings.Contains(err.Error(), "UID") {
+				respondError(c, http.StatusConflict, "duplicate_config", "相同配置的服务器已存在，请修改服务器配置", nil)
+				return
+			}
 			respondError(c, http.StatusConflict, "duplicate_name", "服务器名称已存在", nil)
 			return
 		}
@@ -393,6 +459,64 @@ func (h *DataServerHandler) TestDataServerConnection(c *gin.Context) {
 
 	h.logger.Info("测试数据服务器连接",
 		zap.Uint("id", server.ID),
+		zap.String("type", server.Type),
+		zap.Bool("success", result.Success),
+		zap.Int64("latency_ms", result.LatencyMs))
+
+	c.JSON(http.StatusOK, result)
+}
+
+// TestDataServerTemp 临时测试数据服务器连接（未保存）
+// POST /api/servers/data/test
+func (h *DataServerHandler) TestDataServerTemp(c *gin.Context) {
+	var req dataServerRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, "invalid_request", "请求体格式错误", nil)
+		return
+	}
+
+	// 参数验证（使用类型特定验证器）
+	fieldErrors := validateDataServerRequest(req.Name, req.Type, req.Host, req.Port, req.APIKey, req.Options)
+	if len(fieldErrors) > 0 {
+		respondValidationError(c, fieldErrors)
+		return
+	}
+
+	// 组装临时数据服务器（不保存）
+	server := model.DataServer{
+		Name:    strings.TrimSpace(req.Name),
+		Type:    strings.TrimSpace(req.Type),
+		Host:    strings.TrimSpace(req.Host),
+		Port:    req.Port,
+		APIKey:  strings.TrimSpace(req.APIKey),
+		Enabled: true,
+		Options: strings.TrimSpace(req.Options),
+	}
+
+	// Local 类型特殊处理：强制设置 host 和 port
+	if strings.EqualFold(server.Type, "local") {
+		server.Host = "localhost"
+		server.Port = 0
+	}
+
+	var result ConnectionTestResult
+	switch strings.TrimSpace(server.Type) {
+	case "clouddrive2":
+		result = testCloudDrive2Connection(server, h.logger)
+	case "openlist":
+		result = testOpenListConnection(server, h.logger)
+	case "local":
+		// local 类型无需远程连接，直接返回成功
+		result = ConnectionTestResult{
+			Success: true,
+			Message: "本地数据源无需测试连接",
+		}
+	default:
+		respondError(c, http.StatusBadRequest, "invalid_type", "不支持的服务器类型", nil)
+		return
+	}
+
+	h.logger.Info("临时测试数据服务器连接",
 		zap.String("type", server.Type),
 		zap.Bool("success", result.Success),
 		zap.Int64("latency_ms", result.LatencyMs))
@@ -557,12 +681,7 @@ func testOpenListConnection(server model.DataServer, logger *zap.Logger) Connect
 
 // allowedDataServerTypes 返回允许的数据服务器类型列表
 //
-// 生产环境仅允许 clouddrive2 和 openlist。
-// 测试环境（ALLOW_LOCAL_DATASERVER=true）额外允许 local 类型。
+// 支持三种类型：local（本地文件系统）、clouddrive2（CloudDrive2服务）、openlist（OpenList服务）
 func allowedDataServerTypes() []string {
-	types := []string{"clouddrive2", "openlist"}
-	if strings.EqualFold(os.Getenv("ALLOW_LOCAL_DATASERVER"), "true") {
-		types = append(types, "local")
-	}
-	return types
+	return []string{"local", "clouddrive2", "openlist"}
 }

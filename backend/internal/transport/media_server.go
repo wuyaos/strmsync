@@ -39,6 +39,12 @@ func (h *MediaServerHandler) CreateMediaServer(c *gin.Context) {
 		APIKey  string `json:"api_key"`
 		Enabled *bool  `json:"enabled"`
 		Options string `json:"options"`
+		// QoS 字段（独立列，可覆盖全局默认值）
+		RequestTimeoutMs *int `json:"request_timeout_ms,omitempty"`
+		ConnectTimeoutMs *int `json:"connect_timeout_ms,omitempty"`
+		RetryMax         *int `json:"retry_max,omitempty"`
+		RetryBackoffMs   *int `json:"retry_backoff_ms,omitempty"`
+		MaxConcurrent    *int `json:"max_concurrent,omitempty"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -73,15 +79,42 @@ func (h *MediaServerHandler) CreateMediaServer(c *gin.Context) {
 		enabled = *req.Enabled
 	}
 
+	// QoS 默认值（允许前端不传，使用数据库默认值）
+	requestTimeoutMs := 30000
+	if req.RequestTimeoutMs != nil {
+		requestTimeoutMs = *req.RequestTimeoutMs
+	}
+	connectTimeoutMs := 10000
+	if req.ConnectTimeoutMs != nil {
+		connectTimeoutMs = *req.ConnectTimeoutMs
+	}
+	retryMax := 3
+	if req.RetryMax != nil {
+		retryMax = *req.RetryMax
+	}
+	retryBackoffMs := 1000
+	if req.RetryBackoffMs != nil {
+		retryBackoffMs = *req.RetryBackoffMs
+	}
+	maxConcurrent := 10
+	if req.MaxConcurrent != nil {
+		maxConcurrent = *req.MaxConcurrent
+	}
+
 	// 创建媒体服务器
 	server := model.MediaServer{
-		Name:    strings.TrimSpace(req.Name),
-		Type:    strings.TrimSpace(req.Type),
-		Host:    strings.TrimSpace(req.Host),
-		Port:    req.Port,
-		APIKey:  strings.TrimSpace(req.APIKey),
-		Enabled: enabled,
-		Options: strings.TrimSpace(req.Options),
+		Name:             strings.TrimSpace(req.Name),
+		Type:             strings.TrimSpace(req.Type),
+		Host:             strings.TrimSpace(req.Host),
+		Port:             req.Port,
+		APIKey:           strings.TrimSpace(req.APIKey),
+		Enabled:          enabled,
+		Options:          strings.TrimSpace(req.Options),
+		RequestTimeoutMs: requestTimeoutMs,
+		ConnectTimeoutMs: connectTimeoutMs,
+		RetryMax:         retryMax,
+		RetryBackoffMs:   retryBackoffMs,
+		MaxConcurrent:    maxConcurrent,
 	}
 
 	if err := h.db.Create(&server).Error; err != nil {
@@ -200,6 +233,12 @@ func (h *MediaServerHandler) UpdateMediaServer(c *gin.Context) {
 		APIKey  string `json:"api_key"`
 		Enabled *bool  `json:"enabled"`
 		Options string `json:"options"`
+		// QoS 字段（独立列，可覆盖全局默认值）
+		RequestTimeoutMs *int `json:"request_timeout_ms,omitempty"`
+		ConnectTimeoutMs *int `json:"connect_timeout_ms,omitempty"`
+		RetryMax         *int `json:"retry_max,omitempty"`
+		RetryBackoffMs   *int `json:"retry_backoff_ms,omitempty"`
+		MaxConcurrent    *int `json:"max_concurrent,omitempty"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -252,6 +291,23 @@ func (h *MediaServerHandler) UpdateMediaServer(c *gin.Context) {
 	server.Options = strings.TrimSpace(req.Options)
 	if req.Enabled != nil {
 		server.Enabled = *req.Enabled
+	}
+
+	// 更新 QoS 字段（如果前端提供）
+	if req.RequestTimeoutMs != nil {
+		server.RequestTimeoutMs = *req.RequestTimeoutMs
+	}
+	if req.ConnectTimeoutMs != nil {
+		server.ConnectTimeoutMs = *req.ConnectTimeoutMs
+	}
+	if req.RetryMax != nil {
+		server.RetryMax = *req.RetryMax
+	}
+	if req.RetryBackoffMs != nil {
+		server.RetryBackoffMs = *req.RetryBackoffMs
+	}
+	if req.MaxConcurrent != nil {
+		server.MaxConcurrent = *req.MaxConcurrent
 	}
 
 	if err := h.db.Save(&server).Error; err != nil {
@@ -574,4 +630,84 @@ func testPlexConnection(server model.MediaServer, logger *zap.Logger) Connection
 			"http_status": resp.StatusCode,
 		},
 	}
+}
+
+// TestMediaServerTemp 临时测试媒体服务器连接（未保存）
+// POST /api/servers/media/test
+func (h *MediaServerHandler) TestMediaServerTemp(c *gin.Context) {
+	var req struct {
+		Name    string `json:"name"`
+		Type    string `json:"type"` // emby/jellyfin/plex
+		Host    string `json:"host"`
+		Port    int    `json:"port"`
+		APIKey  string `json:"api_key"`
+		Enabled *bool  `json:"enabled"`
+		Options string `json:"options"`
+		// QoS 字段（独立列，可覆盖全局默认值）
+		RequestTimeoutMs *int `json:"request_timeout_ms,omitempty"`
+		ConnectTimeoutMs *int `json:"connect_timeout_ms,omitempty"`
+		RetryMax         *int `json:"retry_max,omitempty"`
+		RetryBackoffMs   *int `json:"retry_backoff_ms,omitempty"`
+		MaxConcurrent    *int `json:"max_concurrent,omitempty"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, "invalid_request", "请求体格式错误", nil)
+		return
+	}
+
+	// 参数验证（使用组合验证器）
+	fieldErrors := validateServerRequest(req.Name, req.Type, req.Host, req.Port, req.Options, []string{"emby", "jellyfin", "plex"})
+	if len(fieldErrors) > 0 {
+		respondValidationError(c, fieldErrors)
+		return
+	}
+
+	// 组装临时媒体服务器（不保存）
+	server := model.MediaServer{
+		Name:    strings.TrimSpace(req.Name),
+		Type:    strings.TrimSpace(req.Type),
+		Host:    strings.TrimSpace(req.Host),
+		Port:    req.Port,
+		APIKey:  strings.TrimSpace(req.APIKey),
+		Enabled: true,
+		Options: strings.TrimSpace(req.Options),
+	}
+
+	// SSRF防护
+	allowed, isPrivate, message := validateHostForSSRF(server.Host)
+	if !allowed {
+		h.logger.Warn("拒绝测试危险地址",
+			zap.String("host", server.Host),
+			zap.String("reason", message))
+		respondError(c, http.StatusBadRequest, "invalid_host", message, nil)
+		return
+	}
+
+	// 如果是内网地址，记录警告但允许访问
+	if isPrivate {
+		h.logger.Warn("测试内网地址（SSRF风险）",
+			zap.String("host", server.Host),
+			zap.Int("port", server.Port))
+	}
+
+	var result ConnectionTestResult
+	switch strings.TrimSpace(server.Type) {
+	case "emby":
+		result = testEmbyConnection(server, h.logger)
+	case "jellyfin":
+		result = testJellyfinConnection(server, h.logger)
+	case "plex":
+		result = testPlexConnection(server, h.logger)
+	default:
+		respondError(c, http.StatusBadRequest, "invalid_type", "不支持的服务器类型", nil)
+		return
+	}
+
+	h.logger.Info("临时测试媒体服务器连接",
+		zap.String("type", server.Type),
+		zap.Bool("success", result.Success),
+		zap.Int64("latency_ms", result.LatencyMs))
+
+	c.JSON(http.StatusOK, result)
 }
