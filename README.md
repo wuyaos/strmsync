@@ -99,6 +99,11 @@ strm/
 │   │   └── router/             # 路由配置
 │   └── package.json
 │
+├── dist/                       # 构建产物（可执行文件 + web_statics + .env）
+│   ├── strmsync
+│   ├── web_statics/
+│   └── .env
+│
 ├── docs/                       # 文档
 │   ├── HTTP_API.md             # HTTP API文档
 │   ├── DEPLOYMENT.md           # 部署文档
@@ -138,7 +143,27 @@ strm/
 **依赖服务**（开发测试）:
 - CloudDrive2: http://192.168.123.179:19798
 
-### 后端开发
+### 合并部署构建
+
+```bash
+make build
+```
+
+构建产物位于 `dist/`：
+- `dist/strmsync`（可执行文件）
+- `dist/web_statics/`（前端静态文件）
+- `dist/.env`（由项目根目录 `.env` 复制，若不存在则从 `.env.example` 生成）
+- `dist/prod-start.sh`（启动脚本）
+
+运行（工作目录为可执行文件所在目录）：
+
+```bash
+./dist/prod-start.sh
+# 或
+make run
+```
+
+### 后端开发（可选）
 
 ```bash
 cd backend

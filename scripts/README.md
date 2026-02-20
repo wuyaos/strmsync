@@ -56,7 +56,8 @@ tail -f tests/logs/frontend.log
 - ✅ 清理所有端口占用（包括遗留进程）
 - ✅ 删除 PID 文件
 
----
+# 启动生产服务（工作目录为 dist）
+./dist/prod-start.sh
 
 ### 3. 重启开发环境
 
@@ -76,11 +77,10 @@ sleep 1
 ./scripts/dev-start.sh
 ```
 
----
-
-## ⚙️ 配置文件
-
-### tests/.env.test
+**环境变量配置：**
+- 在项目根目录创建 `.env` 文件
+- 参考 `.env.example` 配置生产环境参数
+- `make build` 会将 `.env` 复制到 `dist/.env`（若不存在则复制 `.env.example`）
 
 测试环境配置，主要参数：
 
