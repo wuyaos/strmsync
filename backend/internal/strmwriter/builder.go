@@ -61,7 +61,7 @@ type ContentBuilder interface {
 //	// 创建HTTP格式生成器
 //	builder, err := NewContentBuilder(StrmFormatHTTP, BuildConfig{
 //	    Format:  StrmFormatHTTP,
-//	    BaseURL: "http://192.168.1.100:19798",
+//	    BaseURL: "http://127.0.0.1:19798",
 //	})
 //
 //	// 创建Local格式生成器

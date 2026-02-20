@@ -96,31 +96,31 @@ func TestURLBuilder(t *testing.T) {
 	}{
 		{
 			name:       "basic URL",
-			baseURL:    "http://192.168.1.100:19798",
+			baseURL:    "http://127.0.0.1:19798",
 			prefix:     "/d",
 			remotePath: "/Movies/Avatar.mp4",
-			want:       "http://192.168.1.100:19798/d/Movies/Avatar.mp4",
+			want:       "http://127.0.0.1:19798/d/Movies/Avatar.mp4",
 		},
 		{
 			name:       "URL with base path",
-			baseURL:    "http://192.168.1.100:19798/api",
+			baseURL:    "http://127.0.0.1:19798/api",
 			prefix:     "/d",
 			remotePath: "/Movies/Avatar.mp4",
-			want:       "http://192.168.1.100:19798/api/d/Movies/Avatar.mp4",
+			want:       "http://127.0.0.1:19798/api/d/Movies/Avatar.mp4",
 		},
 		{
 			name:       "path with double slashes",
-			baseURL:    "http://192.168.1.100:19798",
+			baseURL:    "http://127.0.0.1:19798",
 			prefix:     "/d",
 			remotePath: "/Movies//Avatar.mp4",
-			want:       "http://192.168.1.100:19798/d/Movies/Avatar.mp4",
+			want:       "http://127.0.0.1:19798/d/Movies/Avatar.mp4",
 		},
 		{
 			name:       "path with parent segments",
-			baseURL:    "http://192.168.1.100:19798",
+			baseURL:    "http://127.0.0.1:19798",
 			prefix:     "/d",
 			remotePath: "/Movies/../Videos/Avatar.mp4",
-			want:       "http://192.168.1.100:19798/d/Videos/Avatar.mp4",
+			want:       "http://127.0.0.1:19798/d/Videos/Avatar.mp4",
 		},
 		{
 			name:       "empty base URL",
@@ -196,7 +196,7 @@ func TestNilContext(t *testing.T) {
 	t.Run("URLBuilder", func(t *testing.T) {
 		cfg := strmwriter.BuildConfig{
 			Format:  strmwriter.StrmFormatHTTP,
-			BaseURL: "http://192.168.1.100:19798",
+			BaseURL: "http://127.0.0.1:19798",
 		}
 		builder, _ := strmwriter.NewURLBuilder(cfg)
 		req := strmwriter.BuildRequest{
@@ -232,7 +232,7 @@ func TestContentBuilderFactory(t *testing.T) {
 			name:   "create URL builder",
 			format: strmwriter.StrmFormatHTTP,
 			config: strmwriter.BuildConfig{
-				BaseURL: "http://192.168.1.100:19798",
+				BaseURL: "http://127.0.0.1:19798",
 			},
 			wantErr: false,
 		},
@@ -306,7 +306,7 @@ func TestBuildConfigValidate(t *testing.T) {
 			name: "valid HTTP config",
 			config: strmwriter.BuildConfig{
 				Format:  strmwriter.StrmFormatHTTP,
-				BaseURL: "http://192.168.1.100:19798",
+				BaseURL: "http://127.0.0.1:19798",
 			},
 			wantErr: false,
 		},
@@ -369,7 +369,7 @@ func TestChinese(t *testing.T) {
 	t.Run("URLBuilder with Chinese", func(t *testing.T) {
 		cfg := strmwriter.BuildConfig{
 			Format:  strmwriter.StrmFormatHTTP,
-			BaseURL: "http://192.168.1.100:19798",
+			BaseURL: "http://127.0.0.1:19798",
 		}
 		builder, _ := strmwriter.NewURLBuilder(cfg)
 		req := strmwriter.BuildRequest{
@@ -385,8 +385,8 @@ func TestChinese(t *testing.T) {
 		// URL会对中文进行编码，检查URL是否有效
 		// 注意：url.URL.String() 会自动对非ASCII字符进行编码
 		// 所以生成的URL包含 %E7%94%B5... 等编码是正确的
-		if !strings.HasPrefix(got, "http://192.168.1.100:19798/d/") {
-			t.Errorf("Build() = %v, want URL starting with http://192.168.1.100:19798/d/", got)
+		if !strings.HasPrefix(got, "http://127.0.0.1:19798/d/") {
+			t.Errorf("Build() = %v, want URL starting with http://127.0.0.1:19798/d/", got)
 		}
 		if !strings.HasSuffix(got, ".mp4") {
 			t.Errorf("Build() = %v, want URL ending with .mp4", got)

@@ -43,7 +43,7 @@ type Client struct {
 
 // Config OpenList客户端配置
 type Config struct {
-	BaseURL             string        // 服务器基础URL（如 "http://192.168.1.100:5244"）
+	BaseURL             string        // 服务器基础URL（如 "http://127.0.0.1:5244"）
 	Username            string        // 登录用户名（可选）
 	Password            string        // 登录密码
 	Timeout             time.Duration // HTTP请求超时时间

@@ -144,7 +144,7 @@ const handleCleanup = async () => {
       }
     )
 
-    await cleanupLogs({ retain_days: 7 })
+    await cleanupLogs({ days: 7 })
     ElMessage.success('日志清理成功')
     loadLogs()
   } catch (error) {

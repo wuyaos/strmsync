@@ -83,7 +83,7 @@ func (r BuildRequest) Validate() error {
 // 不同格式需要不同的配置项：
 //
 // HTTP格式必需：
-//   - BaseURL: 服务器基础URL（如 "http://192.168.1.100:19798"）
+//   - BaseURL: 服务器基础URL（如 "http://127.0.0.1:19798"）
 //   - URLPathPrefix: URL路径前缀（如 "/d"，OpenList使用）
 //
 // Local格式必需：

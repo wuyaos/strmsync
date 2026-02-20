@@ -25,14 +25,14 @@ import (
 //
 //	builder, _ := NewURLBuilder(BuildConfig{
 //	    Format:        StrmFormatHTTP,
-//	    BaseURL:       "http://192.168.1.100:19798",
+//	    BaseURL:       "http://127.0.0.1:19798",
 //	    URLPathPrefix: "/d",
 //	})
 //	content, _ := builder.Build(ctx, BuildRequest{
 //	    RemotePath: "/本地存储/电影/阿凡达.mp4",
 //	    ServerID:   1,
 //	})
-//	// 结果: "http://192.168.1.100:19798/d/本地存储/电影/阿凡达.mp4"
+//	// 结果: "http://127.0.0.1:19798/d/本地存储/电影/阿凡达.mp4"
 //
 // 路径处理说明：
 // - 中文和特殊字符保持原样（不进行URL编码）

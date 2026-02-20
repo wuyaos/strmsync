@@ -2,13 +2,13 @@
 
 > 基于Go + Vue 3的高性能STRM文件管理系统，支持CloudDrive2 gRPC集成
 
-[![Go Version](https://img.shields.io/badge/Go-1.26-blue.svg)](https://golang.org)
+[![Go Version](https://img.shields.io/badge/Go-1.24-blue.svg)](https://golang.org)
 [![Vue Version](https://img.shields.io/badge/Vue-3.x-green.svg)](https://vuejs.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## 🎯 项目状态
 
-当前开发阶段：**Phase 1 - Service业务逻辑层重构**
+当前开发阶段：**Phase 2 - 全链路集成与优化**
 
 ### 已完成
 - ✅ 数据库模型层（GORM + SQLite）
@@ -16,31 +16,30 @@
 - ✅ CloudDrive2 gRPC集成（proto 0.9.24）
 - ✅ Service层核心组件（Job、TaskRun、Executor、Planner、StrmGenerator）
 - ✅ 并发安全优化（竞态窗口消除、Cancel幂等性）
-
-### 进行中
-- 🔄 Filesystem客户端完善（provider模式扩展）
+- ✅ 前端页面和组件重构（Vue 3 + Composition API）
+- ✅ 全链路测试和代码清理
+- ✅ Filesystem客户端完善（provider模式扩展）
 
 ### 待开发
-- ⏳ 前端页面和组件重构
-- ⏳ 全链路集成测试
 - ⏳ Docker部署方案
+- ⏳ 完整的E2E自动化测试
 
 ---
 
 ## 🏗️ 技术架构
 
 ### 后端
-- **语言**: Go 1.26.0
+- **语言**: Go 1.24.0
 - **框架**: Gin（HTTP）+ gRPC
 - **数据库**: SQLite + GORM
 - **日志**: Zap（结构化日志）
 - **并发**: errgroup + context管理
 
 ### 前端
-- **框架**: Vue 3（Composition API）
+- **框架**: Vue 3（Composition API + `<script setup>`）
 - **UI库**: Element Plus
-- **构建**: Vite
-- **状态管理**: Pinia
+- **构建**: Vite 5
+- **HTTP客户端**: Axios
 - **路由**: Vue Router
 
 ### CloudDrive2集成
@@ -56,69 +55,72 @@
 ```
 strm/
 ├── backend/                    # Go后端
-│   ├── core/                   # 数据库模型（GORM）
-│   ├── handler/                # HTTP API处理器
-│   ├── service/                # 业务逻辑层
-│   │   ├── job.go              # Job服务（并发控制）
-│   │   ├── taskrun.go          # TaskRun服务
-│   │   ├── executor.go         # 任务执行器
-│   │   ├── planner.go          # 同步计划器
-│   │   └── strm.go             # STRM生成器
-│   ├── filesystem/             # 文件系统客户端（provider模式）
-│   │   ├── client.go           # 通用框架
-│   │   ├── openlist.go         # OpenList Provider
-│   │   ├── local.go            # Local Provider
-│   │   └── clouddrive2.go      # CloudDrive2 gRPC客户端
-│   ├── mediaserver/            # 媒体服务器客户端（adapter模式）
-│   │   ├── client.go           # 通用框架
-│   │   ├── emby.go             # Emby Adapter
-│   │   └── jellyfin.go         # Jellyfin Adapter
-│   ├── utils/                  # 工具函数
-│   ├── main.go                 # 应用入口
+│   ├── cmd/                    # 命令行入口
+│   │   └── server/             # HTTP服务器
+│   │       └── main.go         # 应用入口
+│   ├── internal/               # 内部包（不对外暴露）
+│   │   ├── app/                # 应用层（业务逻辑）
+│   │   │   ├── job/            # Job服务
+│   │   │   ├── taskrun/        # TaskRun服务
+│   │   │   ├── sync/           # 同步执行器
+│   │   │   └── file/           # 文件处理
+│   │   ├── domain/             # 领域层（模型和仓库）
+│   │   │   └── model/          # GORM数据模型
+│   │   ├── transport/          # 传输层（HTTP handlers）
+│   │   │   ├── filesystem_server.go
+│   │   │   ├── media_server.go
+│   │   │   ├── job.go
+│   │   │   └── task_run.go
+│   │   ├── infra/              # 基础设施层
+│   │   │   ├── filesystem/     # 文件系统客户端（provider模式）
+│   │   │   ├── mediaserver/    # 媒体服务器客户端（adapter模式）
+│   │   │   └── db/             # 数据库配置
+│   │   └── pkg/                # 公共包
+│   │       ├── logger/         # 日志工具
+│   │       └── crypto/         # 加密工具
 │   ├── go.mod
 │   └── Makefile
 │
-├── frontend/                   # Vue 3前端（待重构）
+├── frontend/                   # Vue 3前端
 │   ├── src/
-│   │   ├── views/              # 页面
+│   │   ├── views/              # 页面组件
+│   │   │   ├── Dashboard.vue   # 仪表盘
+│   │   │   ├── Servers.vue     # 服务器管理
+│   │   │   ├── Jobs.vue        # 任务配置
+│   │   │   ├── TaskRuns.vue    # 执行历史
+│   │   │   ├── Logs.vue        # 日志查看
+│   │   │   └── Settings.vue    # 系统设置
 │   │   ├── api/                # API封装
-│   │   └── components/         # 公共组件
+│   │   │   ├── servers.js      # 服务器API
+│   │   │   ├── jobs.js         # 任务API
+│   │   │   ├── runs.js         # 运行记录API
+│   │   │   └── normalize.js    # 响应标准化
+│   │   ├── layouts/            # 布局组件
+│   │   └── router/             # 路由配置
 │   └── package.json
 │
 ├── docs/                       # 文档
-│   ├── CloudDrive2_Integration.md      # 集成文档
-│   ├── CloudDrive2_gRPC_Setup.md       # gRPC设置指南
-│   ├── CloudDrive2_API.md              # API参考
-│   ├── clouddrive.proto                # Proto定义
-│   ├── Emby_Jellyfin_API.md            # Emby/Jellyfin API
-│   ├── OpenList_API.md                 # OpenList API
-│   ├── IMPLEMENTATION_PLAN.md          # 实施计划
-│   └── README.md                       # 文档索引
+│   ├── HTTP_API.md             # HTTP API文档
+│   ├── DEPLOYMENT.md           # 部署文档
+│   ├── CloudDrive2_Integration.md
+│   ├── CloudDrive2_gRPC_Setup.md
+│   ├── CloudDrive2_API.md
+│   ├── Emby_Jellyfin_API.md
+│   ├── OpenList_API.md
+│   └── README.md               # 文档索引
 │
 ├── scripts/                    # 脚本
 │   ├── start.sh                # 启动脚本
 │   ├── stop.sh                 # 停止脚本
-│   ├── test-api.sh             # API测试
-│   └── gen_clouddrive2_proto.sh # Proto生成
+│   └── test-api.sh             # API测试
 │
 ├── tests/                      # 测试目录
 │   ├── media/                  # 测试媒体文件
-│   ├── output/                 # 测试输出（gitignore）
-│   ├── test.env                # 测试环境变量
-│   └── .env.test               # 测试配置
+│   └── output/                 # 测试输出（gitignore）
 │
-├── .claude/                    # Claude Code工作目录
-│   └── summaries/              # 阶段性总结
-│       ├── STAGE0_SUMMARY.md           # 阶段0总结
-│       ├── DEVELOPMENT_STATUS.md       # 开发状态
-│       ├── PROJECT_SUMMARY.md          # 项目总结
-│       ├── START_GUIDE.md              # 启动指南
-│       ├── TESTING_GUIDE.md            # 测试指南
-│       └── PROJECT_CLEANUP.md          # 项目清理记录
-│
+├── .env.example                # 环境变量示例
 ├── docker-compose.yml          # Docker配置（待完善）
 ├── Makefile                    # 构建脚本
-├── .gitignore                  # Git忽略规则
 └── README.md                   # 本文件
 ```
 
@@ -129,8 +131,8 @@ strm/
 ### 环境准备
 
 **系统要求**:
-- Go 1.26+
-- Node.js 16+
+- Go 1.24+
+- Node.js 18+（Vite 5要求）
 - Make（可选）
 
 **依赖服务**（开发测试）:
@@ -144,8 +146,8 @@ cd backend
 # 安装依赖
 go mod download
 
-# 运行服务
-go run main.go
+# 运行服务（默认端口6754）
+go run ./cmd/server
 
 # 或使用Makefile
 make run
@@ -173,92 +175,143 @@ npm run build
 
 ## 🧪 测试
 
+### 后端测试
+
+```bash
+cd backend
+
+# 运行所有测试
+go test ./...
+
+# 运行特定包的测试
+go test ./internal/app/job
+go test ./internal/app/sync
+```
+
+### 前端开发验证
+
+```bash
+cd frontend
+
+# 开发模式（热重载）
+npm run dev
+
+# 生产构建测试
+npm run build
+```
+
 ### API测试
 
 ```bash
-# 快速API测试
+# 使用测试脚本
 ./scripts/test-api.sh
-```
-
-### 单元测试
-
-```bash
-# 后端测试
-cd backend
-go test ./...
-
-# 前端测试
-cd frontend
-npm test
 ```
 
 ---
 
 ## 📚 文档索引
 
-### 开发文档
-- [CloudDrive2集成文档](docs/CloudDrive2_Integration.md) - gRPC集成详细说明
-- [CloudDrive2测试报告](docs/CloudDrive2_Test_Report.md) - 功能测试报告
-- [已知问题](docs/CloudDrive2_Known_Issues.md) - CloudDrive2已知问题和解决方案
+### API文档
+- [HTTP API文档](docs/HTTP_API.md) - 后端HTTP API详细说明
+- [CloudDrive2 API](docs/CloudDrive2_API.md) - CloudDrive2 gRPC API参考
+- [Emby/Jellyfin API](docs/Emby_Jellyfin_API.md) - 媒体服务器API参考
+- [OpenList API](docs/OpenList_API.md) - OpenList API参考
 
-### 项目总结
-- [阶段0总结](.claude/summaries/STAGE0_SUMMARY.md) - 项目初始化和架构设计
-- [开发状态](.claude/summaries/DEVELOPMENT_STATUS.md) - 当前开发进度
-- [项目总结](.claude/summaries/PROJECT_SUMMARY.md) - 项目整体总结
-- [启动指南](.claude/summaries/START_GUIDE.md) - 快速启动指南
-- [测试指南](.claude/summaries/TESTING_GUIDE.md) - 测试说明
+### 集成文档
+- [CloudDrive2集成文档](docs/CloudDrive2_Integration.md) - gRPC集成详细说明
+- [CloudDrive2 gRPC设置](docs/CloudDrive2_gRPC_Setup.md) - gRPC配置指南
+
+### 运维文档
+- [部署文档](docs/DEPLOYMENT.md) - 生产环境部署指南
 
 ---
 
-## 🔧 API文档
+## 🔧 API概览
 
 ### HTTP API（端口：6754）
 
+**服务器管理**
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/servers` | GET | 获取服务器列表 |
+| `/api/servers` | POST | 创建服务器 |
+| `/api/servers/:id` | GET | 获取服务器详情 |
+| `/api/servers/:id` | PUT | 更新服务器 |
+| `/api/servers/:id` | DELETE | 删除服务器 |
+| `/api/servers/:id/test` | POST | 测试服务器连接 |
+
+**任务管理**
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/jobs` | GET | 获取任务列表 |
+| `/api/jobs` | POST | 创建任务 |
+| `/api/jobs/:id` | GET | 获取任务详情 |
+| `/api/jobs/:id` | PUT | 更新任务 |
+| `/api/jobs/:id` | DELETE | 删除任务 |
+| `/api/jobs/:id/trigger` | POST | 触发任务执行 |
+| `/api/jobs/:id/enable` | POST | 启用任务 |
+| `/api/jobs/:id/disable` | POST | 禁用任务 |
+
+**运行记录**
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/runs` | GET | 获取运行记录列表 |
+| `/api/runs/:id` | GET | 获取运行记录详情 |
+| `/api/runs/:id/cancel` | POST | 取消运行中的任务 |
+
+**系统**
 | 端点 | 方法 | 说明 |
 |------|------|------|
 | `/api/health` | GET | 健康检查 |
-| `/api/servers/data` | GET/POST | 文件系统服务器管理 |
-| `/api/servers/media` | GET/POST | 媒体服务器管理 |
-| `/api/jobs` | GET/POST | 任务管理 |
-| `/api/jobs/:id/run` | POST | 运行任务 |
-| `/api/jobs/:id/stop` | POST | 停止任务 |
-| `/api/runs` | GET | TaskRun记录 |
+| `/api/logs` | GET | 获取日志 |
+| `/api/settings` | GET | 获取系统设置 |
+| `/api/settings` | PUT | 更新系统设置 |
 
-详细API文档见各Handler实现：
-- [backend/handler/filesystem_server.go](backend/handler/filesystem_server.go)
-- [backend/handler/media_server.go](backend/handler/media_server.go)
-- [backend/handler/job.go](backend/handler/job.go)
-- [backend/handler/task_run.go](backend/handler/task_run.go)
+详细API文档请参考 [docs/HTTP_API.md](docs/HTTP_API.md)
 
 ---
 
 ## 🎨 核心特性
 
-### 架构模式
+### 分层架构
 
-**Filesystem（Provider模式）**：
-- 通用框架：`filesystem/client.go`
-- OpenList实现：`filesystem/openlist.go`
-- 本地文件系统：`filesystem/local.go`
-- CloudDrive2 gRPC：`filesystem/clouddrive2.go`
+采用清晰的分层架构：
 
-**MediaServer（Adapter模式）**：
-- 通用框架：`mediaserver/client.go`
-- Emby适配器：`mediaserver/emby.go`
-- Jellyfin适配器：`mediaserver/jellyfin.go`
+1. **Transport层** (`internal/transport`) - HTTP请求处理
+   - 路由注册和请求验证
+   - 请求/响应数据转换
+   - 错误处理和状态码映射
 
-### Service层架构
+2. **App层** (`internal/app`) - 业务逻辑
+   - **job**: Job生命周期管理（并发安全）
+   - **taskrun**: TaskRun记录管理
+   - **sync**: 同步执行器和计划器
+   - **file**: 文件处理和STRM生成
 
-采用清晰的三层架构：
+3. **Domain层** (`internal/domain`) - 领域模型
+   - 数据模型定义（GORM）
+   - 仓库接口
+   - 业务规则验证
 
-1. **Handler层** - HTTP请求处理
-2. **Service层** - 业务逻辑（当前重点）
-   - JobService: Job生命周期管理（并发安全）
-   - TaskRunService: TaskRun记录管理
-   - TaskExecutor: 任务执行编排
-   - SyncPlanner: 同步计划生成
-   - StrmGenerator: STRM文件生成
-3. **Database层** - 数据持久化（GORM）
+4. **Infra层** (`internal/infra`) - 基础设施
+   - **filesystem**: 文件系统客户端（Provider模式）
+   - **mediaserver**: 媒体服务器客户端（Adapter模式）
+   - **db**: 数据库配置和连接管理
+
+### Filesystem Provider模式
+
+统一的文件系统抽象，支持多种数据源：
+- **Local**: 本地文件系统
+- **CloudDrive2**: gRPC集成（h2c）
+- **OpenList**: HTTP API集成
+- **WebDAV**: WebDAV协议支持
+
+### MediaServer Adapter模式
+
+统一的媒体服务器接口，支持多种媒体服务器：
+- **Emby**: Emby Server适配器
+- **Jellyfin**: Jellyfin Server适配器
+- **Plex**: Plex Media Server适配器（规划中）
 
 ### 并发安全保障
 
@@ -273,7 +326,7 @@ npm test
 - **gRPC h2c连接**: 支持HTTP/2明文通信
 - **Proto v0.9.24**: 最新协议版本
 - **健康检查**: SystemReady + HasError双重验证
-- **11项功能测试**: 全面覆盖核心功能
+- **完整测试**: 11项功能测试全面覆盖
 
 ---
 
@@ -301,10 +354,29 @@ npm test
 
 ## 📝 更新日志
 
+### Phase 2 (2026-02-19)
+
+**前端重构**
+- 完成所有页面组件重构（Vue 3 Composition API）
+- 实现响应式列表标准化（normalizeListResponse）
+- 添加用户体验优化（tooltip、局部loading状态）
+- 前后端API字段对齐（cron/status/enabled格式）
+
+**代码质量**
+- 删除未使用的组件和文件
+- 统一错误日志规范
+- Go依赖整理（go mod tidy）
+- .gitignore规则完善
+
+**文档完善**
+- 更新README（项目结构、API列表、环境要求）
+- 创建HTTP API文档
+- 创建部署文档
+
 ### Phase 1 (2026-02-18)
 
-**Service层重构**
-- 完成Job/TaskRun/Executor/Planner/StrmGenerator核心组件
+**架构重构**
+- 完成App层核心组件（job/taskrun/sync/file）
 - 消除并发竞态窗口（3次Codex review迭代）
 - 实现Cancel幂等性和防御性检查
 - 路径验证强化（防路径穿越）
@@ -316,7 +388,7 @@ npm test
 - 创建完整集成文档
 
 **技术债修复**
-- Handler层类型安全（自定义枚举、sentinel errors）
+- Transport层类型安全（自定义枚举、sentinel errors）
 - 数据库并发控制（SELECT FOR UPDATE、uniqueIndex）
 - 批量更新优化（单SQL + RowsAffected检查）
 
@@ -324,7 +396,7 @@ npm test
 
 - 项目初始化和架构设计
 - 数据库模型设计（GORM）
-- Handler基础框架
+- Transport基础框架
 
 ---
 
@@ -346,7 +418,7 @@ MIT License
 ---
 
 **Author**: STRMSync Team
-**Current Phase**: Phase 1 - Service Layer
-**Last Update**: 2026-02-18
-**Go Version**: 1.26.0
+**Current Phase**: Phase 2 - Integration & Optimization
+**Last Update**: 2026-02-19
+**Go Version**: 1.24.0
 **Vue Version**: 3.x

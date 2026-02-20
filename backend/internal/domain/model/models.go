@@ -20,8 +20,14 @@ type DataServer struct {
 	APIKey    string    `gorm:"type:text" json:"api_key"`                          // API密钥(可选)
 	Enabled   bool      `gorm:"not null;default:true" json:"enabled"`              // 是否启用
 	Options   string    `gorm:"type:text" json:"options"`                          // JSON扩展字段
-	CreatedAt time.Time `json:"created_at"`                                        // 创建时间
-	UpdatedAt time.Time `json:"updated_at"`                                        // 更新时间
+	// QoS配置（独立列，不参与UID计算，允许覆盖全局默认值）
+	RequestTimeoutMs int `gorm:"not null;default:30000" json:"request_timeout_ms"` // 请求超时(毫秒)
+	ConnectTimeoutMs int `gorm:"not null;default:10000" json:"connect_timeout_ms"` // 连接超时(毫秒)
+	RetryMax         int `gorm:"not null;default:3" json:"retry_max"`              // 重试次数
+	RetryBackoffMs   int `gorm:"not null;default:1000" json:"retry_backoff_ms"`    // 退避时间(毫秒)
+	MaxConcurrent    int `gorm:"not null;default:10" json:"max_concurrent"`        // 最大并发
+	CreatedAt        time.Time `json:"created_at"`                                  // 创建时间
+	UpdatedAt        time.Time `json:"updated_at"`                                  // 更新时间
 }
 
 // MediaServer 媒体服务器配置模型
@@ -36,8 +42,14 @@ type MediaServer struct {
 	APIKey    string    `gorm:"type:text" json:"api_key"`                          // API密钥
 	Enabled   bool      `gorm:"not null;default:true" json:"enabled"`              // 是否启用
 	Options   string    `gorm:"type:text" json:"options"`                          // JSON扩展字段
-	CreatedAt time.Time `json:"created_at"`                                        // 创建时间
-	UpdatedAt time.Time `json:"updated_at"`                                        // 更新时间
+	// QoS配置（独立列，不参与UID计算，允许覆盖全局默认值）
+	RequestTimeoutMs int `gorm:"not null;default:30000" json:"request_timeout_ms"` // 请求超时(毫秒)
+	ConnectTimeoutMs int `gorm:"not null;default:10000" json:"connect_timeout_ms"` // 连接超时(毫秒)
+	RetryMax         int `gorm:"not null;default:3" json:"retry_max"`              // 重试次数
+	RetryBackoffMs   int `gorm:"not null;default:1000" json:"retry_backoff_ms"`    // 退避时间(毫秒)
+	MaxConcurrent    int `gorm:"not null;default:10" json:"max_concurrent"`        // 最大并发
+	CreatedAt        time.Time `json:"created_at"`                                  // 创建时间
+	UpdatedAt        time.Time `json:"updated_at"`                                  // 更新时间
 }
 
 // Job 任务配置模型
@@ -119,6 +131,16 @@ type Setting struct {
 	Key       string    `gorm:"primaryKey" json:"key"`       // 设置键
 	Value     string    `gorm:"type:text;not null" json:"value"` // 设置值(JSON)
 	UpdatedAt time.Time `json:"updated_at"`                  // 更新时间
+}
+
+// QoSSettings QoS配置结构（用于Settings.Value的JSON解析）
+// 约定：settings 表中 key="global_qos" 的记录，其 value 应符合此结构
+type QoSSettings struct {
+	RequestTimeoutMs int `json:"request_timeout_ms"` // 请求超时(毫秒)
+	ConnectTimeoutMs int `json:"connect_timeout_ms"` // 连接超时(毫秒)
+	RetryMax         int `json:"retry_max"`          // 重试次数
+	RetryBackoffMs   int `json:"retry_backoff_ms"`   // 退避时间(毫秒)
+	MaxConcurrent    int `json:"max_concurrent"`     // 最大并发
 }
 
 // TableName 指定表名

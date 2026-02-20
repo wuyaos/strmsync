@@ -23,7 +23,7 @@ func TestGenerateDataServerUID(t *testing.T) {
 		{
 			name:        "basic clouddrive2 server",
 			serverType:  "clouddrive2",
-			host:        "192.168.1.100",
+			host:        "127.0.0.1",
 			port:        19798,
 			options:     "{}",
 			apiKey:      "test-key",
@@ -147,8 +147,8 @@ func TestGenerateMediaServerUID(t *testing.T) {
 
 func TestUID_Stability(t *testing.T) {
 	// 相同参数应生成相同UID
-	uid1, err1 := GenerateDataServerUID("clouddrive2", "192.168.1.100", 19798, "{}", "key")
-	uid2, err2 := GenerateDataServerUID("clouddrive2", "192.168.1.100", 19798, "{}", "key")
+	uid1, err1 := GenerateDataServerUID("clouddrive2", "127.0.0.1", 19798, "{}", "key")
+	uid2, err2 := GenerateDataServerUID("clouddrive2", "127.0.0.1", 19798, "{}", "key")
 
 	if err1 != nil || err2 != nil {
 		t.Fatalf("GenerateDataServerUID() error: %v, %v", err1, err2)
@@ -438,7 +438,7 @@ func TestSortedKeys(t *testing.T) {
 func TestDataServer_BeforeCreate(t *testing.T) {
 	server := &DataServer{
 		Type:    "clouddrive2",
-		Host:    "192.168.1.100",
+		Host:    "127.0.0.1",
 		Port:    19798,
 		Options: "{}",
 		APIKey:  "test-key",
@@ -463,7 +463,7 @@ func TestDataServer_BeforeCreate_PreserveExistingUID(t *testing.T) {
 	server := &DataServer{
 		UID:     existingUID,
 		Type:    "clouddrive2",
-		Host:    "192.168.1.100",
+		Host:    "127.0.0.1",
 		Port:    19798,
 		Options: "{}",
 		APIKey:  "test-key",

@@ -16,7 +16,7 @@
             数据源配置
           </span>
         </template>
-        <Sources />
+        <Servers />
       </el-tab-pane>
 
       <!-- 服务器配置 -->
@@ -36,7 +36,7 @@
 <script setup>
 import { ref } from 'vue'
 import { FolderOpened, Monitor } from '@element-plus/icons-vue'
-import Sources from '@/views/Sources.vue'
+import Servers from '@/views/Servers.vue'
 import ServerConfig from '@/views/ServerConfig.vue'
 
 // 当前激活的标签页

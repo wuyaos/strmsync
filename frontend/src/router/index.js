@@ -14,16 +14,22 @@ const routes = [
         meta: { title: '仪表盘', icon: 'DataAnalysis' }
       },
       {
-        path: '/config',
-        name: 'ConfigManagement',
-        component: () => import('@/views/ConfigManagement.vue'),
-        meta: { title: '配置管理', icon: 'Setting' }
+        path: '/servers',
+        name: 'Servers',
+        component: () => import('@/views/Servers.vue'),
+        meta: { title: '服务器管理', icon: 'Connection' }
       },
       {
-        path: '/tasks',
-        name: 'Tasks',
-        component: () => import('@/views/Tasks.vue'),
-        meta: { title: '任务管理', icon: 'List' }
+        path: '/jobs',
+        name: 'Jobs',
+        component: () => import('@/views/Jobs.vue'),
+        meta: { title: '任务配置', icon: 'List' }
+      },
+      {
+        path: '/runs',
+        name: 'TaskRuns',
+        component: () => import('@/views/TaskRuns.vue'),
+        meta: { title: '执行历史', icon: 'Clock' }
       },
       {
         path: '/tools',
@@ -45,12 +51,20 @@ const routes = [
       },
       // 兼容旧路由 - 重定向
       {
+        path: '/config',
+        redirect: '/servers'
+      },
+      {
         path: '/server-settings',
-        redirect: '/config'
+        redirect: '/servers'
       },
       {
         path: '/sources',
-        redirect: '/config'
+        redirect: '/servers'
+      },
+      {
+        path: '/tasks',
+        redirect: '/jobs'
       },
       {
         path: '/files',

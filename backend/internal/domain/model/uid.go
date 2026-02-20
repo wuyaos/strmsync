@@ -70,13 +70,16 @@ func buildUIDInput(serverType, host string, port int, optionsJSON, apiKey string
 	// 1. normalize host（lower + trim）
 	normalizedHost := strings.ToLower(strings.TrimSpace(host))
 
-	// 2. normalize options（递归排序 + 过滤空值）
-	normalizedOptions, err := normalizeJSON(optionsJSON)
+	// 2. 移除 options 中的 QoS 字段（避免 QoS 变更影响 UID）
+	optionsWithoutQoS := stripQoSFields(optionsJSON)
+
+	// 3. normalize options（递归排序 + 过滤空值）
+	normalizedOptions, err := normalizeJSON(optionsWithoutQoS)
 	if err != nil {
 		return "", fmt.Errorf("normalize options: %w", err)
 	}
 
-	// 3. 构建结构化输入（使用结构体确保字段顺序稳定）
+	// 4. 构建结构化输入（使用结构体确保字段顺序稳定）
 	input := struct {
 		Type    string `json:"type"`
 		Host    string `json:"host"`
@@ -91,7 +94,7 @@ func buildUIDInput(serverType, host string, port int, optionsJSON, apiKey string
 		APIKey:  strings.TrimSpace(apiKey),
 	}
 
-	// 4. JSON序列化（Go的struct序列化保证字段顺序）
+	// 5. JSON序列化（Go的struct序列化保证字段顺序）
 	data, err := json.Marshal(input)
 	if err != nil {
 		return "", fmt.Errorf("marshal uid input: %w", err)
@@ -223,3 +226,45 @@ func sortedKeys(m map[string]any) []string {
 	sort.Strings(keys)
 	return keys
 }
+
+// stripQoSFields 从 options JSON 中移除 QoS 字段
+//
+// 目的：确保 QoS 配置变更不会影响服务器 UID，因为 QoS 现已独立为数据库列。
+// 此函数同时兼容历史数据（可能将 QoS 存入 options 的情况）。
+//
+// 移除的字段：
+// - request_timeout_ms
+// - connect_timeout_ms
+// - retry_max
+// - retry_backoff_ms
+// - max_concurrent
+// - qos (整个嵌套对象)
+func stripQoSFields(optionsJSON string) string {
+	optionsJSON = strings.TrimSpace(optionsJSON)
+	if optionsJSON == "" {
+		return optionsJSON
+	}
+
+	var obj map[string]any
+	if err := json.Unmarshal([]byte(optionsJSON), &obj); err != nil {
+		// 非法 JSON 直接返回原值（兼容非 JSON 格式）
+		return optionsJSON
+	}
+
+	// 移除根级 QoS 字段
+	delete(obj, "request_timeout_ms")
+	delete(obj, "connect_timeout_ms")
+	delete(obj, "retry_max")
+	delete(obj, "retry_backoff_ms")
+	delete(obj, "max_concurrent")
+
+	// 移除嵌套 qos 对象（如果存在）
+	delete(obj, "qos")
+
+	out, err := json.Marshal(obj)
+	if err != nil {
+		return optionsJSON
+	}
+	return string(out)
+}
+

@@ -288,7 +288,7 @@ func TestBuildFilesystemConfig_CloudDrive2(t *testing.T) {
 		ID:     1,
 		Name:   "test-cd2",
 		Type:   "clouddrive2",
-		Host:   "192.168.1.100",
+		Host:   "127.0.0.1",
 		Port:   19798,
 		APIKey: "test-api-key",
 	}
@@ -301,8 +301,8 @@ func TestBuildFilesystemConfig_CloudDrive2(t *testing.T) {
 	if cfg.Type.String() != "clouddrive2" {
 		t.Errorf("Type: expected clouddrive2, got %s", cfg.Type)
 	}
-	if cfg.BaseURL != "http://192.168.1.100:19798" {
-		t.Errorf("BaseURL: expected http://192.168.1.100:19798, got %s", cfg.BaseURL)
+	if cfg.BaseURL != "http://127.0.0.1:19798" {
+		t.Errorf("BaseURL: expected http://127.0.0.1:19798, got %s", cfg.BaseURL)
 	}
 	if cfg.Password != "test-api-key" {
 		t.Errorf("Password: expected test-api-key, got %s", cfg.Password)

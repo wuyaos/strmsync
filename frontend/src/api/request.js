@@ -1,6 +1,27 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
+// 格式化字段验证错误信息
+const formatValidationErrors = (data) => {
+  if (!data || typeof data !== 'object') return ''
+  const errors = data.errors
+  if (!errors || typeof errors !== 'object') return ''
+
+  const parts = []
+  for (const [field, messages] of Object.entries(errors)) {
+    if (Array.isArray(messages)) {
+      for (const msg of messages) {
+        if (msg) parts.push(`${field}: ${msg}`)
+      }
+      continue
+    }
+    if (typeof messages === 'string' && messages) {
+      parts.push(`${field}: ${messages}`)
+    }
+  }
+  return parts.join('；')
+}
+
 // 创建 axios 实例
 const request = axios.create({
   baseURL: '/api',
@@ -29,18 +50,24 @@ request.interceptors.response.use(
 
     let message = '请求失败'
     if (error.response) {
+      const data = error.response.data
       switch (error.response.status) {
         case 400:
-          message = error.response.data?.error || '请求参数错误'
+        case 422:
+          message =
+            formatValidationErrors(data) ||
+            data?.message ||
+            data?.error ||
+            '请求参数错误'
           break
         case 404:
           message = '请求的资源不存在'
           break
         case 500:
-          message = error.response.data?.error || '服务器错误'
+          message = data?.message || data?.error || '服务器错误'
           break
         default:
-          message = error.response.data?.error || '请求失败'
+          message = data?.message || data?.error || '请求失败'
       }
     } else if (error.request) {
       message = '网络连接失败'

@@ -53,10 +53,19 @@ func InitLogger(level string, dir string) error {
 	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
 	encoderCfg.EncodeLevel = zapcore.LowercaseLevelEncoder // 统一使用小写level
 
+	// 控制台输出：更适合人类阅读的格式
+	consoleCfg := zap.NewProductionEncoderConfig()
+	consoleCfg.TimeKey = "time"
+	consoleCfg.LevelKey = "level"
+	consoleCfg.MessageKey = "message"
+	consoleCfg.CallerKey = "" // 控制台隐藏 caller，避免输出过长
+	consoleCfg.EncodeLevel = zapcore.CapitalColorLevelEncoder // 带颜色的大写级别
+	consoleCfg.EncodeTime = zapcore.ISO8601TimeEncoder
+
 	// 同时输出到控制台和文件
 	core := zapcore.NewTee(
 		zapcore.NewCore(
-			zapcore.NewJSONEncoder(encoderCfg),
+			zapcore.NewConsoleEncoder(consoleCfg),
 			zapcore.AddSync(os.Stdout),
 			parsed,
 		),
