@@ -1,10 +1,17 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
+import { readFileSync } from 'fs'
+
+const versionFile = new URL('../VERSION', import.meta.url)
+const appVersion = readFileSync(versionFile, 'utf-8').trim() || 'unknown'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [vue()],
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion)
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src')
@@ -18,6 +25,15 @@ export default defineConfig({
         silenceDeprecations: ['legacy-js-api']
       }
     }
+  },
+  build: {
+    // 输出到 dist/web_statics（与后端可执行文件同级）
+    outDir: '../dist/web_statics',
+    emptyOutDir: true,
+    // 资源路径使用相对路径
+    assetsDir: 'assets',
+    // 生成 manifest.json 用于资源映射
+    manifest: false
   },
   server: {
     port: 5676,
