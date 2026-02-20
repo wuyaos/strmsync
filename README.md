@@ -45,8 +45,7 @@
 ### CloudDrive2集成
 - **协议**: gRPC (h2c)
 - **Proto**: v0.9.24
-- **连接**: 192.168.123.179:19798
-- **功能**: 文件列表、路径遍历、健康检查
+- **功能**: 文件操作、路径遍历
 
 ---
 
@@ -54,49 +53,19 @@
 
 ```
 strm/
-├── backend/                    # Go后端
+├── VERSION                     # 统一版本号（前后端共享）
+├── backend/                    # Go 后端
 │   ├── cmd/                    # 命令行入口
-│   │   └── server/             # HTTP服务器
+│   │   └── server/             # HTTP 服务器
 │   │       └── main.go         # 应用入口
 │   ├── internal/               # 内部包（不对外暴露）
-│   │   ├── app/                # 应用层（业务逻辑）
-│   │   │   ├── job/            # Job服务
-│   │   │   ├── taskrun/        # TaskRun服务
-│   │   │   ├── sync/           # 同步执行器
-│   │   │   └── file/           # 文件处理
-│   │   ├── domain/             # 领域层（模型和仓库）
-│   │   │   └── model/          # GORM数据模型
-│   │   ├── transport/          # 传输层（HTTP handlers）
-│   │   │   ├── filesystem_server.go
-│   │   │   ├── media_server.go
-│   │   │   ├── job.go
-│   │   │   └── task_run.go
-│   │   ├── infra/              # 基础设施层
-│   │   │   ├── filesystem/     # 文件系统客户端（provider模式）
-│   │   │   ├── mediaserver/    # 媒体服务器客户端（adapter模式）
-│   │   │   └── db/             # 数据库配置
-│   │   └── pkg/                # 公共包
-│   │       ├── logger/         # 日志工具
-│   │       └── crypto/         # 加密工具
 │   ├── go.mod
-│   └── Makefile
+│   └── go.sum
 │
-├── frontend/                   # Vue 3前端
+├── frontend/                   # Vue 3 前端
 │   ├── src/
-│   │   ├── views/              # 页面组件
-│   │   │   ├── Dashboard.vue   # 仪表盘
-│   │   │   ├── Servers.vue     # 服务器管理
-│   │   │   ├── Jobs.vue        # 任务配置
-│   │   │   ├── TaskRuns.vue    # 执行历史
-│   │   │   ├── Logs.vue        # 日志查看
-│   │   │   └── Settings.vue    # 系统设置
-│   │   ├── api/                # API封装
-│   │   │   ├── servers.js      # 服务器API
-│   │   │   ├── jobs.js         # 任务API
-│   │   │   ├── runs.js         # 运行记录API
-│   │   │   └── normalize.js    # 响应标准化
-│   │   ├── layouts/            # 布局组件
-│   │   └── router/             # 路由配置
+│   ├── index.html
+│   ├── vite.config.js
 │   └── package.json
 │
 ├── dist/                       # 构建产物（可执行文件 + web_statics + .env）
@@ -105,26 +74,27 @@ strm/
 │   └── .env
 │
 ├── docs/                       # 文档
-│   ├── HTTP_API.md             # HTTP API文档
-│   ├── DEPLOYMENT.md           # 部署文档
 │   ├── CloudDrive2_Integration.md
-│   ├── CloudDrive2_gRPC_Setup.md
 │   ├── CloudDrive2_API.md
-│   ├── Emby_Jellyfin_API.md
+│   ├── Emby_API.md
+│   ├── Jellyfin_API.md
 │   ├── OpenList_API.md
 │   └── README.md               # 文档索引
 │
 ├── scripts/                    # 脚本
-│   ├── start.sh                # 启动脚本
-│   ├── stop.sh                 # 停止脚本
-│   └── test-api.sh             # API测试
+│   ├── prod-start.sh           # 启动生产环境
+│   ├── prod-stop.sh            # 停止生产环境
+│   └── prod-restart.sh         # 重启生产环境
 │
-├── tests/                      # 测试目录
+├── tests/                      # 开发/测试目录
+│   ├── .env.test               # 测试环境变量
+│   ├── .air.toml               # 测试环境 Air 配置
+│   ├── data/                   # 测试数据库
+│   ├── logs/                   # 测试日志
 │   ├── media/                  # 测试媒体文件
-│   └── output/                 # 测试输出（gitignore）
+│   └── out/                    # 测试输出
 │
 ├── .env.example                # 环境变量示例
-├── docker-compose.yml          # Docker配置（待完善）
 ├── Makefile                    # 构建脚本
 └── README.md                   # 本文件
 ```
@@ -140,8 +110,13 @@ strm/
 - Node.js 18+（Vite 5要求）
 - Make（可选）
 
-**依赖服务**（开发测试）:
-- CloudDrive2: http://192.168.123.179:19798
+### 一键开发（推荐）
+
+```bash
+make dev
+```
+
+开发环境默认读取 `tests/.env.test`，日志与数据库目录位于 `tests/` 下。
 
 ### 合并部署构建
 
@@ -171,17 +146,14 @@ cd backend
 # 安装依赖
 go mod download
 
-# 运行服务（默认端口6754）
+# 运行服务（默认端口 6754）
 go run ./cmd/server
 
-# 或使用Makefile
-make run
-
 # 构建
-make build
+go build ./cmd/server
 ```
 
-### 前端开发
+### 前端开发（可选）
 
 ```bash
 cd frontend
@@ -191,9 +163,6 @@ npm install
 
 # 开发模式
 npm run dev
-
-# 构建
-npm run build
 ```
 
 ---
@@ -225,21 +194,15 @@ npm run dev
 npm run build
 ```
 
-### API测试
-
-```bash
-# 使用测试脚本
-./scripts/test-api.sh
-```
-
 ---
 
 ## 📚 文档索引
 
 ### API文档
-- [HTTP API文档](docs/HTTP_API.md) - 后端HTTP API详细说明
+- [后端 API 文档](backend/README.md) - 后端 HTTP API 详细说明
 - [CloudDrive2 API](docs/CloudDrive2_API.md) - CloudDrive2 gRPC API参考
-- [Emby/Jellyfin API](docs/Emby_Jellyfin_API.md) - 媒体服务器API参考
+- [Emby API](docs/Emby_API.md) - Emby 媒体服务器 API 参考
+- [Jellyfin API](docs/Jellyfin_API.md) - Jellyfin 媒体服务器 API 参考
 - [OpenList API](docs/OpenList_API.md) - OpenList API参考
 
 ### 集成文档
@@ -255,15 +218,33 @@ npm run build
 
 ### HTTP API（端口：6754）
 
-**服务器管理**
+**数据服务器**
 | 端点 | 方法 | 说明 |
 |------|------|------|
-| `/api/servers` | GET | 获取服务器列表 |
-| `/api/servers` | POST | 创建服务器 |
-| `/api/servers/:id` | GET | 获取服务器详情 |
-| `/api/servers/:id` | PUT | 更新服务器 |
-| `/api/servers/:id` | DELETE | 删除服务器 |
-| `/api/servers/:id/test` | POST | 测试服务器连接 |
+| `/api/servers/data` | GET | 获取数据服务器列表 |
+| `/api/servers/data` | POST | 创建数据服务器 |
+| `/api/servers/data/:id` | GET | 获取数据服务器详情 |
+| `/api/servers/data/:id` | PUT | 更新数据服务器 |
+| `/api/servers/data/:id` | DELETE | 删除数据服务器 |
+| `/api/servers/data/:id/test` | POST | 测试数据服务器连接 |
+| `/api/servers/data/test` | POST | 临时测试数据服务器 |
+
+**媒体服务器**
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/servers/media` | GET | 获取媒体服务器列表 |
+| `/api/servers/media` | POST | 创建媒体服务器 |
+| `/api/servers/media/:id` | GET | 获取媒体服务器详情 |
+| `/api/servers/media/:id` | PUT | 更新媒体服务器 |
+| `/api/servers/media/:id` | DELETE | 删除媒体服务器 |
+| `/api/servers/media/:id/test` | POST | 测试媒体服务器连接 |
+| `/api/servers/media/test` | POST | 临时测试媒体服务器 |
+
+**服务器类型**
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/servers/types` | GET | 获取服务器类型列表 |
+| `/api/servers/types/:type` | GET | 获取服务器类型详情 |
 
 **任务管理**
 | 端点 | 方法 | 说明 |
@@ -273,9 +254,10 @@ npm run build
 | `/api/jobs/:id` | GET | 获取任务详情 |
 | `/api/jobs/:id` | PUT | 更新任务 |
 | `/api/jobs/:id` | DELETE | 删除任务 |
-| `/api/jobs/:id/trigger` | POST | 触发任务执行 |
-| `/api/jobs/:id/enable` | POST | 启用任务 |
-| `/api/jobs/:id/disable` | POST | 禁用任务 |
+| `/api/jobs/:id/run` | POST | 触发任务执行 |
+| `/api/jobs/:id/stop` | POST | 停止任务 |
+| `/api/jobs/:id/enable` | PUT | 启用任务 |
+| `/api/jobs/:id/disable` | PUT | 禁用任务 |
 
 **运行记录**
 | 端点 | 方法 | 说明 |
@@ -283,16 +265,24 @@ npm run build
 | `/api/runs` | GET | 获取运行记录列表 |
 | `/api/runs/:id` | GET | 获取运行记录详情 |
 | `/api/runs/:id/cancel` | POST | 取消运行中的任务 |
+| `/api/runs/stats` | GET | 获取运行统计 |
+
+**文件浏览**
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/files/directories` | GET | 获取目录列表 |
+| `/api/files/list` | POST | 获取文件列表 |
 
 **系统**
 | 端点 | 方法 | 说明 |
 |------|------|------|
 | `/api/health` | GET | 健康检查 |
 | `/api/logs` | GET | 获取日志 |
+| `/api/logs/cleanup` | POST | 清理日志 |
 | `/api/settings` | GET | 获取系统设置 |
 | `/api/settings` | PUT | 更新系统设置 |
 
-详细API文档请参考 [docs/HTTP_API.md](docs/HTTP_API.md)
+详细API文档请参考 [backend/README.md](backend/README.md)
 
 ---
 

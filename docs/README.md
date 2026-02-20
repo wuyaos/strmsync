@@ -8,40 +8,35 @@
 
 | 文档 | 说明 | 状态 |
 |------|------|------|
-| [HTTP_API.md](HTTP_API.md) | 后端HTTP API完整文档 | ✅ 完成 |
+| [backend/README.md](../backend/README.md) | 后端HTTP API完整文档 | ✅ 完成 |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | 生产环境部署指南 | ✅ 完成 |
 
-### CloudDrive2相关文档（已完成集成）
+### CloudDrive2 集成文档
 
 | 文档 | 说明 | 状态 |
 |------|------|------|
-| [CloudDrive2_Integration.md](CloudDrive2_Integration.md) | CloudDrive2 gRPC集成完整文档 | ✅ 完成 |
-| [CloudDrive2_gRPC_Setup.md](CloudDrive2_gRPC_Setup.md) | gRPC开发环境设置指南 | ✅ 完成 |
-| [CloudDrive2_API.md](CloudDrive2_API.md) | CloudDrive2 gRPC API完整文档 | 📚 参考 |
-| [clouddrive.proto](clouddrive.proto) | Proto定义文件（v0.9.24） | 📚 参考 |
+| [CloudDrive2_Integration.md](CloudDrive2_Integration.md) | CloudDrive2 gRPC 集成完整指南（整合版） | ✅ 完成 |
+| [CloudDrive2_API.md](CloudDrive2_API.md) | CloudDrive2 gRPC API 官方文档 | 📚 参考 |
 
-### 第三方API文档
+### 媒体服务器 API 文档
 
 | 文档 | 说明 | 状态 |
 |------|------|------|
-| [Emby_Jellyfin_API.md](Emby_Jellyfin_API.md) | Emby/Jellyfin API文档 | 📚 参考 |
-| [OpenList_API.md](OpenList_API.md) | OpenList REST API文档 | 📚 参考 |
+| [Emby_API.md](Emby_API.md) | Emby REST API 文档 | 📚 参考 |
+| [Jellyfin_API.md](Jellyfin_API.md) | Jellyfin REST API 文档 | 📚 参考 |
 
-### 架构和设计文档
+### 其他第三方 API
 
 | 文档 | 说明 | 状态 |
 |------|------|------|
-| [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) | 项目结构说明 | 📚 参考 |
-| [IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md) | 实施进度记录 | 📚 参考 |
-| [OPTIMIZATION_PLAN.md](OPTIMIZATION_PLAN.md) | 优化方案 | 📚 参考 |
-| [REFACTOR.md](REFACTOR.md) | 重构记录 | 📚 参考 |
+| [OpenList_API.md](OpenList_API.md) | OpenList REST API 文档 | 📚 参考 |
 
 ---
 
 ## 🗂️ 文档用途
 
 ### 开发参考
-- **HTTP_API**: 前后端开发时查看API规范和响应格式
+- **后端 API**: 前后端开发时查看API规范和响应格式
 - **DEPLOYMENT**: 生产环境部署和运维参考
 - **CloudDrive2集成**: 查看Integration了解gRPC集成实现
 - **第三方API**: 集成其他服务时参考对应的API文档
@@ -72,17 +67,10 @@
 2. 如果是重大变更，在顶部添加changelog
 3. 保持与代码实现的一致性
 
-### 废弃文档
-当文档过时时：
-1. 移动到`docs/archive/`目录（如需保留）
-2. 或直接删除（不再需要）
-3. 从本README.md中移除索引
-
 ---
 
 ## 🔗 相关目录
 
-- **项目总结**: 见 [../.claude/summaries/](../.claude/summaries/)
 - **测试用例**: 见 [../tests/](../tests/)
 - **运行时日志**: `logs/` 目录与可执行文件同级，运行时自动创建
   - 生产环境（Docker）: `/app/logs/`

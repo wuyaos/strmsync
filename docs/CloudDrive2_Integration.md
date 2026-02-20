@@ -1,8 +1,30 @@
-# CloudDrive2 gRPC 集成说明
+# CloudDrive2 gRPC 集成完整指南
+
+> 本文档整合了 CloudDrive2 的集成说明和开发环境设置指南
+
+**最后更新**: 2026-02-20
+
+---
+
+## 📋 目录
+
+- [概述](#概述)
+- [版本信息](#版本信息)
+- [前置要求](#前置要求)
+- [环境设置](#环境设置)
+- [客户端特性](#客户端特性)
+- [代码示例](#代码示例)
+- [配置说明](#配置说明)
+- [常见问题](#常见问题)
+- [开发指南](#开发指南)
+
+---
 
 ## 概述
 
-本项目已集成CloudDrive2 gRPC客户端（版本 0.9.24），用于与CloudDrive2服务进行通信。
+本项目已集成 CloudDrive2 gRPC 客户端（版本 0.9.24），用于与 CloudDrive2 服务进行通信。CloudDrive2 使用 gRPC 协议，需要生成 Protocol Buffers 代码才能使用。
+
+---
 
 ## 版本信息
 
@@ -10,6 +32,99 @@
 - **gRPC**: v1.79.1
 - **protobuf**: v1.36.10
 - **协议**: h2c (HTTP/2 cleartext)
+
+---
+
+## 前置要求
+
+### 1. 安装 Protocol Buffers 编译器 (protoc)
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get update
+sudo apt-get install -y protobuf-compiler
+```
+
+**macOS:**
+```bash
+brew install protobuf
+```
+
+**Windows:**
+下载并安装: https://github.com/protocolbuffers/protobuf/releases
+
+验证安装：
+```bash
+protoc --version
+# 输出：libprotoc 3.x.x 或更高
+```
+
+### 2. 安装 Go 插件
+
+```bash
+# protoc-gen-go (Protocol Buffers 生成器)
+go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28.1
+
+# protoc-gen-go-grpc (gRPC 生成器)
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2.0
+```
+
+确保 `$GOPATH/bin` 在 PATH 中：
+```bash
+export PATH="$PATH:$(go env GOPATH)/bin"
+```
+
+验证安装：
+```bash
+which protoc-gen-go
+which protoc-gen-go-grpc
+```
+
+---
+
+## 环境设置
+
+### 生成 gRPC 代码
+
+**方法 1: 使用 Make（推荐）**
+```bash
+make gen-clouddrive2-proto
+```
+
+**方法 2: 使用脚本**
+```bash
+./scripts/gen_clouddrive2_proto.sh
+```
+
+**方法 3: 手动生成**
+```bash
+cd backend
+mkdir -p filesystem/clouddrive2_proto
+
+protoc -I filesystem/clouddrive2_proto \
+  --go_out=filesystem/clouddrive2_proto --go_opt=paths=source_relative \
+  --go-grpc_out=filesystem/clouddrive2_proto --go-grpc_opt=paths=source_relative \
+  filesystem/clouddrive2_proto/clouddrive2.proto
+```
+
+### 验证生成
+
+生成成功后应该看到以下文件：
+
+```
+backend/filesystem/clouddrive2_proto/
+├── clouddrive2.pb.go         # Protocol Buffers 定义
+└── clouddrive2_grpc.pb.go    # gRPC 服务定义
+```
+
+### 更新依赖
+
+```bash
+cd backend
+go mod tidy
+```
+
+---
 
 ## 客户端特性
 
@@ -37,6 +152,8 @@
 - `DeleteFile()` - 删除文件
 
 更多API请参考：`backend/filesystem/clouddrive2.go`
+
+---
 
 ## 代码示例
 
@@ -87,6 +204,8 @@ func listFiles(client *clouddrive2.Client, path string) error {
 }
 ```
 
+---
+
 ## 配置说明
 
 ### CloudDrive2 服务端配置
@@ -104,6 +223,8 @@ client := clouddrive2.NewClient(
     clouddrive2.WithTimeout(10*time.Second),  // 超时设置
 )
 ```
+
+---
 
 ## 常见问题
 
@@ -135,6 +256,8 @@ client := clouddrive2.NewClient(
 
 **说明**：系统正在初始化或维护中，需要等待系统就绪后再调用其他API。
 
+---
+
 ## 开发指南
 
 ### 重新生成Proto代码
@@ -142,17 +265,22 @@ client := clouddrive2.NewClient(
 如果需要更新proto定义：
 
 ```bash
-# 1. 更新proto文件
-cp new_clouddrive2.proto backend/internal/clients/clouddrive2/proto/
+# 1. 更新proto文件（脚本会自动下载最新版本）
+./scripts/gen_clouddrive2_proto.sh
 
 # 2. 确保go_package选项存在
 # option go_package = "github.com/strmsync/strmsync/internal/clients/clouddrive2/pb;pb";
 
-# 3. 运行生成脚本
-bash scripts/gen_clouddrive2_proto.sh
-
-# 4. 重新编译
+# 3. 重新编译
 go build ./...
+```
+
+### 更新 API 文档
+
+下载最新的 CloudDrive2 API 文档：
+
+```bash
+./scripts/update_clouddrive2_api.sh
 ```
 
 ### 添加新的API方法
@@ -182,8 +310,17 @@ func (c *Client) NewMethod(ctx context.Context, param string) (*pb.Result, error
 }
 ```
 
+---
+
 ## 相关文档
 
 - [CloudDrive2 官方文档](https://www.clouddrive2.com)
+- [CloudDrive2 API 参考](CloudDrive2_API.md)
 - [gRPC Go 快速开始](https://grpc.io/docs/languages/go/quickstart/)
 - [Protocol Buffers](https://protobuf.dev/)
+
+---
+
+**文档版本**: 2.0.0
+**最后更新**: 2026-02-20
+**作者**: STRMSync Team
