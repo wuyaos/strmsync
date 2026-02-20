@@ -110,8 +110,12 @@ func NewClient(config Config, opts ...Option) (Client, error) {
 	if !config.STRMMode.IsValid() {
 		return nil, fmt.Errorf("filesystem: invalid strm_mode: %s", config.STRMMode)
 	}
-	if config.STRMMode == STRMModeMount && strings.TrimSpace(config.MountPath) == "" {
-		return nil, fmt.Errorf("filesystem: mount_path is required for mount mode")
+	if config.STRMMode == STRMModeMount {
+		mountPath := strings.TrimSpace(config.MountPath)
+		strmMountPath := strings.TrimSpace(config.StrmMountPath)
+		if mountPath == "" && strmMountPath == "" {
+			return nil, fmt.Errorf("filesystem: mount_path is required for mount mode")
+		}
 	}
 
 	// 设置超时
@@ -289,12 +293,20 @@ func (c *ClientImpl) buildHTTPStreamURL(filePath string) (string, error) {
 // buildMountStreamPath 构建本地挂载路径
 // 将远程路径转换为本地文件系统路径
 func (c *ClientImpl) buildMountStreamPath(filePath string) (string, error) {
+	mountRoot := strings.TrimSpace(c.Config.StrmMountPath)
+	if mountRoot == "" {
+		mountRoot = strings.TrimSpace(c.Config.MountPath)
+	}
+	if mountRoot == "" {
+		return "", fmt.Errorf("filesystem: mount_path is required for mount mode")
+	}
+
 	// 去除开头的斜杠，转换为本地路径分隔符
 	cleanPath := strings.TrimPrefix(cleanRemotePath(filePath), "/")
 	localPath := filepath.FromSlash(cleanPath)
 
 	// 拼接挂载点和文件路径
-	return filepath.Join(c.Config.MountPath, localPath), nil
+	return filepath.Join(mountRoot, localPath), nil
 }
 
 // JoinURLPath 拼接 URL 路径（保留 baseURL 的前缀）
@@ -343,14 +355,18 @@ func (c *ClientImpl) ResolveMountPath(ctx context.Context, remotePath string) (s
 		return "", fmt.Errorf("filesystem: mount path not available (strm_mode=%s)", c.Config.STRMMode)
 	}
 
-	if strings.TrimSpace(c.Config.MountPath) == "" {
+	mountRoot := strings.TrimSpace(c.Config.StrmMountPath)
+	if mountRoot == "" {
+		mountRoot = strings.TrimSpace(c.Config.MountPath)
+	}
+	if mountRoot == "" {
 		return "", fmt.Errorf("filesystem: mount_path not configured")
 	}
 
 	// 使用与buildMountStreamPath相同的逻辑
 	cleanPath := strings.TrimPrefix(cleanRemotePath(remotePath), "/")
 	localPath := filepath.FromSlash(cleanPath)
-	mountedPath := filepath.Join(c.Config.MountPath, localPath)
+	mountedPath := filepath.Join(mountRoot, localPath)
 
 	return mountedPath, nil
 }

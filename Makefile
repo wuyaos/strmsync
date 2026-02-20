@@ -149,7 +149,7 @@ dev-frontend:
 dev-backend:
 	@echo "==> 启动后端开发服务器 (http://localhost:$(BACKEND_PORT))..."
 	@if command -v air > /dev/null; then \
-		cd $(BACKEND_DIR) && air; \
+		air -c .air.toml; \
 	else \
 		echo "Air 未安装，使用 go run..."; \
 		cd $(BACKEND_DIR) && go run ./cmd/server; \
@@ -157,13 +157,9 @@ dev-backend:
 
 ## dev: 启动完整开发环境
 dev:
-	@echo "==> 启动开发环境"
-	@echo ""
-	@echo "请在两个终端分别运行:"
-	@echo "  终端1: make dev-backend"
-	@echo "  终端2: make dev-frontend"
-	@echo ""
-	@echo "或使用 tmux/screen 并行运行"
+	@echo "==> 启动开发环境（前后端并行）"
+	@echo "提示: 使用 Ctrl+C 停止两个进程"
+	@$(MAKE) -j 2 dev-backend dev-frontend
 
 # ==================== 测试 ====================
 

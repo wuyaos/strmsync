@@ -58,15 +58,18 @@ func (m STRMMode) IsValid() bool {
 
 // Config 数据服务器配置
 type Config struct {
-	Type     Type          // 数据服务器类型
-	BaseURL  string         // API地址（如 http://localhost:5244）
-	Username string         // 用户名（用于登录认证）
-	Password string         // 密码（用于登录认证或目录密码）
-	STRMMode STRMMode       // STRM模式
+	Type     Type     // 数据服务器类型
+	BaseURL  string   // API地址（如 http://localhost:5244）
+	Username string   // 用户名（用于登录认证）
+	Password string   // 密码（用于登录认证或目录密码）
+	STRMMode STRMMode // STRM模式
 	// MountPath 本地挂载路径（mount模式必需）
 	// 例如：/mnt/openlist 或 D:\mnt\openlist
 	MountPath string
-	Timeout   time.Duration // 请求超时时间（默认10秒）
+	// StrmMountPath STRM 生成使用的挂载路径（仅本地/挂载模式）
+	// 为空时默认使用 MountPath
+	StrmMountPath string
+	Timeout       time.Duration // 请求超时时间（默认10秒）
 }
 
 // RemoteFile 远程文件信息

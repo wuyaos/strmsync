@@ -309,11 +309,8 @@ func resolveEngineRemotePath(job model.Job, server model.DataServer) (string, er
 		}
 	}
 
-	mountPath := strings.TrimSpace(opts.MountPath)
-	if mountPath == "" {
-		mountPath = strings.TrimSpace(opts.AccessPath)
-	}
-	if mountPath == "" || remotePath == "" {
+	accessPath := strings.TrimSpace(opts.AccessPath)
+	if accessPath == "" || remotePath == "" {
 		return remotePath, nil
 	}
 
@@ -321,7 +318,7 @@ func resolveEngineRemotePath(job model.Job, server model.DataServer) (string, er
 		return filepath.ToSlash(strings.TrimLeft(remotePath, "/")), nil
 	}
 
-	cleanMount := filepath.Clean(mountPath)
+	cleanMount := filepath.Clean(accessPath)
 	cleanSource := filepath.Clean(remotePath)
 	if cleanSource == cleanMount {
 		return "/", nil
@@ -338,7 +335,7 @@ func resolveEngineRemotePath(job model.Job, server model.DataServer) (string, er
 		return rel, nil
 	}
 
-	return "", fmt.Errorf("source_path %s must be under mount_path %s", remotePath, mountPath)
+	return "", fmt.Errorf("source_path %s must be under access_path %s", remotePath, accessPath)
 }
 
 // jobOptions 表示从 Job.Options 解析的引擎参数
@@ -927,19 +924,29 @@ func buildFilesystemConfig(server model.DataServer) (filesystem.Config, error) {
 		password = server.APIKey
 	}
 
+	accessPath := strings.TrimSpace(opts.AccessPath)
 	mountPath := strings.TrimSpace(opts.MountPath)
-	if mountPath == "" {
-		mountPath = strings.TrimSpace(opts.AccessPath)
+	scanRoot := mountPath
+	if serverType == filesystem.TypeLocal && accessPath != "" {
+		scanRoot = accessPath
+	}
+	if scanRoot == "" {
+		scanRoot = mountPath
+	}
+	strmMount := mountPath
+	if strmMount == "" {
+		strmMount = scanRoot
 	}
 
 	return filesystem.Config{
-		Type:      serverType,
-		BaseURL:   baseURL,
-		Username:  opts.Username,
-		Password:  password,
-		STRMMode:  strmMode,
-		MountPath: mountPath,
-		Timeout:   timeout,
+		Type:          serverType,
+		BaseURL:       baseURL,
+		Username:      opts.Username,
+		Password:      password,
+		STRMMode:      strmMode,
+		MountPath:     scanRoot,
+		StrmMountPath: strmMount,
+		Timeout:       timeout,
 	}, nil
 }
 

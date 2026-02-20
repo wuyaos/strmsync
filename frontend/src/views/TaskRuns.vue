@@ -47,15 +47,56 @@
           <div class="expand-content">
             <div class="expand-title">任务配置</div>
             <div class="expand-body">
-              {{ getJobConfigText(row) }}
+              <div class="kv-list">
+                <div
+                  v-for="item in getJobConfigRows(row)"
+                  :key="item.label"
+                  class="kv-row"
+                >
+                  <span class="kv-label">{{ item.label }}</span>
+                  <span class="kv-value" :class="{ mono: item.mono }">
+                    <pre v-if="item.pre" class="kv-pre">{{ item.value }}</pre>
+                    <template v-else>{{ item.value }}</template>
+                  </span>
+                </div>
+              </div>
             </div>
             <div class="expand-title">执行情况</div>
             <div class="expand-body">
-              {{ getStatsDetail(row) }}
+              <div class="kv-list">
+                <div
+                  v-for="item in getExecutionRows(row)"
+                  :key="item.label"
+                  class="kv-row"
+                >
+                  <span class="kv-label">{{ item.label }}</span>
+                  <span class="kv-value">{{ item.value }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="expand-title">总结</div>
+            <div class="expand-body">
+              <div class="kv-list">
+                <div
+                  v-for="item in getSummaryRows(row)"
+                  :key="item.label"
+                  class="kv-row"
+                >
+                  <span class="kv-label">{{ item.label }}</span>
+                  <span class="kv-value">{{ item.value }}</span>
+                </div>
+              </div>
             </div>
             <div class="expand-title">错误信息</div>
             <div class="expand-body">
-              {{ row.error_message || row.error || '无' }}
+              <div class="kv-list">
+                <div class="kv-row">
+                  <span class="kv-label">错误信息</span>
+                  <span class="kv-value">
+                    {{ row.error_message || row.error || '无' }}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </template>
@@ -204,7 +245,20 @@ const getTotalStatsText = (row) => {
   return `总 ${total}，失败 ${failed}，跳过 ${skipped}`
 }
 
-const getStatsDetail = (row) => {
+const getExecutionRows = (row) => {
+  const created = row.created_files ?? 0
+  const updated = row.updated_files ?? 0
+  const failed = row.failed_files ?? 0
+  const metaCreated = row.meta_created_files ?? 0
+  const metaUpdated = row.meta_updated_files ?? 0
+  const metaFailed = row.meta_failed_files ?? 0
+  return [
+    { label: 'STRM', value: `生成 ${created}，更新 ${updated}，失败 ${failed}` },
+    { label: '元数据', value: `复制 ${metaCreated}，更新 ${metaUpdated}，失败 ${metaFailed}` }
+  ]
+}
+
+const getSummaryRows = (row) => {
   const total = row.total_files ?? 0
   const filtered = row.filtered_files ?? 0
   const processed = row.processed_files ?? 0
@@ -217,31 +271,50 @@ const getStatsDetail = (row) => {
   const metaUpdated = row.meta_updated_files ?? 0
   const metaProcessed = row.meta_processed_files ?? 0
   const metaFailed = row.meta_failed_files ?? 0
-  return `扫描 ${total}，过滤 ${filtered}，处理 ${processed}，生成 ${created}，更新 ${updated}，跳过 ${skipped}，失败 ${failed}，元数据 复制 ${metaCreated} / 更新 ${metaUpdated} / 失败 ${metaFailed}（总 ${metaTotal}，已处理 ${metaProcessed}）`
-}
-
-const getJobConfigText = (row) => {
-  const job = row.job || {}
-  const optionsText = formatOptions(job.options)
   return [
-    `任务ID：${job.id ?? row.job_id ?? '-'}`,
-    `监控模式：${job.watch_mode || '-'}`,
-    `数据服务器ID：${job.data_server_id ?? '-'}`,
-    `媒体服务器ID：${job.media_server_id ?? '-'}`,
-    `访问目录：${job.source_path || '-'}`,
-    `输出目录：${job.target_path || '-'}`,
-    `STRM路径：${job.strm_path || '-'}`,
-    `选项：${optionsText}`
-  ].join('\n')
+    {
+      label: '统计',
+      value: `扫描 ${total}，过滤 ${filtered}，处理 ${processed}，生成 ${created}，更新 ${updated}，跳过 ${skipped}，失败 ${failed}`
+    },
+    {
+      label: '元数据',
+      value: `复制 ${metaCreated} / 更新 ${metaUpdated} / 失败 ${metaFailed}（总 ${metaTotal}，已处理 ${metaProcessed}）`
+    }
+  ]
 }
 
-const formatOptions = (raw) => {
+const getJobConfigRows = (row) => {
+  const job = row.job || {}
+  const dataServer = job.data_server || {}
+  const mediaServer = job.media_server || {}
+  const dataServerType = dataServer.type || job.data_server_type || '-'
+  const mediaServerType = mediaServer.type || job.media_server_type || '-'
+  return [
+    { label: '任务ID', value: job.id ?? row.job_id ?? '-' },
+    { label: '任务名', value: job.name || row.job_name || '-' },
+    { label: '数据服务器ID', value: job.data_server_id ?? '-' },
+    { label: '数据服务系统', value: dataServerType || '-' },
+    { label: '媒体服务器ID', value: job.media_server_id ?? '-' },
+    { label: '媒体服务器类型', value: mediaServerType || '-' },
+    { label: '访问目录', value: job.source_path || '-' },
+    { label: '输出目录', value: job.target_path || '-' },
+    { label: 'STRM路径', value: job.strm_path || '-' },
+    {
+      label: '选项',
+      value: formatOptionsPretty(job.options),
+      pre: true,
+      mono: true
+    }
+  ]
+}
+
+const formatOptionsPretty = (raw) => {
   if (!raw) return '-'
   if (typeof raw !== 'string') {
-    return JSON.stringify(raw)
+    return JSON.stringify(raw, null, 2)
   }
   try {
-    return JSON.stringify(JSON.parse(raw))
+    return JSON.stringify(JSON.parse(raw), null, 2)
   } catch (error) {
     return raw
   }
@@ -338,8 +411,36 @@ onUnmounted(() => {
   }
 
   .expand-body {
-    white-space: pre-wrap;
     color: var(--el-text-color-regular);
+  }
+
+  .kv-list {
+    display: grid;
+    row-gap: 6px;
+  }
+
+  .kv-row {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    column-gap: 8px;
+    align-items: start;
+  }
+
+  .kv-label {
+    color: var(--el-text-color-secondary);
+  }
+
+  .kv-value {
+    word-break: break-all;
+  }
+
+  .kv-value.mono {
+    font-family: var(--el-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace);
+  }
+
+  .kv-pre {
+    margin: 0;
+    white-space: pre-wrap;
   }
 }
 </style>
