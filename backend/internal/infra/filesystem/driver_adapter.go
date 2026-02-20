@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -109,7 +110,16 @@ func (a *Adapter) Capabilities() syncengine.DriverCapability {
 // - 将 filesystem.RemoteFile 转换为 syncengine.RemoteEntry
 // - 传递 opt.Recursive 和 opt.MaxDepth 参数
 func (a *Adapter) List(ctx context.Context, listPath string, opt syncengine.ListOptions) ([]syncengine.RemoteEntry, error) {
-	files, err := a.client.List(ctx, listPath, opt.Recursive, opt.MaxDepth)
+	normalizedPath := listPath
+	if a.typ == syncengine.DriverLocal {
+		var err error
+		normalizedPath, err = normalizeLocalListPath(a.client, listPath)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	files, err := a.client.List(ctx, normalizedPath, opt.Recursive, opt.MaxDepth)
 	if err != nil {
 		return nil, fmt.Errorf("filesystem: 列出 %s 失败: %w", listPath, err)
 	}
@@ -244,6 +254,7 @@ func (a *Adapter) BuildStrmInfo(ctx context.Context, req syncengine.BuildStrmReq
 	}
 
 	if builder, ok := a.client.(strmInfoBuilder); ok {
+		req = normalizeLocalBuildRequest(a.client, a.typ, req)
 		info, err := builder.BuildStrmInfo(ctx, req)
 		if err != nil {
 			return syncengine.StrmInfo{}, fmt.Errorf("filesystem: 构建 strm 信息失败: %w", err)
@@ -275,6 +286,99 @@ func (a *Adapter) BuildStrmInfo(ctx context.Context, req syncengine.BuildStrmReq
 	info.ExpiresAt = parseExpiry(query.Get("expires"), query.Get("e"))
 
 	return info, nil
+}
+
+// normalizeLocalListPath 兼容本地驱动的绝对路径输入
+// - 若 listPath 位于 mount_path 之下，则转换为相对路径
+// - 若 listPath 以 "/" 开头但不是绝对路径（虚拟路径），移除前导 "/"
+func normalizeLocalListPath(client Client, listPath string) (string, error) {
+	trimmed := strings.TrimSpace(listPath)
+	if trimmed == "" || trimmed == "/" {
+		return trimmed, nil
+	}
+
+	impl, ok := client.(*ClientImpl)
+	if !ok {
+		if strings.HasPrefix(trimmed, "/") {
+			return strings.TrimLeft(trimmed, "/"), nil
+		}
+		return trimmed, nil
+	}
+
+	mountRoot := strings.TrimSpace(impl.Config.MountPath)
+	if mountRoot == "" {
+		if strings.HasPrefix(trimmed, "/") {
+			return strings.TrimLeft(trimmed, "/"), nil
+		}
+		return trimmed, nil
+	}
+
+	if filepath.IsAbs(trimmed) || filepath.VolumeName(trimmed) != "" {
+		cleanMount := filepath.Clean(mountRoot)
+		cleanPath := filepath.Clean(trimmed)
+		if cleanPath == cleanMount {
+			return "/", nil
+		}
+		prefix := cleanMount + string(filepath.Separator)
+		if strings.HasPrefix(cleanPath, prefix) {
+			rel := strings.TrimPrefix(cleanPath, prefix)
+			rel = filepath.ToSlash(rel)
+			rel = strings.TrimLeft(rel, "/")
+			if rel == "" {
+				return "/", nil
+			}
+			return rel, nil
+		}
+		return "", fmt.Errorf("filesystem: list path must be under mount_path: %s", mountRoot)
+	}
+
+	if strings.HasPrefix(trimmed, "/") {
+		return strings.TrimLeft(trimmed, "/"), nil
+	}
+	return trimmed, nil
+}
+
+// normalizeLocalBuildRequest 兼容本地驱动的绝对路径输入
+func normalizeLocalBuildRequest(client Client, driverType syncengine.DriverType, req syncengine.BuildStrmRequest) syncengine.BuildStrmRequest {
+	if driverType != syncengine.DriverLocal {
+		return req
+	}
+	impl, ok := client.(*ClientImpl)
+	if !ok {
+		req.RemotePath = strings.TrimLeft(req.RemotePath, "/")
+		return req
+	}
+
+	remote := strings.TrimSpace(req.RemotePath)
+	if remote == "" || remote == "/" {
+		req.RemotePath = strings.TrimLeft(remote, "/")
+		return req
+	}
+
+	mountRoot := strings.TrimSpace(impl.Config.MountPath)
+	if mountRoot == "" {
+		req.RemotePath = strings.TrimLeft(remote, "/")
+		return req
+	}
+
+	if filepath.IsAbs(remote) || filepath.VolumeName(remote) != "" {
+		cleanMount := filepath.Clean(mountRoot)
+		cleanPath := filepath.Clean(remote)
+		if cleanPath == cleanMount {
+			req.RemotePath = ""
+			return req
+		}
+		prefix := cleanMount + string(filepath.Separator)
+		if strings.HasPrefix(cleanPath, prefix) {
+			rel := strings.TrimPrefix(cleanPath, prefix)
+			rel = filepath.ToSlash(rel)
+			req.RemotePath = strings.TrimLeft(rel, "/")
+			return req
+		}
+	}
+
+	req.RemotePath = strings.TrimLeft(remote, "/")
+	return req
 }
 
 // CompareStrm 比对现有 STRM 内容与期望内容

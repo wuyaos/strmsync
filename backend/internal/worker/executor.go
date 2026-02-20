@@ -7,15 +7,20 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
+	appports "github.com/strmsync/strmsync/internal/app/ports"
+	appsync "github.com/strmsync/strmsync/internal/app/sync"
+	appconfig "github.com/strmsync/strmsync/internal/config"
 	"github.com/strmsync/strmsync/internal/domain/model"
-	"github.com/strmsync/strmsync/internal/infra/filesystem"
-	"github.com/strmsync/strmsync/internal/strmwriter"
 	"github.com/strmsync/strmsync/internal/engine"
-	"github.com/strmsync/strmsync/internal/queue"
+	"github.com/strmsync/strmsync/internal/infra/filesystem"
 	"github.com/strmsync/strmsync/internal/pkg/logger"
+	"github.com/strmsync/strmsync/internal/queue"
+	"github.com/strmsync/strmsync/internal/strmwriter"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -128,19 +133,60 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 		return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("load data server %d: %w", *job.DataServerID, err))
 	}
 
-	// 3. 构建 Driver 和 Writer
-	driver, err := e.cfg.DriverFactory.Build(ctx, server)
+	execLog := e.log.With(
+		zap.Uint("job_id", job.ID),
+		zap.String("job_name", job.Name),
+		zap.Uint("task_id", task.ID),
+	)
+	execLog.Info("加载任务配置",
+		zap.String("name", job.Name),
+		zap.String("watch_mode", job.WatchMode),
+		zap.String("source_path", job.SourcePath),
+		zap.String("target_path", job.TargetPath),
+		zap.String("strm_path", job.STRMPath),
+		zap.Bool("enabled", job.Enabled))
+	execLog.Info("加载数据服务器配置",
+		zap.Uint("server_id", server.ID),
+		zap.String("name", server.Name),
+		zap.String("type", server.Type),
+		zap.String("host", server.Host),
+		zap.Int("port", server.Port),
+		zap.Bool("enabled", server.Enabled))
+
+	extra, err := parseJobOptions(job.Options)
 	if err != nil {
-		return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("build driver: %w", err))
+		return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("parse job options: %w", err))
+	}
+	execLog.Info("解析任务选项完成",
+		zap.Int("max_concurrency", extra.MaxConcurrency),
+		zap.Int64("min_file_size", extra.MinFileSize),
+		zap.String("metadata_mode", extra.MetadataMode),
+		zap.String("strm_mode", extra.STRMMode),
+		zap.Int("media_exts", len(extra.MediaExts)),
+		zap.Int("meta_exts", len(extra.MetaExts)),
+		zap.Int("strm_replace_rules", len(extra.StrmReplaceRules)),
+		zap.Any("sync_opts", extra.SyncOpts))
+
+	serverForDriver, err := applyJobStrmMode(server, extra)
+	if err != nil {
+		return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("apply job strm_mode: %w", err))
+	}
+
+	// 3. 构建 Driver 和 Writer
+	driver, err := e.cfg.DriverFactory.Build(ctx, serverForDriver)
+	if err != nil {
+		return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("build driver for job %s: %w", job.Name, err))
 	}
 
 	writer, err := e.cfg.WriterFactory.Build(ctx, job)
 	if err != nil {
-		return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("build writer: %w", err))
+		return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("build writer for job %s: %w", job.Name, err))
 	}
+	execLog.Info("构建同步组件完成",
+		zap.String("driver_type", driver.Type().String()))
 
 	// 4. 构建 EngineOptions
-	engineOpts, err := buildEngineOptions(job)
+	engineOpts, err := buildEngineOptions(job, extra)
 	if err != nil {
 		return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("build engine options: %w", err))
 	}
@@ -148,6 +194,7 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 	// 5. 创建 Engine 实例
 	engine, err := syncengine.NewEngine(driver, writer, e.log.With(
 		zap.Uint("job_id", job.ID),
+		zap.String("job_name", job.Name),
 		zap.Uint("task_id", task.ID),
 		zap.String("driver_type", driver.Type().String()),
 	), engineOpts)
@@ -156,10 +203,25 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 	}
 
 	// 6. 执行 Engine.RunOnce
-	stats, runErr := engine.RunOnce(ctx, job.SourcePath)
+	remotePath, err := resolveEngineRemotePath(job, serverForDriver)
+	if err != nil {
+		return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("resolve engine remote path: %w", err))
+	}
+	execLog.Info("开始执行同步任务",
+		zap.String("remote_path", remotePath))
+	stats, runErr := engine.RunOnce(ctx, remotePath)
+
+	metaStats := metadataStats{}
+	var metaErr error
+	if runErr == nil {
+		metaStats, metaErr = e.syncMetadata(ctx, job, serverForDriver, driver, extra, remotePath)
+	}
+	if metaErr != nil {
+		execLog.Warn("元数据同步失败", zap.Error(metaErr))
+	}
 
 	// 7. 更新 TaskRun 进度
-	if updateErr := e.cfg.TaskRuns.UpdateProgress(ctx, task.ID, progressFromStats(stats)); updateErr != nil {
+	if updateErr := e.cfg.TaskRuns.UpdateProgress(ctx, task.ID, progressFromStats(stats, metaStats)); updateErr != nil {
 		e.log.Warn("update task progress failed",
 			zap.Uint("task_id", task.ID),
 			zap.Error(updateErr))
@@ -168,6 +230,22 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 	if runErr != nil {
 		return stats, wrapTaskError(runErr)
 	}
+	if metaErr != nil {
+		return stats, wrapTaskError(metaErr)
+	}
+
+	execLog.Info("同步任务执行完成",
+		zap.Int64("total_files", stats.TotalFiles),
+		zap.Int64("processed_files", stats.ProcessedFiles),
+		zap.Int64("created_files", stats.CreatedFiles),
+		zap.Int64("updated_files", stats.UpdatedFiles),
+		zap.Int64("skipped_files", stats.SkippedFiles),
+		zap.Int64("filtered_files", stats.FilteredFiles),
+		zap.Int64("failed_files", stats.FailedFiles),
+		zap.Int64("meta_total_files", metaStats.Total),
+		zap.Int64("meta_processed_files", metaStats.Processed),
+		zap.Int64("meta_failed_files", metaStats.Failed),
+		zap.Duration("duration", stats.Duration))
 
 	return stats, nil
 }
@@ -176,14 +254,16 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 //
 // 从 Job.Options (JSON) 解析可选配置：
 // - MaxConcurrency: 最大并发数
-// - FileExtensions: 文件扩展名过滤
+// - MediaExts: 媒体文件扩展名过滤
+// - MinFileSize: 媒体文件最小大小（MB）
 // - DryRun: 干运行模式
 // - ForceUpdate: 强制更新
 // - SkipExisting: 跳过已存在文件
 // - ModTimeEpsilonSeconds: ModTime 容差（秒）
 // - EnableOrphanCleanup: 启用孤儿文件清理
 // - OrphanCleanupDryRun: 孤儿清理干运行模式
-func buildEngineOptions(job model.Job) (syncengine.EngineOptions, error) {
+// - StrmReplaceRules: STRM 替换规则
+func buildEngineOptions(job model.Job, extra jobOptions) (syncengine.EngineOptions, error) {
 	if strings.TrimSpace(job.TargetPath) == "" {
 		return syncengine.EngineOptions{}, fmt.Errorf("job %d target_path is empty", job.ID)
 	}
@@ -192,21 +272,16 @@ func buildEngineOptions(job model.Job) (syncengine.EngineOptions, error) {
 		OutputRoot: job.TargetPath,
 	}
 
-	// 解析 Options JSON
-	var extra jobOptions
-	if strings.TrimSpace(job.Options) != "" {
-		if err := json.Unmarshal([]byte(job.Options), &extra); err != nil {
-			return syncengine.EngineOptions{}, fmt.Errorf("parse job options: %w", err)
-		}
-	}
-
 	// 应用可选配置
 	if extra.MaxConcurrency > 0 {
 		opts.MaxConcurrency = extra.MaxConcurrency
 	}
-	if len(extra.FileExtensions) > 0 {
-		opts.FileExtensions = extra.FileExtensions
+	mediaExts := normalizeExtensions(extra.MediaExts, nil)
+	if len(mediaExts) == 0 {
+		mediaExts = appconfig.DefaultMediaExtensions()
 	}
+	opts.FileExtensions = mediaExts
+	opts.MinFileSize = normalizeMinFileSize(extra.MinFileSize)
 	opts.DryRun = extra.DryRun
 	opts.ForceUpdate = extra.ForceUpdate
 	opts.SkipExisting = extra.SkipExisting
@@ -215,20 +290,421 @@ func buildEngineOptions(job model.Job) (syncengine.EngineOptions, error) {
 	if extra.ModTimeEpsilonSeconds > 0 {
 		opts.ModTimeEpsilon = time.Duration(extra.ModTimeEpsilonSeconds) * time.Second
 	}
+	opts.StrmReplaceRules = normalizeStrmReplaceRules(extra.StrmReplaceRules)
+	opts.ExcludeDirs = syncengine.NormalizeExcludeDirs(extra.ExcludeDirs)
 
 	return opts, nil
 }
 
+func resolveEngineRemotePath(job model.Job, server model.DataServer) (string, error) {
+	remotePath := strings.TrimSpace(job.SourcePath)
+	if strings.TrimSpace(server.Type) != filesystem.TypeLocal.String() {
+		return remotePath, nil
+	}
+
+	opts := dataServerOptions{}
+	if strings.TrimSpace(server.Options) != "" {
+		if err := json.Unmarshal([]byte(server.Options), &opts); err != nil {
+			return "", fmt.Errorf("parse data server options: %w", err)
+		}
+	}
+
+	mountPath := strings.TrimSpace(opts.MountPath)
+	if mountPath == "" {
+		mountPath = strings.TrimSpace(opts.AccessPath)
+	}
+	if mountPath == "" || remotePath == "" {
+		return remotePath, nil
+	}
+
+	if !filepath.IsAbs(remotePath) && filepath.VolumeName(remotePath) == "" {
+		return filepath.ToSlash(strings.TrimLeft(remotePath, "/")), nil
+	}
+
+	cleanMount := filepath.Clean(mountPath)
+	cleanSource := filepath.Clean(remotePath)
+	if cleanSource == cleanMount {
+		return "/", nil
+	}
+
+	prefix := cleanMount + string(filepath.Separator)
+	if strings.HasPrefix(cleanSource, prefix) {
+		rel := strings.TrimPrefix(cleanSource, prefix)
+		rel = filepath.ToSlash(rel)
+		rel = strings.TrimLeft(rel, "/")
+		if rel == "" {
+			return "/", nil
+		}
+		return rel, nil
+	}
+
+	return "", fmt.Errorf("source_path %s must be under mount_path %s", remotePath, mountPath)
+}
+
 // jobOptions 表示从 Job.Options 解析的引擎参数
 type jobOptions struct {
-	MaxConcurrency        int      `json:"max_concurrency"`
-	FileExtensions        []string `json:"file_extensions"`
-	DryRun                bool     `json:"dry_run"`
-	ForceUpdate           bool     `json:"force_update"`
-	SkipExisting          bool     `json:"skip_existing"`
-	ModTimeEpsilonSeconds int      `json:"mod_time_epsilon_seconds"`
-	EnableOrphanCleanup   bool     `json:"enable_orphan_cleanup"`
-	OrphanCleanupDryRun   bool     `json:"orphan_cleanup_dry_run"`
+	MaxConcurrency        int               `json:"max_concurrency"`
+	MediaExts             []string          `json:"media_exts"`
+	MetaExts              []string          `json:"meta_exts"`
+	ExcludeDirs           []string          `json:"exclude_dirs"`
+	MinFileSize           int64             `json:"min_file_size"`
+	DryRun                bool              `json:"dry_run"`
+	ForceUpdate           bool              `json:"force_update"`
+	SkipExisting          bool              `json:"skip_existing"`
+	ModTimeEpsilonSeconds int               `json:"mod_time_epsilon_seconds"`
+	EnableOrphanCleanup   bool              `json:"enable_orphan_cleanup"`
+	OrphanCleanupDryRun   bool              `json:"orphan_cleanup_dry_run"`
+	MetadataMode          string            `json:"metadata_mode"`
+	SyncOpts              syncOpts          `json:"sync_opts"`
+	STRMMode              string            `json:"strm_mode"`
+	StrmReplaceRules      []strmReplaceRule `json:"strm_replace_rules"`
+}
+
+type syncOpts struct {
+	UpdateMeta    bool `json:"update_meta"`
+	OverwriteMeta bool `json:"overwrite_meta"`
+	SkipMeta      bool `json:"skip_meta"`
+}
+
+type strmReplaceRule struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
+type metadataStats struct {
+	Total     int64
+	Created   int64
+	Updated   int64
+	Processed int64
+	Failed    int64
+}
+
+type metaStrategy int
+
+const (
+	metaStrategyUpdate metaStrategy = iota
+	metaStrategyOverwrite
+	metaStrategySkip
+)
+
+func (s metaStrategy) String() string {
+	switch s {
+	case metaStrategyUpdate:
+		return "update"
+	case metaStrategyOverwrite:
+		return "overwrite"
+	case metaStrategySkip:
+		return "skip"
+	default:
+		return "unknown"
+	}
+}
+
+func parseJobOptions(raw string) (jobOptions, error) {
+	var opts jobOptions
+	if strings.TrimSpace(raw) == "" {
+		return opts, nil
+	}
+	if err := json.Unmarshal([]byte(raw), &opts); err != nil {
+		return jobOptions{}, err
+	}
+	return opts, nil
+}
+
+func normalizeExtensions(exts []string, fallback []string) []string {
+	if exts == nil {
+		exts = fallback
+	}
+	if len(exts) == 0 {
+		return []string{}
+	}
+	normalized := make([]string, 0, len(exts))
+	for _, ext := range exts {
+		item := strings.ToLower(strings.TrimSpace(ext))
+		if item == "" {
+			continue
+		}
+		if !strings.HasPrefix(item, ".") {
+			item = "." + item
+		}
+		normalized = append(normalized, item)
+	}
+	return normalized
+}
+
+func normalizeMinFileSize(value int64) int64 {
+	if value <= 0 {
+		return 0
+	}
+	return value * 1024 * 1024
+}
+
+func normalizeStrmReplaceRules(rules []strmReplaceRule) []syncengine.StrmReplaceRule {
+	if len(rules) == 0 {
+		return nil
+	}
+	normalized := make([]syncengine.StrmReplaceRule, 0, len(rules))
+	for _, rule := range rules {
+		from := strings.TrimSpace(rule.From)
+		to := strings.TrimSpace(rule.To)
+		if from == "" && to == "" {
+			continue
+		}
+		normalized = append(normalized, syncengine.StrmReplaceRule{
+			From: from,
+			To:   to,
+		})
+	}
+	return normalized
+}
+
+func resolveMetaStrategy(opts syncOpts) metaStrategy {
+	if opts.OverwriteMeta {
+		return metaStrategyOverwrite
+	}
+	if opts.SkipMeta {
+		return metaStrategySkip
+	}
+	return metaStrategyUpdate
+}
+
+func buildTargetMetaPath(targetRoot, remotePath string) (string, error) {
+	cleanPath := filepath.ToSlash(remotePath)
+	cleanPath = filepath.Clean("/" + cleanPath)
+	cleanPath = strings.TrimPrefix(cleanPath, "/")
+	cleanPath = filepath.FromSlash(cleanPath)
+	return filepath.Join(targetRoot, cleanPath), nil
+}
+
+func metaFileSame(info os.FileInfo, entry syncengine.RemoteEntry, epsilon time.Duration) bool {
+	if info == nil {
+		return false
+	}
+	if entry.Size > 0 && info.Size() != entry.Size {
+		return false
+	}
+	if !entry.ModTime.IsZero() {
+		diff := info.ModTime().Sub(entry.ModTime)
+		if diff < 0 {
+			diff = -diff
+		}
+		if diff > epsilon {
+			return false
+		}
+	}
+	return true
+}
+
+func applyJobStrmMode(server model.DataServer, extra jobOptions) (model.DataServer, error) {
+	mode := strings.ToLower(strings.TrimSpace(extra.STRMMode))
+	if mode == "" {
+		return server, nil
+	}
+
+	serverType := filesystem.Type(strings.TrimSpace(server.Type))
+	if !serverType.IsValid() {
+		return server, fmt.Errorf("invalid server type: %s", server.Type)
+	}
+
+	options := map[string]interface{}{}
+	if strings.TrimSpace(server.Options) != "" {
+		if err := json.Unmarshal([]byte(server.Options), &options); err != nil {
+			return server, fmt.Errorf("parse data server options: %w", err)
+		}
+	}
+
+	mountPath := strings.TrimSpace(getOptionString(options, "mount_path"))
+	if mountPath == "" {
+		mountPath = strings.TrimSpace(getOptionString(options, "access_path"))
+	}
+
+	var strmMode filesystem.STRMMode
+	switch mode {
+	case "local":
+		strmMode = filesystem.STRMModeMount
+	case "url":
+		strmMode = filesystem.STRMModeHTTP
+	default:
+		return server, nil
+	}
+
+	if serverType == filesystem.TypeLocal {
+		strmMode = filesystem.STRMModeMount
+	} else if strmMode == filesystem.STRMModeMount && mountPath == "" {
+		strmMode = filesystem.STRMModeHTTP
+	}
+
+	options["strm_mode"] = strmMode.String()
+	encoded, err := json.Marshal(options)
+	if err != nil {
+		return server, fmt.Errorf("encode data server options: %w", err)
+	}
+
+	server.Options = string(encoded)
+	return server, nil
+}
+
+func getOptionString(options map[string]interface{}, key string) string {
+	if options == nil {
+		return ""
+	}
+	raw, ok := options[key]
+	if !ok || raw == nil {
+		return ""
+	}
+	switch v := raw.(type) {
+	case string:
+		return v
+	default:
+		return ""
+	}
+}
+
+func buildMetadataClient(server model.DataServer, log *zap.Logger) (filesystem.Client, error) {
+	cfg, err := buildFilesystemConfig(server)
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.TrimSpace(cfg.MountPath) != "" {
+		cfg.STRMMode = filesystem.STRMModeMount
+	} else {
+		cfg.STRMMode = filesystem.STRMModeHTTP
+	}
+
+	return filesystem.NewClient(cfg, filesystem.WithLogger(log))
+}
+
+func (e *Executor) syncMetadata(ctx context.Context, job model.Job, server model.DataServer, driver syncengine.Driver, extra jobOptions, remotePath string) (metadataStats, error) {
+	metaExts := normalizeExtensions(extra.MetaExts, appconfig.DefaultMetaExtensions())
+	if len(metaExts) == 0 {
+		return metadataStats{}, nil
+	}
+
+	metaSet := make(map[string]struct{}, len(metaExts))
+	for _, ext := range metaExts {
+		metaSet[ext] = struct{}{}
+	}
+
+	excludeDirs := syncengine.NormalizeExcludeDirs(extra.ExcludeDirs)
+
+	entries, err := driver.List(ctx, remotePath, syncengine.ListOptions{
+		Recursive: true,
+		MaxDepth:  100,
+	})
+	if err != nil {
+		return metadataStats{}, fmt.Errorf("list metadata entries: %w", err)
+	}
+
+	metaLogger := e.log.With(zap.String("component", "metadata"))
+	client, err := buildMetadataClient(server, metaLogger)
+	if err != nil {
+		return metadataStats{}, fmt.Errorf("build metadata client: %w", err)
+	}
+
+	mode := strings.ToLower(strings.TrimSpace(extra.MetadataMode))
+	if mode == "api" {
+		mode = "download"
+	}
+	preferMount := mode != "download"
+	replicator := appsync.NewMetadataReplicator(client, job.TargetPath, metaLogger, appsync.WithPreferMount(preferMount))
+
+	strategy := resolveMetaStrategy(extra.SyncOpts)
+	metaLogger.Info("开始同步元数据",
+		zap.String("remote_path", remotePath),
+		zap.Int("meta_exts", len(metaExts)),
+		zap.String("mode", mode),
+		zap.String("strategy", strategy.String()))
+
+	items := make(chan appports.SyncPlanItem, 100)
+	stats := metadataStats{}
+	preFailed := int64(0)
+	planned := int64(0)
+
+	go func() {
+		defer close(items)
+		for _, entry := range entries {
+			if ctx.Err() != nil {
+				return
+			}
+			if entry.IsDir {
+				continue
+			}
+			if syncengine.IsExcludedPath(remotePath, entry.Path, excludeDirs) {
+				continue
+			}
+			ext := strings.ToLower(filepath.Ext(entry.Name))
+			if _, ok := metaSet[ext]; !ok {
+				continue
+			}
+
+			stats.Total++
+
+			targetPath, err := buildTargetMetaPath(job.TargetPath, entry.Path)
+			if err != nil {
+				preFailed++
+				continue
+			}
+
+			info, statErr := os.Stat(targetPath)
+			if statErr != nil && !os.IsNotExist(statErr) {
+				preFailed++
+				continue
+			}
+
+			exists := statErr == nil
+			same := metaFileSame(info, entry, 2*time.Second)
+
+			switch strategy {
+			case metaStrategySkip:
+				if exists {
+					continue
+				}
+			case metaStrategyUpdate:
+				if exists && same {
+					continue
+				}
+			case metaStrategyOverwrite:
+				// 总是覆盖
+			}
+
+			op := appports.SyncOpCreate
+			if exists {
+				op = appports.SyncOpUpdate
+			}
+			if op == appports.SyncOpCreate {
+				stats.Created++
+			} else {
+				stats.Updated++
+			}
+
+			items <- appports.SyncPlanItem{
+				Op:             op,
+				Kind:           appports.PlanItemMetadata,
+				SourcePath:     entry.Path,
+				TargetMetaPath: targetPath,
+				Size:           entry.Size,
+				ModTime:        entry.ModTime,
+			}
+			planned++
+		}
+	}()
+
+	_, failed, err := replicator.Apply(ctx, items)
+	stats.Processed = planned + preFailed
+	stats.Failed = preFailed + int64(failed)
+	if err != nil {
+		return stats, err
+	}
+
+	metaLogger.Info("元数据同步完成",
+		zap.Int64("total", stats.Total),
+		zap.Int64("created", stats.Created),
+		zap.Int64("updated", stats.Updated),
+		zap.Int64("processed", stats.Processed),
+		zap.Int64("failed", stats.Failed))
+
+	return stats, nil
 }
 
 // progressFromStats 生成 TaskRunProgress
@@ -236,7 +712,7 @@ type jobOptions struct {
 // 计算进度百分比：
 // - 如果有总文件数，按 ProcessedFiles / TotalFiles 计算
 // - 如果没有总文件数但已完成，进度为 100
-func progressFromStats(stats syncengine.SyncStats) TaskRunProgress {
+func progressFromStats(stats syncengine.SyncStats, meta metadataStats) TaskRunProgress {
 	total := clampInt64(stats.TotalFiles)
 	processed := clampInt64(stats.ProcessedFiles)
 	failed := clampInt64(stats.FailedFiles)
@@ -254,10 +730,19 @@ func progressFromStats(stats syncengine.SyncStats) TaskRunProgress {
 	}
 
 	return TaskRunProgress{
-		TotalFiles:     total,
-		ProcessedFiles: processed,
-		FailedFiles:    failed,
-		Progress:       progress,
+		TotalFiles:         total,
+		ProcessedFiles:     processed,
+		FailedFiles:        failed,
+		CreatedFiles:       clampInt64(stats.CreatedFiles),
+		UpdatedFiles:       clampInt64(stats.UpdatedFiles),
+		SkippedFiles:       clampInt64(stats.SkippedFiles),
+		FilteredFiles:      clampInt64(stats.FilteredFiles),
+		MetaTotalFiles:     clampInt64(meta.Total),
+		MetaCreatedFiles:   clampInt64(meta.Created),
+		MetaUpdatedFiles:   clampInt64(meta.Updated),
+		MetaProcessedFiles: clampInt64(meta.Processed),
+		MetaFailedFiles:    clampInt64(meta.Failed),
+		Progress:           progress,
 	}
 }
 
@@ -316,7 +801,6 @@ func permanentTaskError(err error) error {
 }
 
 // DefaultDriverFactory 根据 DataServer.Type 构建 Driver
-//
 type DefaultDriverFactory struct {
 	Logger *zap.Logger
 }
@@ -423,6 +907,12 @@ func buildFilesystemConfig(server model.DataServer) (filesystem.Config, error) {
 		if !strmMode.IsValid() {
 			return filesystem.Config{}, fmt.Errorf("invalid strm_mode: %s (valid: http, mount)", opts.STRMMode)
 		}
+	} else if serverType == filesystem.TypeLocal {
+		// 本地数据服务器默认使用挂载模式，避免 HTTP 模式缺少 base_url
+		strmMode = filesystem.STRMModeMount
+	}
+	if serverType == filesystem.TypeLocal {
+		strmMode = filesystem.STRMModeMount
 	}
 
 	// 解析 Timeout
@@ -437,13 +927,18 @@ func buildFilesystemConfig(server model.DataServer) (filesystem.Config, error) {
 		password = server.APIKey
 	}
 
+	mountPath := strings.TrimSpace(opts.MountPath)
+	if mountPath == "" {
+		mountPath = strings.TrimSpace(opts.AccessPath)
+	}
+
 	return filesystem.Config{
 		Type:      serverType,
 		BaseURL:   baseURL,
 		Username:  opts.Username,
 		Password:  password,
 		STRMMode:  strmMode,
-		MountPath: opts.MountPath,
+		MountPath: mountPath,
 		Timeout:   timeout,
 	}, nil
 }
@@ -451,6 +946,7 @@ func buildFilesystemConfig(server model.DataServer) (filesystem.Config, error) {
 // dataServerOptions 表示 DataServer.Options 的可选字段
 type dataServerOptions struct {
 	BaseURL        string `json:"base_url"`
+	AccessPath     string `json:"access_path"`
 	STRMMode       string `json:"strm_mode"`
 	MountPath      string `json:"mount_path"`
 	TimeoutSeconds int    `json:"timeout_seconds"`
@@ -477,10 +973,19 @@ func (r *GormTaskRunRepository) UpdateProgress(ctx context.Context, taskID uint,
 		ctx = context.Background()
 	}
 	updates := map[string]any{
-		"total_files":     progress.TotalFiles,
-		"processed_files": progress.ProcessedFiles,
-		"failed_files":    progress.FailedFiles,
-		"progress":        progress.Progress,
+		"total_files":          progress.TotalFiles,
+		"processed_files":      progress.ProcessedFiles,
+		"failed_files":         progress.FailedFiles,
+		"created_files":        progress.CreatedFiles,
+		"updated_files":        progress.UpdatedFiles,
+		"skipped_files":        progress.SkippedFiles,
+		"filtered_files":       progress.FilteredFiles,
+		"meta_total_files":     progress.MetaTotalFiles,
+		"meta_created_files":   progress.MetaCreatedFiles,
+		"meta_updated_files":   progress.MetaUpdatedFiles,
+		"meta_processed_files": progress.MetaProcessedFiles,
+		"meta_failed_files":    progress.MetaFailedFiles,
+		"progress":             progress.Progress,
 	}
 	return r.db.WithContext(ctx).Model(&model.TaskRun{}).
 		Where("id = ?", taskID).

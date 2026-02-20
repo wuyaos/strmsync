@@ -165,6 +165,33 @@ type TaskRunProgress struct {
 	// FailedFiles 失败文件数
 	FailedFiles int
 
+	// CreatedFiles 新建STRM数
+	CreatedFiles int
+
+	// UpdatedFiles 更新STRM数
+	UpdatedFiles int
+
+	// SkippedFiles 跳过STRM数
+	SkippedFiles int
+
+	// FilteredFiles 过滤文件数
+	FilteredFiles int
+
+	// MetaTotalFiles 元数据总数
+	MetaTotalFiles int
+
+	// MetaCreatedFiles 元数据新增数
+	MetaCreatedFiles int
+
+	// MetaUpdatedFiles 元数据更新数
+	MetaUpdatedFiles int
+
+	// MetaProcessedFiles 元数据已处理数
+	MetaProcessedFiles int
+
+	// MetaFailedFiles 元数据失败数
+	MetaFailedFiles int
+
 	// Progress 进度百分比（0-100）
 	Progress int
 }

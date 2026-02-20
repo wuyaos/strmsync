@@ -1,9 +1,9 @@
 package worker
 
 import (
-	"github.com/strmsync/strmsync/internal/domain/model"
 	"context"
 	"errors"
+	"github.com/strmsync/strmsync/internal/domain/model"
 	"testing"
 	"time"
 
@@ -21,7 +21,11 @@ func TestBuildEngineOptions_Basic(t *testing.T) {
 		TargetPath: "/output/strm",
 	}
 
-	opts, err := buildEngineOptions(job)
+	extra, err := parseJobOptions(job.Options)
+	if err != nil {
+		t.Fatalf("parse job options: %v", err)
+	}
+	opts, err := buildEngineOptions(job, extra)
 	if err != nil {
 		t.Fatalf("build engine options: %v", err)
 	}
@@ -36,7 +40,11 @@ func TestBuildEngineOptions_EmptyTargetPath(t *testing.T) {
 		TargetPath: "",
 	}
 
-	_, err := buildEngineOptions(job)
+	extra, err := parseJobOptions(job.Options)
+	if err != nil {
+		t.Fatalf("parse job options: %v", err)
+	}
+	_, err = buildEngineOptions(job, extra)
 	if err == nil {
 		t.Fatal("expected error for empty target_path")
 	}
@@ -46,10 +54,14 @@ func TestBuildEngineOptions_WithOptions(t *testing.T) {
 	job := model.Job{
 		ID:         1,
 		TargetPath: "/output",
-		Options:    `{"max_concurrency":8,"file_extensions":[".mkv",".mp4"],"dry_run":true,"force_update":false,"mod_time_epsilon_seconds":5}`,
+		Options:    `{"max_concurrency":8,"media_exts":[".mkv",".mp4"],"min_file_size":10,"dry_run":true,"force_update":false,"mod_time_epsilon_seconds":5}`,
 	}
 
-	opts, err := buildEngineOptions(job)
+	extra, err := parseJobOptions(job.Options)
+	if err != nil {
+		t.Fatalf("parse job options: %v", err)
+	}
+	opts, err := buildEngineOptions(job, extra)
 	if err != nil {
 		t.Fatalf("build engine options: %v", err)
 	}
@@ -68,6 +80,9 @@ func TestBuildEngineOptions_WithOptions(t *testing.T) {
 	if opts.ModTimeEpsilon != 5*time.Second {
 		t.Errorf("ModTimeEpsilon: expected 5s, got %v", opts.ModTimeEpsilon)
 	}
+	if opts.MinFileSize != 10*1024*1024 {
+		t.Errorf("MinFileSize: expected 10MB, got %d", opts.MinFileSize)
+	}
 }
 
 func TestBuildEngineOptions_InvalidJSON(t *testing.T) {
@@ -77,7 +92,7 @@ func TestBuildEngineOptions_InvalidJSON(t *testing.T) {
 		Options:    `{invalid json`,
 	}
 
-	_, err := buildEngineOptions(job)
+	_, err := parseJobOptions(job.Options)
 	if err == nil {
 		t.Fatal("expected error for invalid JSON")
 	}
@@ -94,7 +109,12 @@ func TestProgressFromStats_Normal(t *testing.T) {
 		FailedFiles:    5,
 	}
 
-	p := progressFromStats(stats)
+	meta := metadataStats{
+		Total:     10,
+		Processed: 8,
+		Failed:    2,
+	}
+	p := progressFromStats(stats, meta)
 	if p.TotalFiles != 100 {
 		t.Errorf("TotalFiles: expected 100, got %d", p.TotalFiles)
 	}
@@ -107,6 +127,15 @@ func TestProgressFromStats_Normal(t *testing.T) {
 	if p.Progress != 75 {
 		t.Errorf("Progress: expected 75, got %d", p.Progress)
 	}
+	if p.MetaTotalFiles != 10 {
+		t.Errorf("MetaTotalFiles: expected 10, got %d", p.MetaTotalFiles)
+	}
+	if p.MetaProcessedFiles != 8 {
+		t.Errorf("MetaProcessedFiles: expected 8, got %d", p.MetaProcessedFiles)
+	}
+	if p.MetaFailedFiles != 2 {
+		t.Errorf("MetaFailedFiles: expected 2, got %d", p.MetaFailedFiles)
+	}
 }
 
 func TestProgressFromStats_ZeroTotal(t *testing.T) {
@@ -116,7 +145,7 @@ func TestProgressFromStats_ZeroTotal(t *testing.T) {
 		EndTime:        time.Now(),
 	}
 
-	p := progressFromStats(stats)
+	p := progressFromStats(stats, metadataStats{})
 	if p.Progress != 100 {
 		t.Errorf("Progress: expected 100 for completed with no files, got %d", p.Progress)
 	}
@@ -128,7 +157,7 @@ func TestProgressFromStats_OverflowProtection(t *testing.T) {
 		ProcessedFiles: 150, // 超过总数
 	}
 
-	p := progressFromStats(stats)
+	p := progressFromStats(stats, metadataStats{})
 	if p.Progress > 100 {
 		t.Errorf("Progress should not exceed 100, got %d", p.Progress)
 	}
@@ -140,7 +169,7 @@ func TestProgressFromStats_NegativeValues(t *testing.T) {
 		ProcessedFiles: -5,
 	}
 
-	p := progressFromStats(stats)
+	p := progressFromStats(stats, metadataStats{})
 	if p.TotalFiles < 0 {
 		t.Errorf("TotalFiles should not be negative, got %d", p.TotalFiles)
 	}

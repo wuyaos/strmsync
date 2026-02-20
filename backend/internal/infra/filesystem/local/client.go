@@ -5,7 +5,8 @@
 // imported for side effects (provider registration).
 //
 // Usage:
-//   import _ "github.com/strmsync/strmsync/internal/infra/filesystem/local"
+//
+//	import _ "github.com/strmsync/strmsync/internal/infra/filesystem/local"
 //
 // The Local provider accesses files directly from the local filesystem.
 // It only supports mount-based STRM mode (no HTTP streaming).
@@ -25,8 +26,8 @@ import (
 	"strings"
 
 	"github.com/strmsync/strmsync/internal/engine"
-	"go.uber.org/zap"
 	"github.com/strmsync/strmsync/internal/infra/filesystem"
+	"go.uber.org/zap"
 )
 
 // localProvider 本地文件系统实现
@@ -40,11 +41,6 @@ func NewLocalProvider(c *filesystem.ClientImpl) (filesystem.Provider, error) {
 	// 验证本地路径
 	if c.Config.MountPath == "" {
 		return nil, fmt.Errorf("filesystem: local mode requires mount_path")
-	}
-
-	// 检查路径是否存在
-	if _, err := os.Stat(c.Config.MountPath); err != nil {
-		return nil, fmt.Errorf("filesystem: mount_path not accessible: %w", err)
 	}
 
 	return &localProvider{

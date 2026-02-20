@@ -30,6 +30,7 @@ const (
 type DataServerOptions struct {
 	Username       string `json:"username"`
 	Password       string `json:"password"`
+	AccessPath     string `json:"access_path"`
 	MountPath      string `json:"mount_path"`
 	STRMMode       string `json:"strm_mode"`
 	TimeoutSeconds int    `json:"timeout_seconds"`
@@ -82,6 +83,9 @@ func (s *fileService) List(ctx context.Context, req ports.FileListRequest) ([]po
 		Password:  strings.TrimSpace(options.Password),
 		STRMMode:  filesystem.STRMMode(strings.TrimSpace(options.STRMMode)),
 		MountPath: strings.TrimSpace(options.MountPath),
+	}
+	if cfg.MountPath == "" {
+		cfg.MountPath = strings.TrimSpace(options.AccessPath)
 	}
 
 	if cfg.STRMMode == "" {

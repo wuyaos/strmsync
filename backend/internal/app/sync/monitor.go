@@ -135,7 +135,7 @@ func (m *Monitor) runWatch(ctx context.Context, config *ports.JobConfig, eventCh
 	defer watcher.Close()
 
 	// 规范化扩展名
-	extSet := normalizeExts(config.Extensions)
+	extSet := normalizeExts(collectExtensions(config))
 
 	// 记录已监控的目录
 	watchedDirs := make(map[string]struct{})
@@ -346,7 +346,7 @@ func (m *Monitor) Scan(ctx context.Context, config *ports.JobConfig) ([]ports.Fi
 	}
 
 	// 规范化扩展名
-	extSet := normalizeExts(config.Extensions)
+	extSet := normalizeExts(collectExtensions(config))
 
 	m.logger.Info("开始扫描文件",
 		zap.String("path", rootAbs),
@@ -458,6 +458,17 @@ func (m *Monitor) isTempFile(path string) bool {
 	}
 
 	return false
+}
+
+// collectExtensions 合并媒体与元数据扩展名
+func collectExtensions(config *ports.JobConfig) []string {
+	if config == nil {
+		return nil
+	}
+	exts := make([]string, 0, len(config.MediaExtensions)+len(config.MetaExtensions))
+	exts = append(exts, config.MediaExtensions...)
+	exts = append(exts, config.MetaExtensions...)
+	return exts
 }
 
 // normalizeExts 规范化扩展名列表（转小写，添加点前缀）

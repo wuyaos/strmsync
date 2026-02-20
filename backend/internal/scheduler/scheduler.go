@@ -2,12 +2,12 @@
 package scheduler
 
 import (
-	"github.com/strmsync/strmsync/internal/domain/model"
-	"github.com/strmsync/strmsync/internal/pkg/logger"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/strmsync/strmsync/internal/domain/model"
+	"github.com/strmsync/strmsync/internal/pkg/logger"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -41,9 +41,9 @@ const (
 type CronScheduler struct {
 	cfg SchedulerConfig
 
-	mu      sync.RWMutex        // 保护 cron 和 entries
-	cron    *cron.Cron          // Cron 引擎
-	entries map[uint]CronEntry  // JobID -> CronEntry 映射
+	mu      sync.RWMutex       // 保护 cron 和 entries
+	cron    *cron.Cron         // Cron 引擎
+	entries map[uint]CronEntry // JobID -> CronEntry 映射
 
 	running atomic.Bool // 运行状态标志
 }
@@ -120,7 +120,7 @@ func (s *CronScheduler) Start(ctx context.Context) error {
 
 	// 启动 Cron 引擎
 	s.cron.Start()
-	s.cfg.Logger.Info("scheduler started")
+	s.cfg.Logger.Info("定时系统开启")
 	return nil
 }
 
@@ -156,7 +156,7 @@ func (s *CronScheduler) Stop(ctx context.Context) error {
 		return fmt.Errorf("scheduler: stop cancelled: %w", ctx.Err())
 	}
 
-	s.cfg.Logger.Info("scheduler stopped")
+	s.cfg.Logger.Info("定时系统停止")
 	return nil
 }
 
@@ -353,7 +353,9 @@ func (s *CronScheduler) enqueueJob(jobID uint, scheduleTime time.Time) {
 		return
 	}
 	if !job.Enabled {
-		s.cfg.Logger.Info("skip enqueue for disabled job", zap.Uint("job_id", jobID))
+		s.cfg.Logger.Info("skip enqueue for disabled job",
+			zap.Uint("job_id", jobID),
+			zap.String("job_name", job.Name))
 		return
 	}
 
@@ -378,11 +380,13 @@ func (s *CronScheduler) enqueueJob(jobID uint, scheduleTime time.Time) {
 			// 重复任务，忽略
 			s.cfg.Logger.Debug("duplicate cron enqueue ignored",
 				zap.Uint("job_id", job.ID),
+				zap.String("job_name", job.Name),
 				zap.String("dedup_key", dedupKey))
 			return
 		}
 		s.cfg.Logger.Error("cron enqueue failed",
 			zap.Uint("job_id", job.ID),
+			zap.String("job_name", job.Name),
 			zap.String("dedup_key", dedupKey),
 			zap.Error(err))
 		return
@@ -390,6 +394,7 @@ func (s *CronScheduler) enqueueJob(jobID uint, scheduleTime time.Time) {
 
 	s.cfg.Logger.Info("cron task enqueued",
 		zap.Uint("job_id", job.ID),
+		zap.String("job_name", job.Name),
 		zap.Uint("task_id", task.ID),
 		zap.String("dedup_key", dedupKey))
 }

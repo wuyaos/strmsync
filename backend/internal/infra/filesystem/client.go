@@ -2,7 +2,6 @@
 package filesystem
 
 import (
-	"github.com/strmsync/strmsync/internal/pkg/logger"
 	"context"
 	"errors"
 	"fmt"
@@ -14,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	syncengine "github.com/strmsync/strmsync/internal/engine"
+	"github.com/strmsync/strmsync/internal/pkg/logger"
 	"go.uber.org/zap"
 )
 
@@ -150,11 +151,6 @@ func NewClient(config Config, opts ...Option) (Client, error) {
 	return client, nil
 }
 
-// NewDataServerClient 为兼容旧命名提供别名
-func NewDataServerClient(config Config, opts ...Option) (Client, error) {
-	return NewClient(config, opts...)
-}
-
 // newProvider 根据类型创建 Provider
 func newProvider(t Type, client *ClientImpl) (Provider, error) {
 	factory, ok := providerRegistry[t]
@@ -207,6 +203,53 @@ func (c *ClientImpl) BuildStreamURL(ctx context.Context, serverID uint, filePath
 	default:
 		return "", fmt.Errorf("filesystem: unsupported strm_mode: %s", c.Config.STRMMode)
 	}
+}
+
+// BuildStrmInfo 构建结构化的 STRM 信息
+// - mount 模式：返回本地路径（BaseURL 为 nil）
+// - http 模式：返回 HTTP URL 并解析元信息
+func (c *ClientImpl) BuildStrmInfo(ctx context.Context, req syncengine.BuildStrmRequest) (syncengine.StrmInfo, error) {
+	if c.Provider == nil {
+		return syncengine.StrmInfo{}, fmt.Errorf("filesystem: Provider not initialized")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	if c.Config.STRMMode == STRMModeMount {
+		localPath, err := c.buildMountStreamPath(req.RemotePath)
+		if err != nil {
+			return syncengine.StrmInfo{}, fmt.Errorf("filesystem: 构建本地流媒体路径失败: %w", err)
+		}
+		return syncengine.StrmInfo{
+			RawURL:  localPath,
+			BaseURL: nil,
+			Path:    localPath,
+		}, nil
+	}
+
+	rawURL, err := c.BuildStreamURL(ctx, req.ServerID, req.RemotePath)
+	if err != nil {
+		return syncengine.StrmInfo{}, fmt.Errorf("filesystem: 构建流媒体 URL 失败: %w", err)
+	}
+
+	parsed, err := url.Parse(strings.TrimSpace(rawURL))
+	if err != nil {
+		return syncengine.StrmInfo{}, fmt.Errorf("filesystem: 解析流媒体 URL 失败: %w", err)
+	}
+
+	info := syncengine.StrmInfo{
+		RawURL:  rawURL,
+		BaseURL: &url.URL{Scheme: parsed.Scheme, Host: parsed.Host},
+		Path:    parsed.Path,
+	}
+
+	query := parsed.Query()
+	info.PickCode = firstNonEmpty(query.Get("pickcode"), query.Get("pick_code"))
+	info.Sign = query.Get("sign")
+	info.ExpiresAt = parseExpiry(query.Get("expires"), query.Get("e"))
+
+	return info, nil
 }
 
 // TestConnection 测试连接

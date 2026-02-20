@@ -15,59 +15,6 @@ import (
 // Planner 测试
 // ---------------------
 
-func TestPlanner_IsAllowedExtension(t *testing.T) {
-	tests := []struct {
-		name               string
-		path               string
-		allowedExtensions  []string
-		expectedAllowed    bool
-	}{
-		{
-			name:              "no extensions filter allows all",
-			path:              "movie.mkv",
-			allowedExtensions: []string{},
-			expectedAllowed:   true,
-		},
-		{
-			name:              "matching extension",
-			path:              "movie.mkv",
-			allowedExtensions: []string{".mkv", ".mp4"},
-			expectedAllowed:   true,
-		},
-		{
-			name:              "non-matching extension",
-			path:              "movie.avi",
-			allowedExtensions: []string{".mkv", ".mp4"},
-			expectedAllowed:   false,
-		},
-		{
-			name:              "case insensitive matching",
-			path:              "movie.MKV",
-			allowedExtensions: []string{".mkv"},
-			expectedAllowed:   true,
-		},
-		{
-			name:              "no extension file",
-			path:              "noextension",
-			allowedExtensions: []string{".mkv"},
-			expectedAllowed:   false,
-		},
-	}
-
-	// Planner 不需要真实 filesystem client 就可以测试 isAllowedExtension
-	p := &Planner{}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := p.isAllowedExtension(tt.path, tt.allowedExtensions)
-			if result != tt.expectedAllowed {
-				t.Errorf("isAllowedExtension(%q, %v) = %v, want %v",
-					tt.path, tt.allowedExtensions, result, tt.expectedAllowed)
-			}
-		})
-	}
-}
-
 func TestPlanner_CalculateTargetPath(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -105,6 +52,63 @@ func TestPlanner_CalculateTargetPath(t *testing.T) {
 			}
 			if result != tt.expected {
 				t.Errorf("calculateTargetStrmPath = %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestPlanner_BuildStrmContent(t *testing.T) {
+	p := &Planner{}
+
+	tests := []struct {
+		name     string
+		config   *ports.JobConfig
+		event    *ports.FileEvent
+		expected string
+	}{
+		{
+			name: "local mode with mount path",
+			config: &ports.JobConfig{
+				STRMMode:   ports.STRMModeLocal,
+				AccessPath: "/data",
+				MountPath:  "/mnt",
+				SourcePath: "/data/movies",
+			},
+			event:    &ports.FileEvent{Path: "Action/file.mkv"},
+			expected: filepath.Join("/mnt", "movies", "Action", "file.mkv"),
+		},
+		{
+			name: "local mode fallback to access path",
+			config: &ports.JobConfig{
+				STRMMode:   ports.STRMModeLocal,
+				AccessPath: "/mnt/data",
+				SourcePath: "/mnt/data",
+			},
+			event:    &ports.FileEvent{Path: "movie.mkv"},
+			expected: filepath.Join("/mnt/data", "movie.mkv"),
+		},
+		{
+			name: "url mode with replace rules",
+			config: &ports.JobConfig{
+				STRMMode:         ports.STRMModeURL,
+				AccessPath:       "/remote",
+				SourcePath:       "/remote/series",
+				BaseURL:          "http://example.com/api",
+				STRMReplaceRules: []ports.STRMReplaceRule{{From: "http://example.com", To: "https://cdn.example.com"}},
+			},
+			event:    &ports.FileEvent{Path: "s1/e1.mkv"},
+			expected: "https://cdn.example.com/api/d/remote/series/s1/e1.mkv",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := p.buildStrmContent(tt.config, tt.event)
+			if err != nil {
+				t.Fatalf("buildStrmContent: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("buildStrmContent = %q, want %q", result, tt.expected)
 			}
 		})
 	}
@@ -160,9 +164,9 @@ func TestGenerator_CreateOrUpdateStrm(t *testing.T) {
 	g := &Generator{targetRoot: tmpDir, logger: zap.NewNop()}
 
 	tests := []struct {
-		name         string
-		targetPath   string
-		streamURL    string
+		name            string
+		targetPath      string
+		streamURL       string
 		expectedContent string
 	}{
 		{

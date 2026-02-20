@@ -9,6 +9,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	appconfig "github.com/strmsync/strmsync/internal/config"
 )
 
 // Config 根配置结构体
@@ -71,36 +73,36 @@ type NotifierConfig struct {
 func LoadFromEnv() (*Config, error) {
 	cfg := &Config{
 		Server: ServerConfig{
-			Port: getEnvInt("PORT", 6754),
-			Host: getEnv("HOST", "0.0.0.0"),
+			Port: getEnvInt("PORT", appconfig.DefaultServerPort),
+			Host: getEnv("HOST", appconfig.DefaultServerHost),
 		},
 		Database: DatabaseConfig{
-			Path: getEnv("DB_PATH", "data.db"),
+			Path: getEnv("DB_PATH", appconfig.DefaultDBPath),
 		},
 		Log: LogConfig{
-			Level:     getEnv("LOG_LEVEL", "info"),
-			Path:      getEnv("LOG_PATH", "logs"),
-			ToDB:      getEnvBool("LOG_TO_DB", true),
-			SQL:       getEnvBool("LOG_SQL", false),
-			SQLSlowMs: getEnvInt("LOG_SQL_SLOW_MS", 0),
+			Level:     getEnv("LOG_LEVEL", appconfig.DefaultLogLevel),
+			Path:      getEnv("LOG_PATH", appconfig.DefaultLogPath),
+			ToDB:      getEnvBool("LOG_TO_DB", appconfig.DefaultLogToDB),
+			SQL:       getEnvBool("LOG_SQL", appconfig.DefaultLogSQL),
+			SQLSlowMs: getEnvInt("LOG_SQL_SLOW_MS", appconfig.DefaultLogSQLSlowMs),
 		},
 		Security: SecurityConfig{
-			EncryptionKey: getEnv("ENCRYPTION_KEY", ""),
+			EncryptionKey: getEnv("ENCRYPTION_KEY", appconfig.DefaultEncryptionKey),
 		},
 		Scanner: ScannerConfig{
-			Concurrency: getEnvInt("SCANNER_CONCURRENCY", 20),
-			BatchSize:   getEnvInt("SCANNER_BATCH_SIZE", 500),
+			Concurrency: getEnvInt("SCANNER_CONCURRENCY", appconfig.DefaultScannerConcurrency),
+			BatchSize:   getEnvInt("SCANNER_BATCH_SIZE", appconfig.DefaultScannerBatchSize),
 		},
 		Notifier: NotifierConfig{
-			Enabled:         getEnvBool("NOTIFIER_ENABLED", false),
-			Provider:        getEnv("NOTIFIER_PROVIDER", ""),
-			BaseURL:         getEnv("NOTIFIER_BASE_URL", ""),
-			Token:           getEnv("NOTIFIER_TOKEN", ""),
-			TimeoutSeconds:  getEnvInt("NOTIFIER_TIMEOUT", 10),
-			RetryMax:        getEnvInt("NOTIFIER_RETRY_MAX", 3),
-			RetryBaseMs:     getEnvInt("NOTIFIER_RETRY_BASE_MS", 1000),
-			DebounceSeconds: getEnvInt("NOTIFIER_DEBOUNCE", 5),
-			Scope:           getEnv("NOTIFIER_SCOPE", "global"),
+			Enabled:         getEnvBool("NOTIFIER_ENABLED", appconfig.DefaultNotifierEnabled),
+			Provider:        getEnv("NOTIFIER_PROVIDER", appconfig.DefaultNotifierProvider),
+			BaseURL:         getEnv("NOTIFIER_BASE_URL", appconfig.DefaultNotifierBaseURL),
+			Token:           getEnv("NOTIFIER_TOKEN", appconfig.DefaultNotifierToken),
+			TimeoutSeconds:  getEnvInt("NOTIFIER_TIMEOUT", appconfig.DefaultNotifierTimeoutSeconds),
+			RetryMax:        getEnvInt("NOTIFIER_RETRY_MAX", appconfig.DefaultNotifierRetryMax),
+			RetryBaseMs:     getEnvInt("NOTIFIER_RETRY_BASE_MS", appconfig.DefaultNotifierRetryBaseMs),
+			DebounceSeconds: getEnvInt("NOTIFIER_DEBOUNCE", appconfig.DefaultNotifierDebounceSeconds),
+			Scope:           getEnv("NOTIFIER_SCOPE", appconfig.DefaultNotifierScope),
 		},
 	}
 

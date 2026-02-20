@@ -4,11 +4,15 @@ package sync
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/strmsync/strmsync/internal/app/ports"
+	appconfig "github.com/strmsync/strmsync/internal/config"
+	syncengine "github.com/strmsync/strmsync/internal/engine"
 	"github.com/strmsync/strmsync/internal/infra/filesystem"
 	"go.uber.org/zap"
 )
@@ -47,6 +51,8 @@ func (p *Planner) Plan(ctx context.Context, config *ports.JobConfig, events <-ch
 		skippedCount := 0
 		startTime := time.Now()
 
+		excludeDirs := syncengine.NormalizeExcludeDirs(config.ExcludeDirs)
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -71,7 +77,7 @@ func (p *Planner) Plan(ctx context.Context, config *ports.JobConfig, events <-ch
 				}
 
 				// 处理单个事件
-				item, err := p.planItem(ctx, config, &event)
+				item, err := p.planItem(ctx, config, &event, excludeDirs)
 				if err != nil {
 					// 跳过错误的项目，继续处理
 					p.logger.Debug("跳过事件",
@@ -109,10 +115,15 @@ func (p *Planner) Plan(ctx context.Context, config *ports.JobConfig, events <-ch
 }
 
 // planItem 处理单个文件事件，生成同步计划项
-func (p *Planner) planItem(ctx context.Context, config *ports.JobConfig, event *ports.FileEvent) (*ports.SyncPlanItem, error) {
+func (p *Planner) planItem(ctx context.Context, config *ports.JobConfig, event *ports.FileEvent, excludeDirs []string) (*ports.SyncPlanItem, error) {
 	// 1. 过滤目录（strm文件和元数据文件只对应实际文件）
 	if event.IsDir {
 		return nil, fmt.Errorf("skip directory: %s", event.Path)
+	}
+
+	// 1.1 排除目录过滤
+	if syncengine.IsExcludedPath("/", event.Path, excludeDirs) {
+		return nil, fmt.Errorf("excluded path: %s", event.Path)
 	}
 
 	// 2. 分类文件类型（媒体文件或元数据文件）
@@ -154,13 +165,12 @@ func (p *Planner) planItem(ctx context.Context, config *ports.JobConfig, event *
 		return nil, fmt.Errorf("unknown plan item kind: %v", kind)
 	}
 
-	// 5. 构建流媒体URL（仅对STRM文件的create/update操作）
+	// 5. 构建STRM内容（仅对STRM文件的create/update操作）
 	var streamURL string
 	if op != ports.SyncOpDelete && kind == ports.PlanItemStrm {
-		// 使用AbsPath（完整的CloudDrive2路径）构建URL
-		streamURL, err = p.dataServerClient.BuildStreamURL(ctx, config.DataServerID, event.AbsPath)
+		streamURL, err = p.buildStrmContent(config, event)
 		if err != nil {
-			return nil, fmt.Errorf("build stream url: %w", err)
+			return nil, fmt.Errorf("build strm content: %w", err)
 		}
 	}
 
@@ -183,7 +193,6 @@ func (p *Planner) planItem(ctx context.Context, config *ports.JobConfig, event *
 func (p *Planner) classifyExtension(path string, config *ports.JobConfig) ports.PlanItemKind {
 	ext := strings.ToLower(filepath.Ext(path))
 
-	// 优先使用新的分类配置
 	if len(config.MediaExtensions) > 0 || len(config.MetaExtensions) > 0 {
 		// 检查是否为媒体文件
 		for _, allowed := range config.MediaExtensions {
@@ -202,21 +211,8 @@ func (p *Planner) classifyExtension(path string, config *ports.JobConfig) ports.
 		return 0 // 不在允许列表中
 	}
 
-	// 兼容旧的Extensions配置（将其视为媒体文件扩展名）
-	if len(config.Extensions) > 0 {
-		for _, allowed := range config.Extensions {
-			if strings.ToLower(allowed) == ext {
-				return ports.PlanItemStrm
-			}
-		}
-		return 0
-	}
-
 	// 如果没有配置任何扩展名，默认使用内置的媒体文件列表
-	mediaExts := []string{
-		".mkv", ".iso", ".ts", ".mp4", ".avi", ".rmvb",
-		".wmv", ".m2ts", ".mpg", ".flv", ".rm", ".mov",
-	}
+	mediaExts := appconfig.DefaultMediaExtensions()
 	for _, mediaExt := range mediaExts {
 		if mediaExt == ext {
 			return ports.PlanItemStrm
@@ -226,29 +222,13 @@ func (p *Planner) classifyExtension(path string, config *ports.JobConfig) ports.
 	return 0 // 未知类型，不处理
 }
 
-// isAllowedExtension 检查文件扩展名是否允许（已废弃，保留兼容）
-func (p *Planner) isAllowedExtension(path string, allowedExtensions []string) bool {
-	if len(allowedExtensions) == 0 {
-		// 未指定扩展名，允许所有文件
-		return true
-	}
-
-	ext := strings.ToLower(filepath.Ext(path))
-	for _, allowed := range allowedExtensions {
-		if strings.ToLower(allowed) == ext {
-			return true
-		}
-	}
-
-	return false
-}
-
 // calculateTargetStrmPath 计算目标strm文件路径
 //
 // 示例：
-//   filePath: other/movie.mkv (相对于sourcePath)
-//   targetPath: /mnt/media/movies
-//   结果: /mnt/media/movies/other/movie.strm
+//
+//	filePath: other/movie.mkv (相对于sourcePath)
+//	targetPath: /mnt/media/movies
+//	结果: /mnt/media/movies/other/movie.strm
 func (p *Planner) calculateTargetStrmPath(filePath, targetPath string) (string, error) {
 	// 1. 使用filePath（相对路径）
 	relativePath := filePath
@@ -269,9 +249,10 @@ func (p *Planner) calculateTargetStrmPath(filePath, targetPath string) (string, 
 // calculateTargetMetaPath 计算目标元数据文件路径
 //
 // 示例：
-//   filePath: other/movie.nfo (相对于sourcePath)
-//   targetPath: /mnt/media/movies
-//   结果: /mnt/media/movies/other/movie.nfo
+//
+//	filePath: other/movie.nfo (相对于sourcePath)
+//	targetPath: /mnt/media/movies
+//	结果: /mnt/media/movies/other/movie.nfo
 func (p *Planner) calculateTargetMetaPath(filePath, targetPath string) (string, error) {
 	// 1. 使用filePath（相对路径）
 	relativePath := filePath
@@ -284,4 +265,114 @@ func (p *Planner) calculateTargetMetaPath(filePath, targetPath string) (string, 
 	targetMetaPath = filepath.Clean(targetMetaPath)
 
 	return targetMetaPath, nil
+}
+
+func (p *Planner) buildStrmContent(config *ports.JobConfig, event *ports.FileEvent) (string, error) {
+	if config == nil || event == nil {
+		return "", fmt.Errorf("invalid config or event")
+	}
+
+	mediaRel := buildMediaRelativePath(config.AccessPath, config.SourcePath, event.Path)
+	if mediaRel == "" {
+		return "", fmt.Errorf("empty media path")
+	}
+
+	var strm string
+	switch config.STRMMode {
+	case ports.STRMModeLocal:
+		basePath := strings.TrimSpace(config.MountPath)
+		if basePath == "" {
+			basePath = strings.TrimSpace(config.AccessPath)
+		}
+		if basePath == "" {
+			return "", fmt.Errorf("mount_path or access_path is required")
+		}
+		strm = filepath.Join(basePath, filepath.FromSlash(mediaRel))
+	case ports.STRMModeURL:
+		baseURL := strings.TrimSpace(config.BaseURL)
+		if baseURL == "" {
+			return "", fmt.Errorf("base_url is required for url mode")
+		}
+		remoteBase := normalizeRemotePath(config.AccessPath)
+		if remoteBase == "" {
+			remoteBase = normalizeRemotePath(config.SourcePath)
+		}
+		remotePath := normalizeRemotePath(path.Join(remoteBase, mediaRel))
+		urlStr, err := buildStreamURL(baseURL, remotePath)
+		if err != nil {
+			return "", err
+		}
+		strm = urlStr
+	default:
+		return "", fmt.Errorf("invalid strm_mode: %s", config.STRMMode)
+	}
+
+	return applyStrmReplaceRules(strm, config.STRMReplaceRules), nil
+}
+
+func buildMediaRelativePath(accessPath, sourcePath, eventPath string) string {
+	access := normalizeRemotePath(accessPath)
+	source := normalizeRemotePath(sourcePath)
+	eventRel := normalizeRelativePath(eventPath)
+	if access == "" {
+		access = source
+	}
+
+	relBase := ""
+	if access != "" && source != "" {
+		switch {
+		case source == access:
+			relBase = ""
+		case strings.HasPrefix(source, access+"/"):
+			relBase = strings.TrimPrefix(source, access+"/")
+		}
+	}
+
+	if relBase == "" {
+		return eventRel
+	}
+	return path.Join(relBase, eventRel)
+}
+
+func normalizeRemotePath(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return ""
+	}
+	cleaned := strings.ReplaceAll(trimmed, "\\", "/")
+	return path.Clean("/" + cleaned)
+}
+
+func normalizeRelativePath(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return ""
+	}
+	cleaned := strings.ReplaceAll(trimmed, "\\", "/")
+	cleaned = path.Clean("/" + cleaned)
+	return strings.TrimPrefix(cleaned, "/")
+}
+
+func buildStreamURL(baseURL, remotePath string) (string, error) {
+	parsed, err := url.Parse(strings.TrimSpace(baseURL))
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return "", fmt.Errorf("invalid base_url: %s", baseURL)
+	}
+	normalized := filesystem.CleanRemotePath(remotePath)
+	result := *parsed
+	result.Path = filesystem.JoinURLPath(result.Path, "/d")
+	result.Path = filesystem.JoinURLPath(result.Path, normalized)
+	return result.String(), nil
+}
+
+func applyStrmReplaceRules(input string, rules []ports.STRMReplaceRule) string {
+	output := input
+	for _, rule := range rules {
+		from := strings.TrimSpace(rule.From)
+		if from == "" {
+			continue
+		}
+		output = strings.ReplaceAll(output, from, rule.To)
+	}
+	return output
 }

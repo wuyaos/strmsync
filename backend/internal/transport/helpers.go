@@ -23,8 +23,8 @@ type FieldError struct {
 
 // ErrorResponse 统一的错误响应格式
 type ErrorResponse struct {
-	Code        string       `json:"code"`                  // 错误代码（如：invalid_request）
-	Message     string       `json:"message"`               // 错误消息
+	Code        string       `json:"code"`                   // 错误代码（如：invalid_request）
+	Message     string       `json:"message"`                // 错误消息
 	FieldErrors []FieldError `json:"field_errors,omitempty"` // 字段级错误（可选）
 }
 
@@ -295,9 +295,8 @@ func validateDataServerRequest(
 		if strings.TrimSpace(apiKey) == "" {
 			fieldErrors = append(fieldErrors, FieldError{Field: "api_key", Message: "必填字段不能为空"})
 		}
-		// 路径验证：访问目录与挂载目录均必填
+		// 路径验证：访问目录必填，挂载目录可选（为空时默认使用访问目录）
 		validateOptionRequiredString("access_path", optionsMap, &fieldErrors)
-		validateOptionRequiredString("mount_path", optionsMap, &fieldErrors)
 
 	case "openlist":
 		// OpenList 类型：需要 host、port、用户名密码
@@ -311,16 +310,14 @@ func validateDataServerRequest(
 		validateOptionRequiredString("username", optionsMap, &fieldErrors)
 		validateOptionRequiredString("password", optionsMap, &fieldErrors)
 
-		// 路径验证：要么都不填（API方式），要么都填（本地方式）
+		// 路径验证：访问目录必填时允许挂载目录为空（默认使用访问目录）
 		accessPath := getOptionString(optionsMap, "access_path")
 		mountPath := getOptionString(optionsMap, "mount_path")
 		hasAccessPath := strings.TrimSpace(accessPath) != ""
 		hasMountPath := strings.TrimSpace(mountPath) != ""
 
-		if hasAccessPath || hasMountPath {
-			// 如果填了其中一个，则两个都必填
+		if hasMountPath && !hasAccessPath {
 			validateOptionRequiredString("access_path", optionsMap, &fieldErrors)
-			validateOptionRequiredString("mount_path", optionsMap, &fieldErrors)
 		}
 
 	default:
@@ -336,7 +333,6 @@ func validateDataServerRequest(
 
 	return fieldErrors
 }
-
 
 // validateServerRequest 验证服务器配置请求参数
 //

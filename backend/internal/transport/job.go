@@ -3,6 +3,7 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/robfig/cron/v3"
 	"github.com/strmsync/strmsync/internal/domain/model"
 	"github.com/strmsync/strmsync/internal/queue"
 	"go.uber.org/zap"
@@ -99,6 +101,7 @@ func NewJobHandler(db *gorm.DB, logger *zap.Logger, scheduler JobScheduler, queu
 type jobRequest struct {
 	Name          string `json:"name"`
 	Enabled       *bool  `json:"enabled"`
+	Cron          string `json:"cron"`
 	WatchMode     string `json:"watch_mode"`
 	SourcePath    string `json:"source_path"`
 	TargetPath    string `json:"target_path"`
@@ -106,6 +109,72 @@ type jobRequest struct {
 	DataServerID  *uint  `json:"data_server_id"`
 	MediaServerID *uint  `json:"media_server_id"`
 	Options       string `json:"options"`
+}
+
+func buildJobLogPayload(req jobRequest) map[string]interface{} {
+	payload := map[string]interface{}{
+		"name":            strings.TrimSpace(req.Name),
+		"enabled":         req.Enabled,
+		"cron":            strings.TrimSpace(req.Cron),
+		"watch_mode":      strings.TrimSpace(req.WatchMode),
+		"source_path":     strings.TrimSpace(req.SourcePath),
+		"target_path":     strings.TrimSpace(req.TargetPath),
+		"strm_path":       strings.TrimSpace(req.STRMPath),
+		"data_server_id":  req.DataServerID,
+		"media_server_id": req.MediaServerID,
+	}
+
+	rawOptions := strings.TrimSpace(req.Options)
+	if rawOptions == "" {
+		return payload
+	}
+
+	options, err := parseOptionsMap(rawOptions)
+	if err != nil {
+		payload["options_error"] = err.Error()
+		payload["options_length"] = len(rawOptions)
+		return payload
+	}
+	payload["options"] = sanitizeMapForLog(options)
+	return payload
+}
+
+func buildOptionsLog(raw string) interface{} {
+	rawOptions := strings.TrimSpace(raw)
+	if rawOptions == "" {
+		return nil
+	}
+	options, err := parseOptionsMap(rawOptions)
+	if err != nil {
+		return map[string]interface{}{
+			"error":      err.Error(),
+			"raw_length": len(rawOptions),
+		}
+	}
+	return sanitizeMapForLog(options)
+}
+
+func validateCronSpec(spec string, errs *[]FieldError) {
+	cronSpec := strings.TrimSpace(spec)
+	if cronSpec == "" {
+		return
+	}
+
+	parser := cron.NewParser(
+		cron.SecondOptional |
+			cron.Minute |
+			cron.Hour |
+			cron.Dom |
+			cron.Month |
+			cron.Dow |
+			cron.Descriptor,
+	)
+	if _, err := parser.Parse(cronSpec); err != nil {
+		*errs = append(*errs, FieldError{
+			Field:   "cron",
+			Message: "无效的Cron表达式",
+		})
+	}
 }
 
 // validateJobRequest 验证任务请求参数，返回字段错误列表
@@ -119,6 +188,7 @@ func validateJobRequest(req *jobRequest) []FieldError {
 	validateRequiredString("strm_path", req.STRMPath, &fieldErrors)
 	validateEnum("watch_mode", req.WatchMode, allowedJobWatchModes, &fieldErrors)
 	validateJSONString("options", req.Options, &fieldErrors)
+	validateCronSpec(req.Cron, &fieldErrors)
 
 	watchMode := JobWatchMode(strings.TrimSpace(req.WatchMode))
 	if watchMode == JobWatchModeAPI {
@@ -128,11 +198,6 @@ func validateJobRequest(req *jobRequest) []FieldError {
 				Message: "watch_mode为api时必须指定数据服务器",
 			})
 		}
-	}
-
-	// watch_mode=local时，强制清空data_server_id（清理不一致配置）
-	if watchMode == JobWatchModeLocal {
-		req.DataServerID = nil
 	}
 
 	if req.DataServerID != nil && *req.DataServerID == 0 {
@@ -223,9 +288,14 @@ func (h *JobHandler) CreateJob(c *gin.Context) {
 		enabled = *req.Enabled
 	}
 
+	logPayload := buildJobLogPayload(req)
+	h.logger.Debug(fmt.Sprintf("创建任务请求：%s", strings.TrimSpace(req.Name)),
+		zap.Any("payload", logPayload))
+
 	job := model.Job{
 		Name:          strings.TrimSpace(req.Name),
 		Enabled:       enabled,
+		Cron:          strings.TrimSpace(req.Cron),
 		WatchMode:     string(JobWatchMode(strings.TrimSpace(req.WatchMode))),
 		SourcePath:    strings.TrimSpace(req.SourcePath),
 		TargetPath:    strings.TrimSpace(req.TargetPath),
@@ -242,7 +312,7 @@ func (h *JobHandler) CreateJob(c *gin.Context) {
 			respondError(c, http.StatusConflict, "duplicate_name", "任务名称已存在", nil)
 			return
 		}
-		h.logger.Error("创建任务失败",
+		h.logger.Error(fmt.Sprintf("创建任务「%s」失败", job.Name),
 			zap.Error(err),
 			zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
 				"name":       job.Name,
@@ -254,9 +324,14 @@ func (h *JobHandler) CreateJob(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info("创建任务成功",
+	h.logger.Info(fmt.Sprintf("创建任务「%s」成功", job.Name),
 		zap.Uint("id", job.ID),
-		zap.String("name", job.Name))
+		zap.String("name", job.Name),
+		zap.String("watch_mode", job.WatchMode),
+		zap.String("source_path", job.SourcePath),
+		zap.String("target_path", job.TargetPath),
+		zap.String("strm_path", job.STRMPath),
+		zap.Any("options", logPayload["options"]))
 
 	// 通知调度器
 	if h.scheduler != nil {
@@ -448,11 +523,17 @@ func (h *JobHandler) UpdateJob(c *gin.Context) {
 		}
 	}
 
+	logPayload := buildJobLogPayload(req)
+	h.logger.Debug(fmt.Sprintf("更新任务请求：%s", newName),
+		zap.Uint("id", job.ID),
+		zap.Any("payload", logPayload))
+
 	// 更新字段
 	job.Name = newName
 	if req.Enabled != nil {
 		job.Enabled = *req.Enabled
 	}
+	job.Cron = strings.TrimSpace(req.Cron)
 	job.WatchMode = string(JobWatchMode(strings.TrimSpace(req.WatchMode)))
 	job.SourcePath = strings.TrimSpace(req.SourcePath)
 	job.TargetPath = strings.TrimSpace(req.TargetPath)
@@ -467,7 +548,7 @@ func (h *JobHandler) UpdateJob(c *gin.Context) {
 			respondError(c, http.StatusConflict, "duplicate_name", "任务名称已存在", nil)
 			return
 		}
-		h.logger.Error("更新任务失败",
+		h.logger.Error(fmt.Sprintf("更新任务「%s」失败", job.Name),
 			zap.Error(err),
 			zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
 				"id":         job.ID,
@@ -478,9 +559,14 @@ func (h *JobHandler) UpdateJob(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info("更新任务成功",
+	h.logger.Info(fmt.Sprintf("更新任务「%s」成功", job.Name),
 		zap.Uint("id", job.ID),
-		zap.String("name", job.Name))
+		zap.String("name", job.Name),
+		zap.String("watch_mode", job.WatchMode),
+		zap.String("source_path", job.SourcePath),
+		zap.String("target_path", job.TargetPath),
+		zap.String("strm_path", job.STRMPath),
+		zap.Any("options", logPayload["options"]))
 
 	// 通知调度器
 	if h.scheduler != nil {
@@ -517,9 +603,22 @@ func (h *JobHandler) DeleteJob(c *gin.Context) {
 		return
 	}
 
-	result := h.db.Delete(&model.Job{}, uint(id))
+	var job model.Job
+	if err := h.db.First(&job, uint(id)).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			respondError(c, http.StatusNotFound, "not_found", "任务不存在", nil)
+			return
+		}
+		h.logger.Error("查询任务失败", zap.Error(err), zap.Uint64("id", id))
+		respondError(c, http.StatusInternalServerError, "db_error", "查询失败", nil)
+		return
+	}
+
+	h.logger.Debug(fmt.Sprintf("删除任务请求：%s", job.Name), zap.Uint64("id", id))
+
+	result := h.db.Delete(&job)
 	if result.Error != nil {
-		h.logger.Error("删除任务失败", zap.Error(result.Error), zap.Uint64("id", id))
+		h.logger.Error(fmt.Sprintf("删除任务「%s」失败", job.Name), zap.Error(result.Error), zap.Uint64("id", id))
 		respondError(c, http.StatusInternalServerError, "db_error", "删除失败", nil)
 		return
 	}
@@ -528,7 +627,7 @@ func (h *JobHandler) DeleteJob(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info("删除任务成功", zap.Uint64("id", id))
+	h.logger.Info(fmt.Sprintf("删除任务「%s」成功", job.Name), zap.Uint64("id", id))
 
 	// 通知调度器
 	if h.scheduler != nil {
@@ -571,6 +670,16 @@ func (h *JobHandler) RunJob(c *gin.Context) {
 		return
 	}
 
+	optionsLog := buildOptionsLog(job.Options)
+	h.logger.Debug(fmt.Sprintf("手动触发任务执行请求：%s", job.Name),
+		zap.Uint("job_id", job.ID),
+		zap.String("name", job.Name),
+		zap.String("watch_mode", job.WatchMode),
+		zap.String("source_path", job.SourcePath),
+		zap.String("target_path", job.TargetPath),
+		zap.String("strm_path", job.STRMPath),
+		zap.Any("options", optionsLog))
+
 	// 防止重复运行：pending/running 均视为已在运行
 	var runningCount int64
 	if err := h.db.Model(&model.TaskRun{}).
@@ -590,6 +699,7 @@ func (h *JobHandler) RunJob(c *gin.Context) {
 		JobID:       job.ID,
 		Priority:    int(syncqueue.TaskPriorityNormal),
 		AvailableAt: time.Now(),
+		Payload:     buildManualRunPayload(job),
 	}
 	if err := h.queue.Enqueue(c.Request.Context(), taskRun); err != nil {
 		h.logger.Error("任务入队失败", zap.Error(err), zap.Uint("job_id", job.ID))
@@ -597,18 +707,20 @@ func (h *JobHandler) RunJob(c *gin.Context) {
 		return
 	}
 
-	// 更新Job运行状态（保持兼容性）
+	// 更新Job运行状态
 	now := time.Now()
 	if err := h.db.Model(&job).Updates(map[string]interface{}{
 		"last_run_at": &now,
 		"status":      string(JobStatusRunning),
 	}).Error; err != nil {
-		h.logger.Warn("更新任务状态失败", zap.Error(err), zap.Uint("job_id", job.ID))
+		h.logger.Warn(fmt.Sprintf("更新任务状态失败：%s", job.Name), zap.Error(err), zap.Uint("job_id", job.ID))
 	}
 
-	h.logger.Info("触发任务运行成功",
+	h.logger.Info(fmt.Sprintf("触发任务运行成功：%s", job.Name),
 		zap.Uint("job_id", job.ID),
-		zap.Uint("task_run_id", taskRun.ID))
+		zap.Uint("task_run_id", taskRun.ID),
+		zap.String("name", job.Name),
+		zap.Any("options", optionsLog))
 
 	c.JSON(http.StatusCreated, gin.H{"task_run": taskRun})
 }
@@ -680,13 +792,14 @@ func (h *JobHandler) StopJob(c *gin.Context) {
 		return
 	}
 
-	// 更新Job状态为idle（保持兼容性）
+	// 更新Job状态为idle
 	if err := h.db.Model(&job).Update("status", string(JobStatusIdle)).Error; err != nil {
-		h.logger.Warn("更新任务状态失败", zap.Error(err), zap.Uint("job_id", job.ID))
+		h.logger.Warn(fmt.Sprintf("更新任务状态失败：%s", job.Name), zap.Error(err), zap.Uint("job_id", job.ID))
 	}
 
-	h.logger.Info("停止任务成功",
+	h.logger.Info(fmt.Sprintf("停止任务成功：%s", job.Name),
 		zap.Uint("job_id", job.ID),
+		zap.String("name", job.Name),
 		zap.Int("cancelled_count", len(cancelledTasks)))
 
 	c.JSON(http.StatusOK, gin.H{
@@ -722,13 +835,15 @@ func (h *JobHandler) EnableJob(c *gin.Context) {
 	}
 
 	if err := h.db.Model(&job).Update("enabled", true).Error; err != nil {
-		h.logger.Error("启用任务失败", zap.Error(err), zap.Uint("job_id", job.ID))
+		h.logger.Error(fmt.Sprintf("启用任务「%s」失败", job.Name), zap.Error(err), zap.Uint("job_id", job.ID))
 		respondError(c, http.StatusInternalServerError, "db_error", "更新失败", nil)
 		return
 	}
 	job.Enabled = true
 
-	h.logger.Info("启用任务成功", zap.Uint("job_id", job.ID))
+	h.logger.Info(fmt.Sprintf("启用任务「%s」成功", job.Name),
+		zap.Uint("job_id", job.ID),
+		zap.String("name", job.Name))
 
 	// 通知调度器
 	if h.scheduler != nil {
@@ -768,13 +883,15 @@ func (h *JobHandler) DisableJob(c *gin.Context) {
 	}
 
 	if err := h.db.Model(&job).Update("enabled", false).Error; err != nil {
-		h.logger.Error("禁用任务失败", zap.Error(err), zap.Uint("job_id", job.ID))
+		h.logger.Error(fmt.Sprintf("禁用任务「%s」失败", job.Name), zap.Error(err), zap.Uint("job_id", job.ID))
 		respondError(c, http.StatusInternalServerError, "db_error", "更新失败", nil)
 		return
 	}
 	job.Enabled = false
 
-	h.logger.Info("禁用任务成功", zap.Uint("job_id", job.ID))
+	h.logger.Info(fmt.Sprintf("禁用任务「%s」成功", job.Name),
+		zap.Uint("job_id", job.ID),
+		zap.String("name", job.Name))
 
 	// 通知调度器
 	if h.scheduler != nil {
@@ -786,4 +903,18 @@ func (h *JobHandler) DisableJob(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"job": job})
+}
+
+func buildManualRunPayload(job model.Job) string {
+	payload := map[string]any{
+		"job_id":       job.ID,
+		"job_name":     job.Name,
+		"trigger":      "manual",
+		"triggered_at": time.Now().Format(time.RFC3339Nano),
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return ""
+	}
+	return string(data)
 }

@@ -31,6 +31,24 @@ const (
 	WatchModeLocal WatchMode = "local" // 本地模式（直接监控本地挂载路径）
 )
 
+// STRMMode STRM生成模式
+type STRMMode string
+
+const (
+	STRMModeLocal STRMMode = "local" // 本地路径模式
+	STRMModeURL   STRMMode = "url"   // 远程URL模式
+)
+
+// IsValid 验证STRMMode是否有效
+func (m STRMMode) IsValid() bool {
+	switch m {
+	case STRMModeLocal, STRMModeURL:
+		return true
+	default:
+		return false
+	}
+}
+
 // String 实现Stringer接口
 func (m WatchMode) String() string {
 	return string(m)
@@ -84,8 +102,8 @@ type SyncOperation int
 
 const (
 	SyncOpCreate SyncOperation = iota + 1 // 创建strm文件
-	SyncOpUpdate                           // 更新strm文件
-	SyncOpDelete                           // 删除strm文件
+	SyncOpUpdate                          // 更新strm文件
+	SyncOpDelete                          // 删除strm文件
 )
 
 // String 实现Stringer接口
@@ -107,7 +125,7 @@ type PlanItemKind int
 
 const (
 	PlanItemStrm     PlanItemKind = iota + 1 // 生成STRM文件
-	PlanItemMetadata                          // 复制/下载元数据文件
+	PlanItemMetadata                         // 复制/下载元数据文件
 )
 
 // String 实现Stringer接口
@@ -167,20 +185,31 @@ type RemoteFile struct {
 
 // JobConfig Job配置信息（从database.Job解析）
 type JobConfig struct {
-	ID              JobID         // Job ID
-	Name            string        // 任务名称
-	WatchMode       WatchMode     // 监控模式
-	DataServerID    DataServerID  // 数据服务器ID
-	MediaServerID   MediaServerID // 媒体服务器ID（可选）
-	SourcePath      string        // 源路径
-	TargetPath      string        // 目标路径
-	Recursive       bool          // 是否递归
-	Extensions      []string      // 允许的扩展名（如[".mkv", ".mp4"]，已废弃，兼容保留）
-	MediaExtensions []string      // 媒体文件扩展名（生成STRM）
-	MetaExtensions  []string      // 元数据文件扩展名（复制/下载）
-	Interval        int           // 扫描间隔（秒，仅api模式）
-	Enabled         bool          // 是否启用
-	AutoScanLibrary bool          // 完成后是否自动扫描媒体库
+	ID               JobID             // Job ID
+	Name             string            // 任务名称
+	WatchMode        WatchMode         // 监控模式
+	STRMMode         STRMMode          // STRM模式（local/url）
+	DataServerID     DataServerID      // 数据服务器ID
+	MediaServerID    MediaServerID     // 媒体服务器ID（可选）
+	SourcePath       string            // 源路径
+	TargetPath       string            // 目标路径
+	AccessPath       string            // 数据服务器访问路径
+	MountPath        string            // 数据服务器挂载路径
+	BaseURL          string            // 数据服务器基础URL
+	Recursive        bool              // 是否递归
+	MediaExtensions  []string          // 媒体文件扩展名（生成STRM）
+	MetaExtensions   []string          // 元数据文件扩展名（复制/下载）
+	ExcludeDirs      []string          // 排除目录（相对SourcePath）
+	Interval         int               // 扫描间隔（秒，仅api模式）
+	Enabled          bool              // 是否启用
+	AutoScanLibrary  bool              // 完成后是否自动扫描媒体库
+	STRMReplaceRules []STRMReplaceRule // STRM替换规则
+}
+
+// STRMReplaceRule STRM替换规则
+type STRMReplaceRule struct {
+	From string
+	To   string
 }
 
 // ExecutionContext 执行上下文

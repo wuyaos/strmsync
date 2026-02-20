@@ -117,6 +117,21 @@ func (h *MediaServerHandler) CreateMediaServer(c *gin.Context) {
 		MaxConcurrent:    maxConcurrent,
 	}
 
+	h.logger.Debug(fmt.Sprintf("创建媒体服务器请求：%s", server.Name),
+		zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
+			"name":               server.Name,
+			"type":               server.Type,
+			"host":               server.Host,
+			"port":               server.Port,
+			"enabled":            server.Enabled,
+			"options":            buildOptionsLog(server.Options),
+			"request_timeout_ms": server.RequestTimeoutMs,
+			"connect_timeout_ms": server.ConnectTimeoutMs,
+			"retry_max":          server.RetryMax,
+			"retry_backoff_ms":   server.RetryBackoffMs,
+			"max_concurrent":     server.MaxConcurrent,
+		})))
+
 	if err := h.db.Create(&server).Error; err != nil {
 		// 检查是否为唯一约束错误
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") ||
@@ -124,7 +139,7 @@ func (h *MediaServerHandler) CreateMediaServer(c *gin.Context) {
 			respondError(c, http.StatusConflict, "duplicate_name", "服务器名称已存在", nil)
 			return
 		}
-		h.logger.Error("创建媒体服务器失败",
+		h.logger.Error(fmt.Sprintf("创建媒体服务器「%s」失败", server.Name),
 			zap.Error(err),
 			zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
 				"name":    server.Name,
@@ -137,10 +152,14 @@ func (h *MediaServerHandler) CreateMediaServer(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info("创建媒体服务器成功",
+	h.logger.Info(fmt.Sprintf("创建媒体服务器「%s」成功", server.Name),
 		zap.Uint("id", server.ID),
 		zap.String("name", server.Name),
-		zap.String("type", server.Type))
+		zap.String("type", server.Type),
+		zap.String("host", server.Host),
+		zap.Int("port", server.Port),
+		zap.Bool("enabled", server.Enabled),
+		zap.Any("options", buildOptionsLog(server.Options)))
 
 	c.JSON(http.StatusCreated, gin.H{"server": server})
 }
@@ -283,6 +302,7 @@ func (h *MediaServerHandler) UpdateMediaServer(c *gin.Context) {
 	}
 
 	// 更新字段
+	previousEnabled := server.Enabled
 	server.Name = newName
 	server.Type = strings.TrimSpace(req.Type)
 	server.Host = strings.TrimSpace(req.Host)
@@ -310,6 +330,22 @@ func (h *MediaServerHandler) UpdateMediaServer(c *gin.Context) {
 		server.MaxConcurrent = *req.MaxConcurrent
 	}
 
+	h.logger.Debug(fmt.Sprintf("更新媒体服务器请求：%s", server.Name),
+		zap.Uint("id", server.ID),
+		zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
+			"name":               server.Name,
+			"type":               server.Type,
+			"host":               server.Host,
+			"port":               server.Port,
+			"enabled":            server.Enabled,
+			"options":            buildOptionsLog(server.Options),
+			"request_timeout_ms": server.RequestTimeoutMs,
+			"connect_timeout_ms": server.ConnectTimeoutMs,
+			"retry_max":          server.RetryMax,
+			"retry_backoff_ms":   server.RetryBackoffMs,
+			"max_concurrent":     server.MaxConcurrent,
+		})))
+
 	if err := h.db.Save(&server).Error; err != nil {
 		// 检查是否为唯一约束错误
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") ||
@@ -317,7 +353,7 @@ func (h *MediaServerHandler) UpdateMediaServer(c *gin.Context) {
 			respondError(c, http.StatusConflict, "duplicate_name", "服务器名称已存在", nil)
 			return
 		}
-		h.logger.Error("更新媒体服务器失败",
+		h.logger.Error(fmt.Sprintf("更新媒体服务器「%s」失败", server.Name),
 			zap.Error(err),
 			zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
 				"id":      server.ID,
@@ -331,9 +367,20 @@ func (h *MediaServerHandler) UpdateMediaServer(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info("更新媒体服务器成功",
+	h.logger.Info(fmt.Sprintf("更新媒体服务器「%s」成功", server.Name),
 		zap.Uint("id", server.ID),
-		zap.String("name", server.Name))
+		zap.String("name", server.Name),
+		zap.String("type", server.Type),
+		zap.String("host", server.Host),
+		zap.Int("port", server.Port),
+		zap.Bool("enabled", server.Enabled))
+
+	if previousEnabled != server.Enabled {
+		h.logger.Info(fmt.Sprintf("媒体服务器状态变更：%s", server.Name),
+			zap.Uint("id", server.ID),
+			zap.String("name", server.Name),
+			zap.Bool("enabled", server.Enabled))
+	}
 
 	c.JSON(http.StatusOK, gin.H{"server": server})
 }
@@ -362,10 +409,22 @@ func (h *MediaServerHandler) DeleteMediaServer(c *gin.Context) {
 		return
 	}
 
+	var server model.MediaServer
+	if err := h.db.First(&server, uint(id)).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			respondError(c, http.StatusNotFound, "not_found", "媒体服务器不存在", nil)
+			return
+		}
+		h.logger.Error("查询媒体服务器失败", zap.Error(err), zap.Uint64("id", id))
+		respondError(c, http.StatusInternalServerError, "db_error", "查询失败", nil)
+		return
+	}
+
 	// 执行删除
-	result := h.db.Delete(&model.MediaServer{}, uint(id))
+	h.logger.Debug(fmt.Sprintf("删除媒体服务器请求：%s", server.Name), zap.Uint64("id", id))
+	result := h.db.Delete(&server)
 	if result.Error != nil {
-		h.logger.Error("删除媒体服务器失败", zap.Error(result.Error), zap.Uint64("id", id))
+		h.logger.Error(fmt.Sprintf("删除媒体服务器「%s」失败", server.Name), zap.Error(result.Error), zap.Uint64("id", id))
 		respondError(c, http.StatusInternalServerError, "db_error", "删除失败", nil)
 		return
 	}
@@ -375,7 +434,7 @@ func (h *MediaServerHandler) DeleteMediaServer(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info("删除媒体服务器成功", zap.Uint64("id", id))
+	h.logger.Info(fmt.Sprintf("删除媒体服务器「%s」成功", server.Name), zap.Uint64("id", id))
 	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
 }
 
@@ -401,7 +460,7 @@ func (h *MediaServerHandler) TestMediaServerConnection(c *gin.Context) {
 
 	// 检查是否已启用
 	if !server.Enabled {
-		h.logger.Warn("尝试测试已禁用的媒体服务器",
+		h.logger.Warn(fmt.Sprintf("尝试测试已禁用的媒体服务器：%s", server.Name),
 			zap.Uint("id", server.ID),
 			zap.String("name", server.Name))
 		c.JSON(http.StatusOK, ConnectionTestResult{
@@ -431,6 +490,13 @@ func (h *MediaServerHandler) TestMediaServerConnection(c *gin.Context) {
 			zap.Int("port", server.Port))
 	}
 
+	h.logger.Info(fmt.Sprintf("开始测试媒体服务器连接：%s", server.Name),
+		zap.Uint("id", server.ID),
+		zap.String("name", server.Name),
+		zap.String("type", server.Type),
+		zap.String("host", server.Host),
+		zap.Int("port", server.Port))
+
 	var result ConnectionTestResult
 	switch strings.TrimSpace(server.Type) {
 	case "emby":
@@ -444,7 +510,7 @@ func (h *MediaServerHandler) TestMediaServerConnection(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info("测试媒体服务器连接",
+	h.logger.Info(fmt.Sprintf("测试媒体服务器连接完成：%s", server.Name),
 		zap.Uint("id", server.ID),
 		zap.String("type", server.Type),
 		zap.Bool("success", result.Success),
@@ -674,6 +740,16 @@ func (h *MediaServerHandler) TestMediaServerTemp(c *gin.Context) {
 		Options: strings.TrimSpace(req.Options),
 	}
 
+	h.logger.Debug(fmt.Sprintf("临时测试媒体服务器连接请求：%s", server.Name),
+		zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
+			"name":    server.Name,
+			"type":    server.Type,
+			"host":    server.Host,
+			"port":    server.Port,
+			"enabled": server.Enabled,
+			"options": buildOptionsLog(server.Options),
+		})))
+
 	// SSRF防护
 	allowed, isPrivate, message := validateHostForSSRF(server.Host)
 	if !allowed {
@@ -704,7 +780,7 @@ func (h *MediaServerHandler) TestMediaServerTemp(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info("临时测试媒体服务器连接",
+	h.logger.Info(fmt.Sprintf("临时测试媒体服务器连接完成：%s", server.Name),
 		zap.String("type", server.Type),
 		zap.Bool("success", result.Success),
 		zap.Int64("latency_ms", result.LatencyMs))

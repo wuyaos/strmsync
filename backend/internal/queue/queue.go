@@ -1,14 +1,15 @@
 package syncqueue
 
 import (
-	"github.com/strmsync/strmsync/internal/domain/model"
-	"github.com/strmsync/strmsync/internal/pkg/logger"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/strmsync/strmsync/internal/domain/model"
+	"github.com/strmsync/strmsync/internal/pkg/logger"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -200,9 +201,11 @@ func (q *SyncQueue) ClaimNext(ctx context.Context, workerID string) (*model.Task
 	task.WorkerID = workerID
 	task.StartedAt = now
 
+	jobName := extractJobName(task.Payload)
 	q.log.Debug("claimed task",
 		zap.Uint("task_id", task.ID),
 		zap.Uint("job_id", task.JobID),
+		zap.String("job_name", jobName),
 		zap.String("worker_id", workerID),
 		zap.Int("priority", task.Priority))
 
@@ -279,8 +282,11 @@ func (q *SyncQueue) Complete(ctx context.Context, taskID uint) error {
 		return fmt.Errorf("complete commit: %w", err)
 	}
 
+	jobName := extractJobName(task.Payload)
 	q.log.Info("task completed",
 		zap.Uint("task_id", taskID),
+		zap.Uint("job_id", task.JobID),
+		zap.String("job_name", jobName),
 		zap.Int64("duration", duration))
 
 	return nil
@@ -318,6 +324,8 @@ func (q *SyncQueue) Fail(ctx context.Context, taskID uint, err error) error {
 		_ = tx.Rollback().Error
 		return fmt.Errorf("fail load task: %w", loadErr)
 	}
+
+	jobName := extractJobName(task.Payload)
 
 	// 分类错误
 	kind := classifyError(err)
@@ -363,6 +371,8 @@ func (q *SyncQueue) Fail(ctx context.Context, taskID uint, err error) error {
 
 		q.log.Warn("task will retry",
 			zap.Uint("task_id", taskID),
+			zap.Uint("job_id", task.JobID),
+			zap.String("job_name", jobName),
 			zap.Int("attempts", attempts),
 			zap.Int("max_attempts", maxAttempts),
 			zap.String("error", err.Error()))
@@ -384,6 +394,8 @@ func (q *SyncQueue) Fail(ctx context.Context, taskID uint, err error) error {
 
 		q.log.Error("task failed",
 			zap.Uint("task_id", taskID),
+			zap.Uint("job_id", task.JobID),
+			zap.String("job_name", jobName),
 			zap.Int("attempts", attempts),
 			zap.String("failure_kind", string(kind)),
 			zap.String("error", err.Error()))
@@ -483,8 +495,11 @@ func (q *SyncQueue) Cancel(ctx context.Context, taskID uint) error {
 		return fmt.Errorf("cancel commit: %w", err)
 	}
 
+	jobName := extractJobName(task.Payload)
 	q.log.Info("task cancelled",
 		zap.Uint("task_id", taskID),
+		zap.Uint("job_id", task.JobID),
+		zap.String("job_name", jobName),
 		zap.String("previous_status", task.Status))
 
 	return nil
@@ -544,9 +559,11 @@ func (q *SyncQueue) Enqueue(ctx context.Context, task *model.TaskRun) error {
 		return fmt.Errorf("enqueue task: %w", err)
 	}
 
+	jobName := extractJobName(task.Payload)
 	q.log.Info("task enqueued",
 		zap.Uint("task_id", task.ID),
 		zap.Uint("job_id", task.JobID),
+		zap.String("job_name", jobName),
 		zap.Int("priority", task.Priority),
 		zap.String("dedup_key", task.DedupKey))
 
@@ -642,4 +659,17 @@ func retryDelay(attempts int) time.Duration {
 //   - bool: 是否包含
 func contains(s, substr string) bool {
 	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
+}
+
+func extractJobName(payload string) string {
+	if strings.TrimSpace(payload) == "" {
+		return ""
+	}
+	var data struct {
+		JobName string `json:"job_name"`
+	}
+	if err := json.Unmarshal([]byte(payload), &data); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(data.JobName)
 }

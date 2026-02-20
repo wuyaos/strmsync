@@ -8,19 +8,22 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"runtime"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/strmsync/strmsync/internal/domain/model"
-	"github.com/strmsync/strmsync/internal/pkg/logger"
-	"github.com/strmsync/strmsync/internal/pkg/requestid"
+	"github.com/joho/godotenv"
 	dbpkg "github.com/strmsync/strmsync/internal/infra/db"
 	"github.com/strmsync/strmsync/internal/infra/db/repository"
-	httphandlers "github.com/strmsync/strmsync/internal/transport"
-	"github.com/strmsync/strmsync/internal/scheduler"
+	"github.com/strmsync/strmsync/internal/pkg/logger"
+	"github.com/strmsync/strmsync/internal/pkg/requestid"
 	"github.com/strmsync/strmsync/internal/queue"
+	"github.com/strmsync/strmsync/internal/scheduler"
+	httphandlers "github.com/strmsync/strmsync/internal/transport"
 	"github.com/strmsync/strmsync/internal/worker"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -31,7 +34,22 @@ import (
 	_ "github.com/strmsync/strmsync/internal/infra/filesystem/openlist"
 )
 
+var appVersion = "unknown"
+var frontendVersion = "unknown"
+
 func main() {
+	// 尝试加载 .env 文件（生产环境支持）
+	loadDotEnv()
+
+	version := loadVersionFromFile()
+	if version != "" {
+		appVersion = version
+		frontendVersion = version
+	} else if value := strings.TrimSpace(os.Getenv("FRONTEND_VERSION")); value != "" {
+		appVersion = value
+		frontendVersion = value
+	}
+
 	// 从环境变量加载配置
 	cfg, err := dbpkg.LoadFromEnv()
 	if err != nil {
@@ -46,9 +64,20 @@ func main() {
 	}
 	defer logger.SyncLogger()
 
+	envSnapshot := buildEnvSnapshot()
+	sysLogger := logger.With(zap.String("module", "system"))
+	if len(envSnapshot) > 0 {
+		message := formatEnvSnapshot(envSnapshot)
+		sysLogger.Info(message, zap.Any("env", envSnapshot))
+	} else {
+		sysLogger.Info("未检测到环境变量覆盖")
+	}
+	logSystemInfo(cfg)
+
 	logger.LogInfo("STRMSync 启动中...",
 		zap.String("app", "STRMSync"),
-		zap.String("version", "2.0.0-alpha"),
+		zap.String("version", appVersion),
+		zap.String("frontend_version", frontendVersion),
 		zap.String("host", cfg.Server.Host),
 		zap.Int("port", cfg.Server.Port),
 		zap.String("db_path", cfg.Database.Path),
@@ -72,30 +101,6 @@ func main() {
 	if err != nil {
 		logger.LogError("获取数据库连接失败", zap.Error(err))
 		os.Exit(1)
-	}
-
-	// 回填服务器 UID（历史数据迁移）
-	backfillLogger := logger.With(zap.String("component", "backfill"))
-	if stats, err := dbpkg.BackfillServerUIDs(context.Background(), db, backfillLogger); err != nil {
-		logger.LogError("回填服务器 UID 失败", zap.Error(err))
-		// 参数校验失败时中断启动
-		os.Exit(1)
-	} else if stats != nil {
-		// 检查是否有冲突或失败
-		totalFailures := stats.DataServersGenFailed + stats.DataServersUpdateFailed + stats.DataServersConflict +
-			stats.MediaServersGenFailed + stats.MediaServersUpdateFailed + stats.MediaServersConflict
-		if totalFailures > 0 || stats.DataServersQueryFailed > 0 || stats.MediaServersQueryFailed > 0 {
-			logger.LogWarn("回填服务器 UID 部分失败",
-				zap.Int("total_failures", totalFailures),
-				zap.Int("data_servers_conflict", stats.DataServersConflict),
-				zap.Int("media_servers_conflict", stats.MediaServersConflict))
-		}
-	}
-
-	// 配置日志写入数据库（如果启用）
-	if cfg.Log.ToDB {
-		logger.SetLogToDBEnabled(true, 1024)
-		logger.LogInfo("日志数据库写入已启用")
 	}
 
 	// 设置Gin模式
@@ -165,7 +170,7 @@ func main() {
 	}
 
 	// 创建HTTP服务器
-	router := setupRouter(db, cronScheduler, queue)
+	router := setupRouter(db, cfg.Log.Path, cronScheduler, queue)
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 
 	srv := &http.Server{
@@ -187,7 +192,8 @@ func main() {
 
 	logger.LogInfo("STRMSync 启动成功",
 		zap.String("app", "STRMSync"),
-		zap.String("version", "2.0.0-alpha"),
+		zap.String("version", appVersion),
+		zap.String("frontend_version", frontendVersion),
 		zap.String("addr", addr))
 
 	// 等待中断信号（优雅关闭）
@@ -225,20 +231,153 @@ func main() {
 	logger.LogInfo("服务器已退出")
 }
 
+func loadVersionFromFile() string {
+	candidates := []string{"VERSION", "../VERSION"}
+	if execPath, err := os.Executable(); err == nil {
+		candidates = append(candidates, filepath.Join(filepath.Dir(execPath), "VERSION"))
+	}
+
+	for _, path := range candidates {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		value := strings.TrimSpace(string(data))
+		if value != "" {
+			return value
+		}
+	}
+
+	return ""
+}
+
+func buildEnvSnapshot() map[string]string {
+	keys := []string{
+		"PORT",
+		"HOST",
+		"DB_PATH",
+		"LOG_LEVEL",
+		"LOG_PATH",
+		"LOG_TO_DB",
+		"LOG_SQL",
+		"LOG_SQL_SLOW_MS",
+		"ENCRYPTION_KEY",
+		"SCANNER_CONCURRENCY",
+		"SCANNER_BATCH_SIZE",
+		"NOTIFIER_ENABLED",
+		"NOTIFIER_PROVIDER",
+		"NOTIFIER_BASE_URL",
+		"NOTIFIER_TOKEN",
+		"NOTIFIER_TIMEOUT",
+		"NOTIFIER_RETRY_MAX",
+		"NOTIFIER_RETRY_BASE_MS",
+		"NOTIFIER_DEBOUNCE",
+		"NOTIFIER_SCOPE",
+	}
+
+	snapshot := make(map[string]string)
+	for _, key := range keys {
+		value, ok := os.LookupEnv(key)
+		if !ok {
+			continue
+		}
+		snapshot[key] = maskEnvValue(key, value)
+	}
+
+	return snapshot
+}
+
+// formatEnvSnapshot 将环境变量快照格式化为可读消息（仅用于日志展示）
+func formatEnvSnapshot(snapshot map[string]string) string {
+	if len(snapshot) == 0 {
+		return "未检测到环境变量覆盖"
+	}
+
+	keys := make([]string, 0, len(snapshot))
+	for key := range snapshot {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	parts := make([]string, 0, len(keys))
+	for _, key := range keys {
+		parts = append(parts, fmt.Sprintf("%s=%s", key, snapshot[key]))
+	}
+
+	return "已加载环境变量：" + strings.Join(parts, ", ")
+}
+
+func maskEnvValue(key, value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return ""
+	}
+	lowerKey := strings.ToLower(strings.TrimSpace(key))
+	isSensitive := strings.Contains(lowerKey, "key") ||
+		strings.Contains(lowerKey, "token") ||
+		strings.Contains(lowerKey, "secret") ||
+		strings.Contains(lowerKey, "password")
+	if !isSensitive {
+		return trimmed
+	}
+
+	if len(trimmed) <= 4 {
+		return "****"
+	}
+	return "****" + trimmed[len(trimmed)-4:]
+}
+
+// logSystemInfo 输出系统信息（用于日志页展示）
+func logSystemInfo(cfg *dbpkg.Config) {
+	if cfg == nil {
+		return
+	}
+
+	workDir, err := os.Getwd()
+	if err != nil {
+		workDir = ""
+	}
+	logDir, logFile := logger.ResolveLogFilePath(cfg.Log.Path)
+
+	sysLogger := logger.With(zap.String("module", "system"))
+	message := fmt.Sprintf("系统信息：后端版本=%s，前端版本=%s，Go=%s，系统=%s/%s，PID=%d，工作目录=%s，日志=%s，数据库=%s",
+		appVersion,
+		frontendVersion,
+		runtime.Version(),
+		runtime.GOOS,
+		runtime.GOARCH,
+		os.Getpid(),
+		workDir,
+		logFile,
+		cfg.Database.Path)
+
+	sysLogger.Info(message,
+		zap.String("version", appVersion),
+		zap.String("frontend_version", frontendVersion),
+		zap.String("go_version", runtime.Version()),
+		zap.String("os", runtime.GOOS),
+		zap.String("arch", runtime.GOARCH),
+		zap.Int("pid", os.Getpid()),
+		zap.String("work_dir", workDir),
+		zap.String("log_dir", logDir),
+		zap.String("log_file", logFile),
+		zap.String("db_path", cfg.Database.Path))
+}
+
 // setupRouter 配置路由 (最小可用版本)
-func setupRouter(db *gorm.DB, scheduler httphandlers.JobScheduler, queue httphandlers.TaskQueue) *gin.Engine {
+func setupRouter(db *gorm.DB, logDir string, scheduler httphandlers.JobScheduler, queue httphandlers.TaskQueue) *gin.Engine {
 	router := gin.New()
 
 	// 中间件
 	router.Use(gin.Recovery())
 	router.Use(requestIDMiddleware())
-	router.Use(ginLogger(db))
+	router.Use(ginLogger())
 
 	// 获取logger
 	logger := logger.With(zap.String("module", "api"))
 
 	// 创建处理器
-	logHandler := httphandlers.NewLogHandler(db, logger)
+	logHandler := httphandlers.NewLogHandler(logDir, logger)
 	settingHandler := httphandlers.NewSettingHandler(db, logger)
 	fileHandler := httphandlers.NewFileHandler(db, logger)
 	dataServerHandler := httphandlers.NewDataServerHandler(db, logger)
@@ -314,7 +453,6 @@ func setupRouter(db *gorm.DB, scheduler httphandlers.JobScheduler, queue httphan
 			jobs.PUT("/:id", jobHandler.UpdateJob)
 			jobs.DELETE("/:id", jobHandler.DeleteJob)
 			jobs.POST("/:id/run", jobHandler.RunJob)
-			jobs.POST("/:id/trigger", jobHandler.RunJob) // 前端兼容别名
 			jobs.POST("/:id/stop", jobHandler.StopJob)
 			jobs.PUT("/:id/enable", jobHandler.EnableJob)
 			jobs.PUT("/:id/disable", jobHandler.DisableJob)
@@ -330,15 +468,55 @@ func setupRouter(db *gorm.DB, scheduler httphandlers.JobScheduler, queue httphan
 		}
 	}
 
-	// API未找到处理
+	// 前端静态文件服务（使用 StaticFS）
+	setupStaticFiles(router)
+
+	// SPA 路由回退（所有非 API 路由返回 index.html）
 	router.NoRoute(func(c *gin.Context) {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error":   "API not found",
-			"message": "This is a minimal version during refactoring",
-		})
+		// API 路由返回 404
+		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error":   "API not found",
+				"message": "This is a minimal version during refactoring",
+			})
+			return
+		}
+
+		// 其他路由返回前端 index.html（SPA 路由）
+		serveIndexHTML(c)
 	})
 
 	return router
+}
+
+// loadDotEnv 尝试加载 .env 文件（按优先级查找）
+func loadDotEnv() {
+	// 查找候选路径（优先级从高到低）
+	candidates := []string{
+		".env",                    // 当前工作目录
+		"../.env",                 // 父目录（开发环境）
+		"../../.env",              // 祖父目录
+		"/app/.env",               // Docker 容器标准路径
+		"/etc/strmsync/.env",      // 系统级配置路径
+	}
+
+	// 如果可执行文件路径可获取，添加可执行文件同级目录
+	if execPath, err := os.Executable(); err == nil {
+		execDir := filepath.Dir(execPath)
+		candidates = append([]string{filepath.Join(execDir, ".env")}, candidates...)
+	}
+
+	// 尝试加载第一个存在的 .env 文件
+	for _, path := range candidates {
+		if _, err := os.Stat(path); err == nil {
+			if err := godotenv.Load(path); err == nil {
+				// 成功加载，静默返回（避免日志污染）
+				return
+			}
+		}
+	}
+
+	// 未找到 .env 文件，静默继续（使用系统环境变量）
 }
 
 const (
@@ -362,7 +540,7 @@ func requestIDMiddleware() gin.HandlerFunc {
 }
 
 // ginLogger Gin日志中间件
-func ginLogger(db *gorm.DB) gin.HandlerFunc {
+func ginLogger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		path := c.Request.URL.Path
@@ -377,6 +555,7 @@ func ginLogger(db *gorm.DB) gin.HandlerFunc {
 		userAction := strings.TrimSpace(c.GetHeader("X-User-Action"))
 
 		fields := []zap.Field{
+			zap.String("component", "api"),
 			zap.String("method", c.Request.Method),
 			zap.String("path", path),
 			zap.String("query", query),
@@ -391,35 +570,16 @@ func ginLogger(db *gorm.DB) gin.HandlerFunc {
 			fields = append(fields, zap.String("user_action", userAction))
 		}
 
-		// 记录到zap日志
-		logger.LogInfo("HTTP请求", fields...)
-
-		// 同时写入数据库日志
-		module := "api"
-		message := fmt.Sprintf("%s %s - %d (%s)", c.Request.Method, path, status, latency)
-		level := "info"
-		if status >= 500 {
-			level = "error"
-		} else if status >= 400 {
-			level = "warn"
+		// 记录到zap日志（数据库写入由日志核心统一处理）
+		message := buildAPILogMessage(c.Request.Method, path, status, latency)
+		switch {
+		case status >= http.StatusInternalServerError:
+			logger.LogError(message, fields...)
+		case status >= http.StatusBadRequest:
+			logger.LogWarn(message, fields...)
+		default:
+			logger.Debug(message, fields...)
 		}
-
-		var reqID *string
-		if requestID != "" {
-			reqID = &requestID
-		}
-		var action *string
-		if userAction != "" {
-			action = &userAction
-		}
-
-		logger.WriteLogToDB(db, &model.LogEntry{
-			Level:      level,
-			Module:     &module,
-			Message:    message,
-			RequestID:  reqID,
-			UserAction: action,
-		})
 	}
 }
 
@@ -447,10 +607,163 @@ func healthCheckHandler(c *gin.Context) {
 	}
 
 	c.JSON(httpStatus, gin.H{
-		"status":    status,
-		"timestamp": time.Now().Unix(),
-		"database":  dbStatus,
-		"version":   "2.0.0-alpha",
-		"note":      "Minimal version during refactoring",
+		"status":           status,
+		"timestamp":        time.Now().Unix(),
+		"database":         dbStatus,
+		"version":          appVersion,
+		"frontend_version": frontendVersion,
+		"note":             "Minimal version during refactoring",
 	})
+}
+
+// buildAPILogMessage 将API请求转换为更友好的中文提示
+func buildAPILogMessage(method string, path string, status int, latency time.Duration) string {
+	action := describeAPIAction(method, path)
+	if action != "" {
+		return fmt.Sprintf("%s（%d）", action, status)
+	}
+	return fmt.Sprintf("%s %s - %d (%s)", method, path, status, latency)
+}
+
+// describeAPIAction 返回API动作的中文描述
+func describeAPIAction(method string, path string) string {
+	switch {
+	case method == http.MethodGet && path == "/api/health":
+		return "连接线测试：健康"
+	case method == http.MethodGet && path == "/api/logs":
+		return "系统日志：查询"
+	case method == http.MethodPost && path == "/api/logs/cleanup":
+		return "系统日志：清理"
+	case method == http.MethodGet && path == "/api/settings":
+		return "系统设置：查询"
+	case method == http.MethodPut && path == "/api/settings":
+		return "系统设置：更新"
+	case method == http.MethodGet && path == "/api/files/directories":
+		return "目录浏览：列出目录"
+	case method == http.MethodPost && path == "/api/files/list":
+		return "目录浏览：列出文件"
+	case method == http.MethodPost && path == "/api/servers/data":
+		return "数据服务器：创建"
+	case method == http.MethodGet && path == "/api/servers/data":
+		return "数据服务器：列表"
+	case method == http.MethodPost && path == "/api/servers/data/test":
+		return "数据服务器：临时测试"
+	case method == http.MethodPost && strings.HasPrefix(path, "/api/servers/data/") && strings.HasSuffix(path, "/test"):
+		return "数据服务器：连接测试"
+	case method == http.MethodGet && strings.HasPrefix(path, "/api/servers/data/"):
+		return "数据服务器：详情"
+	case method == http.MethodPut && strings.HasPrefix(path, "/api/servers/data/"):
+		return "数据服务器：更新"
+	case method == http.MethodDelete && strings.HasPrefix(path, "/api/servers/data/"):
+		return "数据服务器：删除"
+	case method == http.MethodGet && path == "/api/servers/types":
+		return "服务器类型：列表"
+	case method == http.MethodGet && strings.HasPrefix(path, "/api/servers/types/"):
+		return "服务器类型：详情"
+	case method == http.MethodPost && path == "/api/servers/media":
+		return "媒体服务器：创建"
+	case method == http.MethodGet && path == "/api/servers/media":
+		return "媒体服务器：列表"
+	case method == http.MethodPost && path == "/api/servers/media/test":
+		return "媒体服务器：临时测试"
+	case method == http.MethodPost && strings.HasPrefix(path, "/api/servers/media/") && strings.HasSuffix(path, "/test"):
+		return "媒体服务器：连接测试"
+	case method == http.MethodGet && strings.HasPrefix(path, "/api/servers/media/"):
+		return "媒体服务器：详情"
+	case method == http.MethodPut && strings.HasPrefix(path, "/api/servers/media/"):
+		return "媒体服务器：更新"
+	case method == http.MethodDelete && strings.HasPrefix(path, "/api/servers/media/"):
+		return "媒体服务器：删除"
+	case method == http.MethodPost && path == "/api/jobs":
+		return "任务：创建"
+	case method == http.MethodGet && path == "/api/jobs":
+		return "任务：列表"
+	case method == http.MethodPost && strings.HasSuffix(path, "/run") && strings.HasPrefix(path, "/api/jobs/"):
+		return "任务：执行"
+	case method == http.MethodPost && strings.HasSuffix(path, "/stop") && strings.HasPrefix(path, "/api/jobs/"):
+		return "任务：停止"
+	case method == http.MethodPut && strings.HasSuffix(path, "/enable") && strings.HasPrefix(path, "/api/jobs/"):
+		return "任务：启用"
+	case method == http.MethodPut && strings.HasSuffix(path, "/disable") && strings.HasPrefix(path, "/api/jobs/"):
+		return "任务：禁用"
+	case method == http.MethodGet && strings.HasPrefix(path, "/api/jobs/"):
+		return "任务：详情"
+	case method == http.MethodPut && strings.HasPrefix(path, "/api/jobs/"):
+		return "任务：更新"
+	case method == http.MethodDelete && strings.HasPrefix(path, "/api/jobs/"):
+		return "任务：删除"
+	case method == http.MethodGet && path == "/api/runs":
+		return "执行历史：列表"
+	case method == http.MethodGet && path == "/api/runs/stats":
+		return "执行历史：统计"
+	case method == http.MethodPost && strings.HasSuffix(path, "/cancel") && strings.HasPrefix(path, "/api/runs/"):
+		return "执行历史：取消"
+	case method == http.MethodGet && strings.HasPrefix(path, "/api/runs/"):
+		return "执行历史：详情"
+	default:
+		return ""
+	}
+}
+
+// setupStaticFiles 配置前端静态文件服务（使用 StaticFS）
+func setupStaticFiles(router *gin.Engine) {
+	// 查找 web_statics 目录（按优先级）
+	webStaticsPath := findWebStaticsDir()
+	if webStaticsPath == "" {
+		logger.LogWarn("前端静态文件目录未找到，前端功能将不可用")
+		return
+	}
+
+	logger.LogInfo("前端静态文件目录", zap.String("path", webStaticsPath))
+
+	// 托管静态资源（JS/CSS/图片等）
+	router.Static("/assets", filepath.Join(webStaticsPath, "assets"))
+	router.StaticFile("/favicon.ico", filepath.Join(webStaticsPath, "favicon.ico"))
+
+	// 根路径返回 index.html
+	router.GET("/", func(c *gin.Context) {
+		c.File(filepath.Join(webStaticsPath, "index.html"))
+	})
+}
+
+// findWebStaticsDir 查找 web_statics 目录（按优先级）
+func findWebStaticsDir() string {
+	candidates := []string{
+		"web_statics",           // 当前工作目录
+		"../web_statics",        // 父目录（开发环境）
+		"../../web_statics",     // 祖父目录
+	}
+
+	// 如果可执行文件路径可获取，添加可执行文件同级目录
+	if execPath, err := os.Executable(); err == nil {
+		execDir := filepath.Dir(execPath)
+		candidates = append([]string{filepath.Join(execDir, "web_statics")}, candidates...)
+	}
+
+	// 查找第一个存在的目录
+	for _, path := range candidates {
+		if info, err := os.Stat(path); err == nil && info.IsDir() {
+			// 验证是否包含 index.html
+			indexPath := filepath.Join(path, "index.html")
+			if _, err := os.Stat(indexPath); err == nil {
+				return path
+			}
+		}
+	}
+
+	return ""
+}
+
+// serveIndexHTML 返回前端 index.html（用于 SPA 路由回退）
+func serveIndexHTML(c *gin.Context) {
+	webStaticsPath := findWebStaticsDir()
+	if webStaticsPath == "" {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error":   "Frontend not available",
+			"message": "web_statics directory not found",
+		})
+		return
+	}
+
+	c.File(filepath.Join(webStaticsPath, "index.html"))
 }

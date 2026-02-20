@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	cd2sdk "github.com/strmsync/strmsync/internal/pkg/sdk/clouddrive2"
 	"github.com/strmsync/strmsync/internal/domain/model"
+	cd2sdk "github.com/strmsync/strmsync/internal/pkg/sdk/clouddrive2"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -130,6 +130,21 @@ func (h *DataServerHandler) CreateDataServer(c *gin.Context) {
 		server.Port = 0
 	}
 
+	h.logger.Debug(fmt.Sprintf("创建数据服务器请求：%s", server.Name),
+		zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
+			"name":               server.Name,
+			"type":               server.Type,
+			"host":               server.Host,
+			"port":               server.Port,
+			"enabled":            server.Enabled,
+			"options":            buildOptionsLog(server.Options),
+			"request_timeout_ms": server.RequestTimeoutMs,
+			"connect_timeout_ms": server.ConnectTimeoutMs,
+			"retry_max":          server.RetryMax,
+			"retry_backoff_ms":   server.RetryBackoffMs,
+			"max_concurrent":     server.MaxConcurrent,
+		})))
+
 	if err := h.db.Create(&server).Error; err != nil {
 		// 检查是否为唯一约束错误
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") ||
@@ -142,7 +157,7 @@ func (h *DataServerHandler) CreateDataServer(c *gin.Context) {
 			respondError(c, http.StatusConflict, "duplicate_name", "服务器名称已存在", nil)
 			return
 		}
-		h.logger.Error("创建数据服务器失败",
+		h.logger.Error(fmt.Sprintf("创建数据服务器「%s」失败", server.Name),
 			zap.Error(err),
 			zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
 				"name":    server.Name,
@@ -155,10 +170,14 @@ func (h *DataServerHandler) CreateDataServer(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info("创建数据服务器成功",
+	h.logger.Info(fmt.Sprintf("创建数据服务器「%s」成功", server.Name),
 		zap.Uint("id", server.ID),
 		zap.String("name", server.Name),
-		zap.String("type", server.Type))
+		zap.String("type", server.Type),
+		zap.String("host", server.Host),
+		zap.Int("port", server.Port),
+		zap.Bool("enabled", server.Enabled),
+		zap.Any("options", buildOptionsLog(server.Options)))
 
 	c.JSON(http.StatusCreated, gin.H{"server": server})
 }
@@ -287,6 +306,7 @@ func (h *DataServerHandler) UpdateDataServer(c *gin.Context) {
 	}
 
 	// 更新字段
+	previousEnabled := server.Enabled
 	server.Name = newName
 	server.Type = strings.TrimSpace(req.Type)
 	server.Host = strings.TrimSpace(req.Host)
@@ -320,6 +340,22 @@ func (h *DataServerHandler) UpdateDataServer(c *gin.Context) {
 		server.Port = 0
 	}
 
+	h.logger.Debug(fmt.Sprintf("更新数据服务器请求：%s", server.Name),
+		zap.Uint("id", server.ID),
+		zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
+			"name":               server.Name,
+			"type":               server.Type,
+			"host":               server.Host,
+			"port":               server.Port,
+			"enabled":            server.Enabled,
+			"options":            buildOptionsLog(server.Options),
+			"request_timeout_ms": server.RequestTimeoutMs,
+			"connect_timeout_ms": server.ConnectTimeoutMs,
+			"retry_max":          server.RetryMax,
+			"retry_backoff_ms":   server.RetryBackoffMs,
+			"max_concurrent":     server.MaxConcurrent,
+		})))
+
 	if err := h.db.Save(&server).Error; err != nil {
 		// 检查是否为唯一约束错误
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") ||
@@ -332,7 +368,7 @@ func (h *DataServerHandler) UpdateDataServer(c *gin.Context) {
 			respondError(c, http.StatusConflict, "duplicate_name", "服务器名称已存在", nil)
 			return
 		}
-		h.logger.Error("更新数据服务器失败",
+		h.logger.Error(fmt.Sprintf("更新数据服务器「%s」失败", server.Name),
 			zap.Error(err),
 			zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
 				"id":      server.ID,
@@ -346,9 +382,20 @@ func (h *DataServerHandler) UpdateDataServer(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info("更新数据服务器成功",
+	h.logger.Info(fmt.Sprintf("更新数据服务器「%s」成功", server.Name),
 		zap.Uint("id", server.ID),
-		zap.String("name", server.Name))
+		zap.String("name", server.Name),
+		zap.String("type", server.Type),
+		zap.String("host", server.Host),
+		zap.Int("port", server.Port),
+		zap.Bool("enabled", server.Enabled))
+
+	if previousEnabled != server.Enabled {
+		h.logger.Info(fmt.Sprintf("数据服务器状态变更：%s", server.Name),
+			zap.Uint("id", server.ID),
+			zap.String("name", server.Name),
+			zap.Bool("enabled", server.Enabled))
+	}
 
 	c.JSON(http.StatusOK, gin.H{"server": server})
 }
@@ -377,10 +424,22 @@ func (h *DataServerHandler) DeleteDataServer(c *gin.Context) {
 		return
 	}
 
+	var server model.DataServer
+	if err := h.db.First(&server, uint(id)).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			respondError(c, http.StatusNotFound, "not_found", "数据服务器不存在", nil)
+			return
+		}
+		h.logger.Error("查询数据服务器失败", zap.Error(err), zap.Uint64("id", id))
+		respondError(c, http.StatusInternalServerError, "db_error", "查询失败", nil)
+		return
+	}
+
 	// 执行删除
-	result := h.db.Delete(&model.DataServer{}, uint(id))
+	h.logger.Debug(fmt.Sprintf("删除数据服务器请求：%s", server.Name), zap.Uint64("id", id))
+	result := h.db.Delete(&server)
 	if result.Error != nil {
-		h.logger.Error("删除数据服务器失败", zap.Error(result.Error), zap.Uint64("id", id))
+		h.logger.Error(fmt.Sprintf("删除数据服务器「%s」失败", server.Name), zap.Error(result.Error), zap.Uint64("id", id))
 		respondError(c, http.StatusInternalServerError, "db_error", "删除失败", nil)
 		return
 	}
@@ -390,7 +449,7 @@ func (h *DataServerHandler) DeleteDataServer(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info("删除数据服务器成功", zap.Uint64("id", id))
+	h.logger.Info(fmt.Sprintf("删除数据服务器「%s」成功", server.Name), zap.Uint64("id", id))
 	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
 }
 
@@ -416,7 +475,7 @@ func (h *DataServerHandler) TestDataServerConnection(c *gin.Context) {
 
 	// 检查是否已启用
 	if !server.Enabled {
-		h.logger.Warn("尝试测试已禁用的数据服务器",
+		h.logger.Warn(fmt.Sprintf("尝试测试已禁用的数据服务器：%s", server.Name),
 			zap.Uint("id", server.ID),
 			zap.String("name", server.Name))
 		c.JSON(http.StatusOK, ConnectionTestResult{
@@ -446,6 +505,13 @@ func (h *DataServerHandler) TestDataServerConnection(c *gin.Context) {
 			zap.Int("port", server.Port))
 	}
 
+	h.logger.Info(fmt.Sprintf("开始测试数据服务器连接：%s", server.Name),
+		zap.Uint("id", server.ID),
+		zap.String("name", server.Name),
+		zap.String("type", server.Type),
+		zap.String("host", server.Host),
+		zap.Int("port", server.Port))
+
 	var result ConnectionTestResult
 	switch strings.TrimSpace(server.Type) {
 	case "clouddrive2":
@@ -457,7 +523,7 @@ func (h *DataServerHandler) TestDataServerConnection(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info("测试数据服务器连接",
+	h.logger.Info(fmt.Sprintf("测试数据服务器连接完成：%s", server.Name),
 		zap.Uint("id", server.ID),
 		zap.String("type", server.Type),
 		zap.Bool("success", result.Success),
@@ -499,6 +565,16 @@ func (h *DataServerHandler) TestDataServerTemp(c *gin.Context) {
 		server.Port = 0
 	}
 
+	h.logger.Debug(fmt.Sprintf("临时测试数据服务器连接请求：%s", server.Name),
+		zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
+			"name":    server.Name,
+			"type":    server.Type,
+			"host":    server.Host,
+			"port":    server.Port,
+			"enabled": server.Enabled,
+			"options": buildOptionsLog(server.Options),
+		})))
+
 	var result ConnectionTestResult
 	switch strings.TrimSpace(server.Type) {
 	case "clouddrive2":
@@ -516,7 +592,7 @@ func (h *DataServerHandler) TestDataServerTemp(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info("临时测试数据服务器连接",
+	h.logger.Info(fmt.Sprintf("临时测试数据服务器连接完成：%s", server.Name),
 		zap.String("type", server.Type),
 		zap.Bool("success", result.Success),
 		zap.Int64("latency_ms", result.LatencyMs))

@@ -3,7 +3,9 @@ package worker
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -135,7 +137,7 @@ func (w *WorkerPool) Start(ctx context.Context) error {
 		go w.runLoop(i)
 	}
 
-	w.log.Info("worker started",
+	w.log.Info("任务执行器启动",
 		zap.Int("concurrency", w.cfg.Concurrency))
 	return nil
 }
@@ -174,7 +176,7 @@ func (w *WorkerPool) Stop(ctx context.Context) error {
 		return fmt.Errorf("worker: stop cancelled: %w", ctx.Err())
 	}
 
-	w.log.Info("worker stopped")
+	w.log.Info("任务执行器停止")
 	return nil
 }
 
@@ -213,7 +215,12 @@ func (w *WorkerPool) runLoop(index int) {
 
 		// 执行任务
 		if err := w.executeTask(log, task); err != nil {
-			log.Error("task execution failed", zap.Error(err))
+			jobName := extractJobName(task.Payload)
+			log.Error("task execution failed",
+				zap.Uint("task_id", task.ID),
+				zap.Uint("job_id", task.JobID),
+				zap.String("job_name", jobName),
+				zap.Error(err))
 		}
 	}
 }
@@ -245,6 +252,13 @@ func (w *WorkerPool) executeTask(log *zap.Logger, task *model.TaskRun) error {
 		return nil
 	}
 
+	jobName := extractJobName(task.Payload)
+	taskLog := log.With(
+		zap.Uint("task_id", task.ID),
+		zap.Uint("job_id", task.JobID),
+		zap.String("job_name", jobName),
+	)
+
 	execCtx := w.ctx
 	var cancel context.CancelFunc
 	if w.cfg.RunTimeout > 0 {
@@ -266,47 +280,44 @@ func (w *WorkerPool) executeTask(log *zap.Logger, task *model.TaskRun) error {
 		// 执行失败，回写队列
 		failErr := w.cfg.Queue.Fail(updateCtx, task.ID, err)
 		if failErr != nil {
-			log.Error("queue fail update failed",
-				zap.Uint("task_id", task.ID),
+			taskLog.Error("queue fail update failed",
 				zap.Error(failErr))
 		}
 		// 回写 Job 状态为 error
 		if statusErr := w.cfg.Jobs.UpdateStatus(updateCtx, task.JobID, "error"); statusErr != nil {
-			log.Warn("update job status to error failed",
-				zap.Uint("job_id", task.JobID),
+			taskLog.Warn("update job status to error failed",
 				zap.Error(statusErr))
 		}
-		log.Error("task failed",
-			zap.Uint("task_id", task.ID),
-			zap.Uint("job_id", task.JobID),
+		taskLog.Error("task failed",
 			zap.Error(err))
 		return err
 	}
 
 	// 执行成功，回写队列
 	if err := w.cfg.Queue.Complete(updateCtx, task.ID); err != nil {
-		log.Error("queue complete update failed",
-			zap.Uint("task_id", task.ID),
+		taskLog.Error("queue complete update failed",
 			zap.Error(err))
 		return err
 	}
 	// 回写 Job 状态为 idle
 	if statusErr := w.cfg.Jobs.UpdateStatus(updateCtx, task.JobID, "idle"); statusErr != nil {
-		log.Warn("update job status to idle failed",
-			zap.Uint("job_id", task.JobID),
+		taskLog.Warn("update job status to idle failed",
 			zap.Error(statusErr))
 	}
 	// 更新 Job 的最后运行时间
 	if lastRunErr := w.cfg.Jobs.UpdateLastRunAt(updateCtx, task.JobID, time.Now()); lastRunErr != nil {
-		log.Warn("update job last_run_at failed",
-			zap.Uint("job_id", task.JobID),
+		taskLog.Warn("update job last_run_at failed",
 			zap.Error(lastRunErr))
 	}
 
-	log.Info("task completed",
-		zap.Uint("task_id", task.ID),
-		zap.Uint("job_id", task.JobID),
-		zap.Int64("processed_files", stats.ProcessedFiles))
+	taskLog.Info("task completed",
+		zap.Int64("processed_files", stats.ProcessedFiles),
+		zap.Int64("created_files", stats.CreatedFiles),
+		zap.Int64("updated_files", stats.UpdatedFiles),
+		zap.Int64("skipped_files", stats.SkippedFiles),
+		zap.Int64("filtered_files", stats.FilteredFiles),
+		zap.Int64("failed_files", stats.FailedFiles),
+		zap.Int64("total_files", stats.TotalFiles))
 	return nil
 }
 
@@ -323,4 +334,17 @@ func (w *WorkerPool) sleepWithContext(d time.Duration) {
 	case <-w.ctx.Done():
 	case <-timer.C:
 	}
+}
+
+func extractJobName(payload string) string {
+	if strings.TrimSpace(payload) == "" {
+		return ""
+	}
+	var data struct {
+		JobName string `json:"job_name"`
+	}
+	if err := json.Unmarshal([]byte(payload), &data); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(data.JobName)
 }

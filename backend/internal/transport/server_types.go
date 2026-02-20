@@ -57,13 +57,13 @@ type ServerSectionDef struct {
 // ServerTypeDef 服务器类型完整定义
 // 包含类型元信息、字段分组、存储映射和版本号
 type ServerTypeDef struct {
-	Type         string             `json:"type"`          // 类型标识（如 local/clouddrive2）
-	Label        string             `json:"label"`         // 类型显示名称
-	Category     string             `json:"category"`      // 类型分类（data/media）
+	Type         string             `json:"type"`                  // 类型标识（如 local/clouddrive2）
+	Label        string             `json:"label"`                 // 类型显示名称
+	Category     string             `json:"category"`              // 类型分类（data/media）
 	Description  string             `json:"description,omitempty"` // 类型描述
-	Sections     []ServerSectionDef `json:"sections"`      // 字段分组
-	Storage      map[string]string  `json:"storage"`       // 字段到存储位置的映射（root/options/api_key）
-	RulesVersion int                `json:"rules_version"` // 规则版本号（用于缓存失效）
+	Sections     []ServerSectionDef `json:"sections"`              // 字段分组
+	Storage      map[string]string  `json:"storage"`               // 字段到存储位置的映射（root/options/api_key）
+	RulesVersion int                `json:"rules_version"`         // 规则版本号（用于缓存失效）
 }
 
 // ServerTypeHandler 服务器类型处理器
@@ -228,8 +228,8 @@ func cloudDrive2ServerTypeDef() ServerTypeDef {
 						Type:        FieldTypePath,
 						Label:       "挂载目录",
 						Placeholder: "/mnt/clouddrive",
-						Help:        "云盘挂载到本地的目录路径（必填）",
-						Required:    true,
+						Help:        "云盘挂载到本地的目录路径（可选，默认使用访问目录）",
+						Required:    false,
 					},
 				},
 			},
@@ -307,7 +307,7 @@ func openListServerTypeDef() ServerTypeDef {
 						Type:        FieldTypePath,
 						Label:       "访问目录",
 						Placeholder: "/",
-						Help:        "本地方式：访问目录 + 挂载目录都要填；API方式：两项可留空（通过URL访问）",
+						Help:        "本地方式可填写访问目录；挂载目录为空时默认使用访问目录",
 						Required:    false,
 					},
 					{
@@ -315,7 +315,7 @@ func openListServerTypeDef() ServerTypeDef {
 						Type:        FieldTypePath,
 						Label:       "挂载目录",
 						Placeholder: "/mnt/openlist",
-						Help:        "本地方式：访问目录 + 挂载目录都要填；API方式：两项可留空（通过URL访问）",
+						Help:        "挂载目录可选，默认使用访问目录",
 						Required:    false,
 					},
 				},

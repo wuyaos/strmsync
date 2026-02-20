@@ -105,13 +105,13 @@ func NewEngine(driver Driver, writer Writer, logger *zap.Logger, opts EngineOpti
 // RunOnce 执行一次完整的同步流程
 //
 // 工作流程：
-// 1. 扫描远程文件列表（使用 Driver.List）
-// 2. 过滤文件（根据扩展名）
-// 3. 并发处理每个文件：
-//    a. 构建 STRM 内容（使用 Driver.BuildStrmInfo）
-//    b. 比对现有内容（使用 Driver.CompareStrm）
-//    c. 写入/更新文件（使用 Writer）
-// 4. 收集统计信息并返回
+//  1. 扫描远程文件列表（使用 Driver.List）
+//  2. 过滤文件（根据扩展名）
+//  3. 并发处理每个文件：
+//     a. 构建 STRM 内容（使用 Driver.BuildStrmInfo）
+//     b. 比对现有内容（使用 Driver.CompareStrm）
+//     c. 写入/更新文件（使用 Writer）
+//  4. 收集统计信息并返回
 //
 // 参数：
 //   - ctx: 上下文，用于取消
@@ -148,7 +148,7 @@ func (e *Engine) RunOnce(ctx context.Context, remotePath string) (SyncStats, err
 		zap.Int64("total_dirs", stats.TotalDirs))
 
 	// 步骤2: 过滤文件
-	files := e.filterFiles(entries, &stats)
+	files := e.filterFiles(entries, &stats, remotePath)
 	e.logger.Info("文件过滤完成",
 		zap.Int("matched_files", len(files)),
 		zap.Int64("filtered_files", stats.FilteredFiles))
@@ -310,7 +310,7 @@ func (e *Engine) RunIncremental(ctx context.Context, events []EngineEvent) (Sync
 				Name:  filepath.Base(path),
 				IsDir: false,
 			}
-			if len(e.filterFiles([]RemoteEntry{deleteEntry}, &stats)) == 0 {
+			if len(e.filterFiles([]RemoteEntry{deleteEntry}, &stats, "")) == 0 {
 				// 被过滤（扩展名不匹配），跳过此删除事件
 				continue
 			}
@@ -386,7 +386,7 @@ func (e *Engine) RunIncremental(ctx context.Context, events []EngineEvent) (Sync
 	}
 
 	// 步骤3: 过滤文件（按扩展名）
-	files := e.filterFiles(entries, &stats)
+	files := e.filterFiles(entries, &stats, "")
 	e.logger.Info("增量文件过滤完成",
 		zap.Int("matched_files", len(files)),
 		zap.Int64("filtered_files", stats.FilteredFiles))
@@ -426,7 +426,7 @@ func (e *Engine) scanRemoteFiles(ctx context.Context, remotePath string) ([]Remo
 }
 
 // filterFiles 根据配置过滤文件
-func (e *Engine) filterFiles(entries []RemoteEntry, stats *SyncStats) []RemoteEntry {
+func (e *Engine) filterFiles(entries []RemoteEntry, stats *SyncStats, remoteRoot string) []RemoteEntry {
 	var files []RemoteEntry
 
 	for _, entry := range entries {
@@ -436,6 +436,12 @@ func (e *Engine) filterFiles(entries []RemoteEntry, stats *SyncStats) []RemoteEn
 			continue
 		}
 		atomic.AddInt64(&stats.TotalFiles, 1)
+
+		// 排除目录过滤
+		if IsExcludedPath(remoteRoot, entry.Path, e.opts.ExcludeDirs) {
+			atomic.AddInt64(&stats.FilteredFiles, 1)
+			continue
+		}
 
 		// 检查扩展名过滤
 		if len(e.opts.FileExtensions) > 0 {
@@ -452,10 +458,29 @@ func (e *Engine) filterFiles(entries []RemoteEntry, stats *SyncStats) []RemoteEn
 			}
 		}
 
+		if e.opts.MinFileSize > 0 && entry.Size > 0 && entry.Size < e.opts.MinFileSize {
+			atomic.AddInt64(&stats.FilteredFiles, 1)
+			continue
+		}
+
 		files = append(files, entry)
 	}
 
 	return files
+}
+
+func applyStrmReplaceRules(input string, rules []StrmReplaceRule) string {
+	if len(rules) == 0 {
+		return input
+	}
+	output := input
+	for _, rule := range rules {
+		if rule.From == "" {
+			continue
+		}
+		output = strings.ReplaceAll(output, rule.From, rule.To)
+	}
+	return output
 }
 
 // processFiles 并发处理文件列表
@@ -473,7 +498,7 @@ func (e *Engine) processFiles(ctx context.Context, files []RemoteEntry, stats *S
 		// 检查 context 取消（主循环级别）
 		if ctx.Err() != nil {
 			cancel() // 通知所有 goroutine 停止
-			break   // 退出循环，等待已启动的 goroutine
+			break    // 退出循环，等待已启动的 goroutine
 		}
 
 		wg.Add(1)
@@ -664,6 +689,8 @@ func (e *Engine) processFile(ctx context.Context, entry RemoteEntry, stats *Sync
 		return fmt.Errorf("构建 STRM 信息失败: %w", err)
 	}
 
+	expectedContent := applyStrmReplaceRules(strmInfo.RawURL, e.opts.StrmReplaceRules)
+
 	// 步骤2: 计算输出文件路径
 	outputPath, err := e.calculateOutputPath(entry.Path)
 	if err != nil {
@@ -718,24 +745,37 @@ func (e *Engine) processFile(ctx context.Context, entry RemoteEntry, stats *Sync
 				return fmt.Errorf("读取现有文件失败: %w", err)
 			}
 		} else {
-			// 比对内容
-			compareResult, compareErr := e.driver.CompareStrm(ctx, CompareInput{
-				Expected:  strmInfo,
-				ActualRaw: existingContent,
-			})
-			if compareErr != nil {
-				e.logger.Warn("比对 STRM 内容失败，将更新",
-					zap.String("path", outputPath),
-					zap.Error(compareErr))
-			} else if compareResult.Equal {
-				contentEqual = true
-				e.logger.Debug("内容相同",
-					zap.String("path", outputPath),
-					zap.String("reason", compareResult.Reason))
+			if len(e.opts.StrmReplaceRules) > 0 {
+				if strings.TrimSpace(existingContent) == strings.TrimSpace(expectedContent) {
+					contentEqual = true
+					e.logger.Debug("内容相同",
+						zap.String("path", outputPath),
+						zap.String("reason", "raw_equal"))
+				} else {
+					e.logger.Debug("内容不同，需要更新",
+						zap.String("path", outputPath),
+						zap.String("reason", "raw_diff"))
+				}
 			} else {
-				e.logger.Debug("内容不同，需要更新",
-					zap.String("path", outputPath),
-					zap.String("reason", compareResult.Reason))
+				// 比对内容
+				compareResult, compareErr := e.driver.CompareStrm(ctx, CompareInput{
+					Expected:  strmInfo,
+					ActualRaw: existingContent,
+				})
+				if compareErr != nil {
+					e.logger.Warn("比对 STRM 内容失败，将更新",
+						zap.String("path", outputPath),
+						zap.Error(compareErr))
+				} else if compareResult.Equal {
+					contentEqual = true
+					e.logger.Debug("内容相同",
+						zap.String("path", outputPath),
+						zap.String("reason", compareResult.Reason))
+				} else {
+					e.logger.Debug("内容不同，需要更新",
+						zap.String("path", outputPath),
+						zap.String("reason", compareResult.Reason))
+				}
 			}
 		}
 	}
@@ -758,7 +798,7 @@ func (e *Engine) processFile(ctx context.Context, entry RemoteEntry, stats *Sync
 	}
 
 	// 步骤8: 写入或更新文件
-	if err := e.writer.Write(ctx, outputPath, strmInfo.RawURL, entry.ModTime); err != nil {
+	if err := e.writer.Write(ctx, outputPath, expectedContent, entry.ModTime); err != nil {
 		return fmt.Errorf("写入 STRM 文件失败: %w", err)
 	}
 
@@ -1050,6 +1090,5 @@ func isNotExist(err error) bool {
 	// 一些写入器可能返回非标准错误，尝试从消息判断
 	errMsg := strings.ToLower(err.Error())
 	return strings.Contains(errMsg, "not exist") ||
-		   strings.Contains(errMsg, "no such file")
+		strings.Contains(errMsg, "no such file")
 }
-

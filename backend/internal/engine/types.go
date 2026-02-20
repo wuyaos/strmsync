@@ -317,6 +317,12 @@ type ChangeDecision struct {
 	Reason ChangeReason
 }
 
+// StrmReplaceRule STRM替换规则
+type StrmReplaceRule struct {
+	From string
+	To   string
+}
+
 // EngineOptions 引擎配置选项
 //
 // 这些选项控制同步引擎的行为，包括并发控制、
@@ -333,6 +339,10 @@ type EngineOptions struct {
 	// FileExtensions 要同步的文件扩展名列表（默认：所有文件）
 	// 例如：[]string{".mp4", ".mkv", ".avi"}
 	FileExtensions []string
+
+	// MinFileSize 最小文件大小（字节，小于该值的文件将被过滤）
+	// 0 表示不限制
+	MinFileSize int64
 
 	// DryRun 是否为试运行模式（默认：false）
 	// 试运行模式下不会实际写入文件，只输出统计信息
@@ -358,6 +368,12 @@ type EngineOptions struct {
 	// OrphanCleanupDryRun 是否以试运行模式执行孤儿清理（默认：false）
 	// 启用后只记录将要删除的文件，不实际删除
 	OrphanCleanupDryRun bool
+
+	// StrmReplaceRules STRM 替换规则（按顺序执行）
+	StrmReplaceRules []StrmReplaceRule
+
+	// ExcludeDirs 排除目录（相对远端根路径）
+	ExcludeDirs []string
 }
 
 // SyncStats 同步统计信息

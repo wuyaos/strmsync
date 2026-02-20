@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/strmsync/strmsync/internal/app/ports"
+	appconfig "github.com/strmsync/strmsync/internal/config"
 	"github.com/strmsync/strmsync/internal/domain/model"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -258,17 +260,28 @@ func (s *jobService) loadAndValidateJob(ctx context.Context, jobID ports.JobID) 
 	}
 
 	// 4. 构建JobConfig
+	strmMode := ports.STRMMode(getStringOption(options, "strm_mode", string(ports.STRMModeLocal)))
+	if !strmMode.IsValid() {
+		strmMode = ports.STRMModeLocal
+	}
 	config := &ports.JobConfig{
-		ID:            job.ID,
-		Name:          job.Name,
-		WatchMode:     ports.WatchMode(job.WatchMode),
-		SourcePath:    job.SourcePath,
-		TargetPath:    job.TargetPath,
-		Enabled:       job.Enabled,
-		Recursive:     getBoolOption(options, "recursive", true),
-		Extensions:    getStringSliceOption(options, "extensions", []string{".mkv", ".mp4", ".avi"}),
-		Interval:      getIntOption(options, "interval", 300),
-		AutoScanLibrary: getBoolOption(options, "auto_scan_library", false),
+		ID:               job.ID,
+		Name:             job.Name,
+		WatchMode:        ports.WatchMode(job.WatchMode),
+		STRMMode:         strmMode,
+		SourcePath:       job.SourcePath,
+		TargetPath:       job.TargetPath,
+		Enabled:          job.Enabled,
+		Recursive:        getBoolOption(options, "recursive", true),
+		MediaExtensions:  getStringSliceOption(options, "media_exts", appconfig.DefaultMediaExtensions()),
+		MetaExtensions:   getStringSliceOption(options, "meta_exts", appconfig.DefaultMetaExtensions()),
+		ExcludeDirs:      getStringSliceOption(options, "exclude_dirs", nil),
+		Interval:         getIntOption(options, "interval", 300),
+		AutoScanLibrary:  getBoolOption(options, "auto_scan_library", false),
+		STRMReplaceRules: getStrmReplaceRulesOption(options),
+	}
+	if job.DataServerID != nil {
+		config.DataServerID = *job.DataServerID
 	}
 
 	// 5. 验证WatchMode
@@ -276,16 +289,13 @@ func (s *jobService) loadAndValidateJob(ctx context.Context, jobID ports.JobID) 
 		return nil, fmt.Errorf("invalid watch_mode: %s", config.WatchMode)
 	}
 
-	// 6. 根据WatchMode加载关联的Server
-	switch config.WatchMode {
-	case ports.WatchModeAPI:
-		// API模式必须有data_server_id
-		if job.DataServerID == nil {
-			return nil, fmt.Errorf("watch_mode=api requires data_server_id")
-		}
-		config.DataServerID = *job.DataServerID
+	// 6. 根据WatchMode校验DataServer
+	if config.WatchMode == ports.WatchModeAPI && config.DataServerID == 0 {
+		return nil, fmt.Errorf("watch_mode=api requires data_server_id")
+	}
 
-		// 验证DataServer存在
+	// 7. 加载DataServer配置（存在时用于STRM生成）
+	if config.DataServerID > 0 {
 		var dataServer model.DataServer
 		if err := s.db.WithContext(ctx).First(&dataServer, config.DataServerID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -293,13 +303,10 @@ func (s *jobService) loadAndValidateJob(ctx context.Context, jobID ports.JobID) 
 			}
 			return nil, fmt.Errorf("load data_server: %w", err)
 		}
-
-	case ports.WatchModeLocal:
-		// Local模式不需要data_server_id
-		config.DataServerID = 0
+		applyDataServerConfig(config, dataServer)
 	}
 
-	// 7. 加载MediaServer（如果有）
+	// 8. 加载MediaServer（如果有）
 	if job.MediaServerID != nil {
 		config.MediaServerID = *job.MediaServerID
 
@@ -312,7 +319,7 @@ func (s *jobService) loadAndValidateJob(ctx context.Context, jobID ports.JobID) 
 		}
 	}
 
-	// 8. 验证路径
+	// 9. 验证路径
 	if config.SourcePath == "" {
 		return nil, fmt.Errorf("source_path is required")
 	}
@@ -381,4 +388,83 @@ func getStringSliceOption(options map[string]interface{}, key string, defaultVal
 		}
 	}
 	return defaultValue
+}
+
+func getStringOption(options map[string]interface{}, key string, defaultValue string) string {
+	if options == nil {
+		return defaultValue
+	}
+	if v, ok := options[key]; ok {
+		if s, ok := v.(string); ok {
+			trimmed := strings.TrimSpace(s)
+			if trimmed != "" {
+				return trimmed
+			}
+		}
+	}
+	return defaultValue
+}
+
+func getStrmReplaceRulesOption(options map[string]interface{}) []ports.STRMReplaceRule {
+	if options == nil {
+		return nil
+	}
+	raw, ok := options["strm_replace_rules"]
+	if !ok {
+		return nil
+	}
+	rules, ok := raw.([]interface{})
+	if !ok {
+		return nil
+	}
+	result := make([]ports.STRMReplaceRule, 0, len(rules))
+	for _, item := range rules {
+		obj, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		from, _ := obj["from"].(string)
+		to, _ := obj["to"].(string)
+		if strings.TrimSpace(from) == "" && strings.TrimSpace(to) == "" {
+			continue
+		}
+		result = append(result, ports.STRMReplaceRule{
+			From: from,
+			To:   to,
+		})
+	}
+	return result
+}
+
+type dataServerOptions struct {
+	AccessPath string `json:"access_path"`
+	MountPath  string `json:"mount_path"`
+	BaseURL    string `json:"base_url"`
+}
+
+func applyDataServerConfig(config *ports.JobConfig, server model.DataServer) {
+	if config == nil {
+		return
+	}
+
+	opts := dataServerOptions{}
+	if strings.TrimSpace(server.Options) != "" {
+		if err := json.Unmarshal([]byte(server.Options), &opts); err != nil {
+			return
+		}
+	}
+
+	config.AccessPath = strings.TrimSpace(opts.AccessPath)
+	config.MountPath = strings.TrimSpace(opts.MountPath)
+	if config.MountPath == "" {
+		config.MountPath = config.AccessPath
+	}
+
+	config.BaseURL = strings.TrimSpace(opts.BaseURL)
+	if config.BaseURL == "" && strings.TrimSpace(server.Type) != "local" {
+		host := strings.TrimSpace(server.Host)
+		if host != "" && server.Port > 0 {
+			config.BaseURL = fmt.Sprintf("http://%s:%d", host, server.Port)
+		}
+	}
 }

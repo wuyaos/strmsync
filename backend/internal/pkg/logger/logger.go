@@ -23,10 +23,10 @@ var (
 
 	// 数据库日志写入相关
 	logDBMu      sync.Mutex
-	logDBEnabled bool               // 是否启用数据库写入
-	logDBOnce    sync.Once          // 确保worker只启动一次
+	logDBEnabled bool                 // 是否启用数据库写入
+	logDBOnce    sync.Once            // 确保worker只启动一次
 	logDBChan    chan *model.LogEntry // 日志写入缓冲通道
-	logDBBuffer  = 1024             // 默认缓冲区大小
+	logDBBuffer  = 1024               // 默认缓冲区大小
 )
 
 // InitLogger 初始化全局日志器
@@ -38,11 +38,11 @@ func InitLogger(level string, dir string) error {
 		return err
 	}
 
-	// 确保日志目录存在
-	if strings.TrimSpace(dir) == "" {
+	logDir, logFile := ResolveLogFilePath(dir)
+	if logDir == "" || logFile == "" {
 		return errors.New("日志目录为空")
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
 		return fmt.Errorf("创建日志目录失败: %w", err)
 	}
 
@@ -58,7 +58,7 @@ func InitLogger(level string, dir string) error {
 	consoleCfg.TimeKey = "time"
 	consoleCfg.LevelKey = "level"
 	consoleCfg.MessageKey = "message"
-	consoleCfg.CallerKey = "" // 控制台隐藏 caller，避免输出过长
+	consoleCfg.CallerKey = ""                                 // 控制台隐藏 caller，避免输出过长
 	consoleCfg.EncodeLevel = zapcore.CapitalColorLevelEncoder // 带颜色的大写级别
 	consoleCfg.EncodeTime = zapcore.ISO8601TimeEncoder
 
@@ -72,10 +72,10 @@ func InitLogger(level string, dir string) error {
 		zapcore.NewCore(
 			zapcore.NewJSONEncoder(encoderCfg),
 			zapcore.AddSync(&lumberjack.Logger{
-				Filename:   filepath.Join(dir, "app.log"),
+				Filename:   logFile,
 				MaxSize:    100, // MB
 				MaxBackups: 7,
-				MaxAge:     30,  // 天
+				MaxAge:     30, // 天
 				Compress:   true,
 			}),
 			parsed,
@@ -94,6 +94,20 @@ func InitLogger(level string, dir string) error {
 	mu.Unlock()
 
 	return nil
+}
+
+// ResolveLogFilePath 解析日志路径，支持目录或完整文件路径
+// - 传入目录：返回 <dir>/app.log
+// - 传入 .log 文件路径：直接返回该文件
+func ResolveLogFilePath(path string) (string, string) {
+	trimmed := strings.TrimSpace(path)
+	if trimmed == "" {
+		return "", ""
+	}
+	if strings.EqualFold(filepath.Ext(trimmed), ".log") {
+		return filepath.Dir(trimmed), trimmed
+	}
+	return trimmed, filepath.Join(trimmed, "app.log")
 }
 
 // parseLevel 解析并验证日志级别
@@ -203,8 +217,7 @@ func WriteLogToDB(db *gorm.DB, entry *model.LogEntry) {
 					continue
 				}
 				if err := db.Create(e).Error; err != nil {
-					// 写入失败时记录到文件日志，避免无限递归
-					L().Warn("写入日志到数据库失败", zap.Error(err))
+					logDBWarn("写入日志到数据库失败", err)
 				}
 			}
 		}()
@@ -216,7 +229,7 @@ func WriteLogToDB(db *gorm.DB, entry *model.LogEntry) {
 		// 成功写入缓冲
 	default:
 		// 缓冲已满，丢弃日志并记录警告
-		L().Warn("日志写入缓冲已满，丢弃日志", zap.String("message", entry.Message))
+		logDBWarn("日志写入缓冲已满，丢弃日志", nil)
 	}
 }
 
@@ -230,4 +243,12 @@ func ShutdownLogDBWriter() {
 		close(logDBChan)
 		logDBChan = nil
 	}
+}
+
+func logDBWarn(message string, err error) {
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[logdb] %s: %v\n", message, err)
+		return
+	}
+	fmt.Fprintf(os.Stderr, "[logdb] %s\n", message)
 }

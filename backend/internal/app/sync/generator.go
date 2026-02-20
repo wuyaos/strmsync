@@ -166,7 +166,7 @@ func (g *Generator) createOrUpdateStrm(ctx context.Context, item *ports.SyncPlan
 	}
 
 	elapsed := time.Since(startTime)
-	g.logger.Info("STRM文件写入成功",
+	g.logger.Info(fmt.Sprintf("STRM文件写入成功：%s", item.TargetStrmPath),
 		zap.String("target", item.TargetStrmPath),
 		zap.Int("bytes", len(item.StreamURL)),
 		zap.Duration("elapsed", elapsed))
@@ -189,7 +189,7 @@ func (g *Generator) deleteStrm(ctx context.Context, item *ports.SyncPlanItem) er
 		return fmt.Errorf("delete strm file %s: %w", item.TargetStrmPath, err)
 	}
 
-	g.logger.Info("STRM文件已删除", zap.String("path", item.TargetStrmPath))
+	g.logger.Info(fmt.Sprintf("STRM文件已删除：%s", item.TargetStrmPath), zap.String("path", item.TargetStrmPath))
 
 	// 3. 尝试删除空目录（可选）
 	targetDir := filepath.Dir(item.TargetStrmPath)

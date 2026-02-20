@@ -244,7 +244,7 @@ func (r *MetadataReplicator) copyLocal(srcPath, dstPath string, modTime time.Tim
 	}
 
 	elapsed := time.Since(startTime)
-	r.logger.Info("本地复制完成",
+	r.logger.Info(fmt.Sprintf("本地复制完成：%s -> %s", srcPath, dstPath),
 		zap.String("src", srcPath),
 		zap.String("dst", dstPath),
 		zap.Int64("bytes", written),
@@ -307,7 +307,7 @@ func (r *MetadataReplicator) downloadToFile(ctx context.Context, remotePath, dst
 	}
 
 	elapsed := time.Since(startTime)
-	r.logger.Info("API下载完成",
+	r.logger.Info(fmt.Sprintf("API下载完成：%s -> %s", remotePath, dstPath),
 		zap.String("remote", remotePath),
 		zap.String("dst", dstPath),
 		zap.Int64("bytes", written),
@@ -331,7 +331,7 @@ func (r *MetadataReplicator) deleteMeta(path string) error {
 		return fmt.Errorf("remove %s: %w", path, err)
 	}
 
-	r.logger.Info("元数据文件已删除", zap.String("path", path))
+	r.logger.Info(fmt.Sprintf("元数据文件已删除：%s", path), zap.String("path", path))
 	return nil
 }
 
