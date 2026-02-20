@@ -11,11 +11,39 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-// 全局变量
+// 全局变量（设计 Token）
 :root {
+  // 间距
   --page-padding: 20px;
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+
+  // 圆角
   --card-radius: 4px;
+  --radius-4: 4px;
+  --radius-6: 6px;
+
+  // 阴影
   --card-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  --shadow-hover: 0 4px 16px 0 rgba(0, 0, 0, 0.15);
+
+  // 字号
+  --font-12: 12px;
+  --font-13: 13px;
+  --font-14: 14px;
+  --font-15: 15px;
+  --font-16: 16px;
+  --font-20: 20px;
+  --font-24: 24px;
+  --font-28: 28px;
+
+  // 表单
+  --form-label-width: 120px;
+  --toolbar-gap: 12px;
 }
 
 // 滚动条样式
@@ -58,48 +86,97 @@ body {
   }
 }
 
-// 页面标题
+// 页面标题（统一样式）
 .page-header {
-  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-20);
 
   .page-title {
-    font-size: 20px;
+    font-size: var(--font-20);
     font-weight: 600;
-    margin-bottom: 8px;
+    margin-bottom: 0;
+  }
+
+  .page-description {
+    margin-top: var(--space-4);
+    font-size: var(--font-14);
+    color: var(--el-text-color-secondary);
   }
 
   .page-actions {
     display: flex;
-    gap: 12px;
+    gap: var(--space-12);
   }
 }
 
-// 工具栏
+// 工具栏（统一样式）
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  padding: 16px;
+  gap: var(--toolbar-gap);
+  margin-bottom: var(--space-16);
+  padding: var(--space-16);
   background: var(--el-bg-color);
   border-radius: var(--card-radius);
 }
 
-// 状态徽章
-.status-badge {
-  &.status-success {
-    color: var(--el-color-success);
-  }
+// 列表分页布局（全局）
+.page-with-pagination {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 80px);
+}
 
-  &.status-warning {
-    color: var(--el-color-warning);
-  }
+.page-pagination {
+  margin-top: auto;
+  padding-top: var(--space-16);
+  padding-bottom: var(--space-24);
+  display: flex;
+  justify-content: flex-end;
+}
 
-  &.status-danger {
-    color: var(--el-color-danger);
-  }
+// Utility Classes（工具类）
+// 宽度
+.w-100 { width: 100px; }
+.w-140 { width: 140px; }
+.w-150 { width: 150px; }
+.w-200 { width: 200px; }
+.w-260 { width: 260px; }
+.w-300 { width: 300px; }
+.w-320 { width: 320px; }
+.w-full { width: 100%; }
 
-  &.status-info {
-    color: var(--el-color-info);
-  }
+// 布局
+.flex { display: flex; }
+.flex-1 { flex: 1; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.justify-end { justify-content: flex-end; }
+
+// 间距
+.gap-4 { gap: var(--space-4); }
+.gap-8 { gap: var(--space-8); }
+.gap-12 { gap: var(--space-12); }
+.gap-16 { gap: var(--space-16); }
+
+.mb-8 { margin-bottom: var(--space-8); }
+.mb-12 { margin-bottom: var(--space-12); }
+.mb-16 { margin-bottom: var(--space-16); }
+.mb-20 { margin-bottom: var(--space-20); }
+
+.mt-8 { margin-top: var(--space-8); }
+.mt-12 { margin-top: var(--space-12); }
+.mt-16 { margin-top: var(--space-16); }
+
+// 表单辅助
+.input-short { width: 140px; }
+.input-medium { width: 260px; }
+.input-long { width: 100%; }
+
+.form-help {
+  margin-top: var(--space-4);
+  font-size: var(--font-12);
+  color: var(--el-text-color-secondary);
 }

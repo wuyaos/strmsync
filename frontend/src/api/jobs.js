@@ -85,7 +85,7 @@ export function deleteJob(id) {
  */
 export function triggerJob(id) {
   return request({
-    url: `/jobs/${id}/trigger`,
+    url: `/jobs/${id}/run`,
     method: 'post'
   })
 }

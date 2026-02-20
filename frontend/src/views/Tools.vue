@@ -69,23 +69,6 @@ const handleToolClick = (tool) => {
 .tools-page {
   padding: 20px;
 
-  .page-header {
-    margin-bottom: 24px;
-
-    .page-title {
-      font-size: 24px;
-      font-weight: 600;
-      margin: 0 0 8px 0;
-      color: var(--el-text-color-primary);
-    }
-
-    .page-description {
-      margin: 0;
-      font-size: 14px;
-      color: var(--el-text-color-secondary);
-    }
-  }
-
   .tools-grid {
     :deep(.el-col) {
       display: flex;
@@ -120,14 +103,6 @@ const handleToolClick = (tool) => {
     &.disabled {
       cursor: not-allowed;
       opacity: 0.6;
-    }
-
-    .card-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 16px;
-      font-weight: 600;
     }
 
     .card-body {

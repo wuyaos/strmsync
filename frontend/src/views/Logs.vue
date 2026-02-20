@@ -1,5 +1,5 @@
 <template>
-  <div class="logs-page">
+  <div class="logs-page page-with-pagination">
     <div class="page-header">
       <div>
         <h1 class="page-title">系统日志</h1>
@@ -64,7 +64,7 @@
         <p style="margin-top: 12px; color: var(--el-text-color-secondary);">加载中...</p>
       </div>
 
-      <div v-if="total > 0" class="pagination">
+      <div v-if="total > 0" class="page-pagination">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -87,7 +87,7 @@ import { Loading } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 
 const searchText = ref('')
-const levelFilter = ref('')
+const levelFilter = ref('info')
 const taskFilter = ref('')
 const logs = ref([])
 const loading = ref(false)
@@ -95,19 +95,26 @@ const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(50)
 
+const getLogTime = (log) => {
+  const time = Date.parse(log?.created_at || '')
+  if (!Number.isNaN(time)) return time
+  return typeof log?.id === 'number' ? log.id : 0
+}
+
 const filteredLogs = computed(() => {
-  return logs.value.filter(log => {
+  const list = logs.value.filter(log => {
     if (searchText.value && !(log.message || '').includes(searchText.value)) {
       return false
     }
     if (levelFilter.value && log.level !== levelFilter.value) {
       return false
     }
-    if (taskFilter.value && log.task_id !== parseInt(taskFilter.value)) {
+    if (taskFilter.value && log.job_id !== parseInt(taskFilter.value)) {
       return false
     }
     return true
   })
+  return list.slice().sort((a, b) => getLogTime(b) - getLogTime(a))
 })
 
 const loadLogs = async () => {
@@ -118,7 +125,7 @@ const loadLogs = async () => {
       page_size: pageSize.value
     }
     if (levelFilter.value) params.level = levelFilter.value
-    if (taskFilter.value) params.task_id = taskFilter.value
+    if (taskFilter.value) params.job_id = taskFilter.value
     if (searchText.value) params.search = searchText.value
 
     const data = await getLogList(params)
@@ -156,7 +163,10 @@ const handleCleanup = async () => {
 }
 
 const formatTime = (time) => {
-  return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
+  if (!time) return '-'
+  const parsed = dayjs(time)
+  if (!parsed.isValid()) return '-'
+  return parsed.format('YYYY-MM-DD HH:mm:ss')
 }
 
 onMounted(() => {
@@ -170,29 +180,6 @@ onMounted(() => {
   height: calc(100vh - 80px);
   display: flex;
   flex-direction: column;
-
-  .page-header {
-    margin-bottom: 20px;
-
-    .page-title {
-      font-size: 24px;
-      font-weight: 600;
-      margin: 0 0 8px 0;
-      color: var(--el-text-color-primary);
-    }
-
-    .page-description {
-      margin: 0;
-      font-size: 14px;
-      color: var(--el-text-color-secondary);
-    }
-  }
-
-  .toolbar {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-  }
 
   .log-container {
     flex: 1;
@@ -267,11 +254,6 @@ onMounted(() => {
       }
     }
 
-    .pagination {
-      margin-top: 16px;
-      display: flex;
-      justify-content: flex-end;
-    }
   }
 }
 </style>

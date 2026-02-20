@@ -244,13 +244,6 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .dashboard-page {
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-  }
-
   .kpi-row {
     margin-bottom: 16px;
   }
@@ -264,12 +257,6 @@ onUnmounted(() => {
       font-size: 28px;
       font-weight: 600;
     }
-  }
-
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
   }
 
   .server-list {

@@ -30,8 +30,6 @@ function serializeOptions(data) {
  * @returns {Promise<{data: Array, meta: Object}>} 服务器列表及分页信息
  */
 export function getServerList(params) {
-  // 临时适配：后端当前使用分离的路由 /servers/data 和 /servers/media
-  // TODO: 等后端实现统一的 /servers 接口后改回来
   const { type, ...restParams } = params || {}
   const url = type ? `/servers/${type}` : '/servers/data'
 

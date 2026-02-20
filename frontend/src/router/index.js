@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
+import LogsView from '@/views/Logs.vue'
 
 const routes = [
   {
@@ -40,7 +41,7 @@ const routes = [
       {
         path: '/logs',
         name: 'Logs',
-        component: () => import('@/views/Logs.vue'),
+        component: LogsView,
         meta: { title: '日志', icon: 'Document' }
       },
       {
@@ -48,31 +49,6 @@ const routes = [
         name: 'Settings',
         component: () => import('@/views/Settings.vue'),
         meta: { title: '系统设置', icon: 'Setting' }
-      },
-      // 兼容旧路由 - 重定向
-      {
-        path: '/config',
-        redirect: '/servers'
-      },
-      {
-        path: '/server-settings',
-        redirect: '/servers'
-      },
-      {
-        path: '/sources',
-        redirect: '/servers'
-      },
-      {
-        path: '/tasks',
-        redirect: '/jobs'
-      },
-      {
-        path: '/files',
-        redirect: '/tools'
-      },
-      {
-        path: '/notifications',
-        redirect: '/settings'
       }
     ]
   }

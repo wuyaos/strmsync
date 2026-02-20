@@ -12,12 +12,24 @@
       <el-tab-pane label="扫描配置" name="scanner">
         <el-form :model="settings.scanner" label-width="120px">
           <el-form-item label="并发数">
-            <el-input-number v-model="settings.scanner.concurrency" :min="1" :max="100" />
+            <el-input
+              v-model.number="settings.scanner.concurrency"
+              type="number"
+              :min="1"
+              :max="100"
+              class="input-short"
+            />
             <span class="form-help">同时扫描的文件数量，过高可能影响性能</span>
           </el-form-item>
 
           <el-form-item label="批量大小">
-            <el-input-number v-model="settings.scanner.batchSize" :min="10" :max="1000" />
+            <el-input
+              v-model.number="settings.scanner.batchSize"
+              type="number"
+              :min="10"
+              :max="1000"
+              class="input-short"
+            />
             <span class="form-help">批量写入数据库的记录数</span>
           </el-form-item>
         </el-form>
@@ -95,10 +107,12 @@
             </el-form-item>
 
             <el-form-item label="显示时长(秒)">
-              <el-input-number
-                v-model="settings.notification.duration"
+              <el-input
+                v-model.number="settings.notification.duration"
+                type="number"
                 :min="1"
                 :max="10"
+                class="input-short"
               />
               <span class="form-help">消息提示的默认显示时长</span>
             </el-form-item>
@@ -120,7 +134,7 @@
       <el-tab-pane label="关于" name="about">
         <div class="about-section">
           <h2>STRMSync</h2>
-          <p>版本：1.0.0</p>
+          <p>版本：{{ frontendVersion }}</p>
           <p>自动化STRM媒体文件管理系统</p>
           <el-divider />
           <h3>功能特性</h3>
@@ -142,6 +156,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getSettings, updateSettings } from '@/api/settings'
+import { useSystemInfo } from '@/composables/useSystemInfo'
 
 const activeTab = ref('scanner')
 
@@ -186,6 +201,7 @@ const defaultSettings = {
 }
 
 const settings = ref({ ...defaultSettings })
+const { frontendVersion, loadSystemInfo } = useSystemInfo()
 
 const loadSettings = async () => {
   try {
@@ -220,31 +236,13 @@ const handleSave = async () => {
 
 onMounted(() => {
   loadSettings()
+  loadSystemInfo()
 })
 </script>
 
 <style scoped lang="scss">
 .settings-page {
   padding: 20px;
-
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-
-    .page-title {
-      font-size: 24px;
-      font-weight: 600;
-      margin: 0;
-    }
-  }
-
-  .form-help {
-    margin-left: 12px;
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-  }
 
   .theme-section,
   .notification-section {

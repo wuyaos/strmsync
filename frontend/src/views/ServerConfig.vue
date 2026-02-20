@@ -9,28 +9,34 @@
 
       <el-form :model="dataServerConfig" label-width="140px" class="config-form">
         <el-form-item label="默认并发数">
-          <el-input-number
-            v-model="dataServerConfig.defaultConcurrency"
+          <el-input
+            v-model.number="dataServerConfig.defaultConcurrency"
+            type="number"
             :min="1"
             :max="100"
+            class="input-short"
           />
           <span class="form-help">新建数据源时的默认并发扫描数</span>
         </el-form-item>
 
         <el-form-item label="默认批量大小">
-          <el-input-number
-            v-model="dataServerConfig.defaultBatchSize"
+          <el-input
+            v-model.number="dataServerConfig.defaultBatchSize"
+            type="number"
             :min="10"
             :max="1000"
+            class="input-short"
           />
           <span class="form-help">批量写入数据库的默认记录数</span>
         </el-form-item>
 
         <el-form-item label="默认超时时间(秒)">
-          <el-input-number
-            v-model="dataServerConfig.defaultTimeout"
+          <el-input
+            v-model.number="dataServerConfig.defaultTimeout"
+            type="number"
             :min="1"
             :max="300"
+            class="input-short"
           />
           <span class="form-help">数据源连接的默认超时时间</span>
         </el-form-item>
@@ -90,28 +96,34 @@
           <el-divider content-position="left">通知参数</el-divider>
 
           <el-form-item label="超时时间(秒)">
-            <el-input-number
-              v-model="mediaServerConfig.timeoutSeconds"
+            <el-input
+              v-model.number="mediaServerConfig.timeoutSeconds"
+              type="number"
               :min="1"
               :max="60"
+              class="input-short"
             />
             <span class="form-help">通知请求的超时时间</span>
           </el-form-item>
 
           <el-form-item label="重试次数">
-            <el-input-number
-              v-model="mediaServerConfig.retryMax"
+            <el-input
+              v-model.number="mediaServerConfig.retryMax"
+              type="number"
               :min="0"
               :max="10"
+              class="input-short"
             />
             <span class="form-help">通知失败后的重试次数</span>
           </el-form-item>
 
           <el-form-item label="防抖延迟(秒)">
-            <el-input-number
-              v-model="mediaServerConfig.debounceSeconds"
+            <el-input
+              v-model.number="mediaServerConfig.debounceSeconds"
+              type="number"
               :min="0"
               :max="300"
+              class="input-short"
             />
             <span class="form-help">多个通知请求会合并为一次，避免频繁刷新</span>
           </el-form-item>
@@ -300,5 +312,9 @@ onMounted(() => {
       }
     }
   }
+}
+
+.input-short {
+  width: 140px;
 }
 </style>

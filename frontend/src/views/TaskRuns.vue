@@ -1,6 +1,21 @@
 <template>
-  <div class="runs-page">
+  <div class="runs-page page-with-pagination">
     <div class="toolbar">
+      <el-select
+        v-model="filters.jobId"
+        placeholder="任务"
+        clearable
+        filterable
+        style="width: 200px"
+        @change="handleSearch"
+      >
+        <el-option
+          v-for="job in jobOptions"
+          :key="job.id"
+          :label="job.name"
+          :value="job.id"
+        />
+      </el-select>
       <el-date-picker
         v-model="filters.timeRange"
         type="datetimerange"
@@ -30,6 +45,14 @@
       <el-table-column type="expand">
         <template #default="{ row }">
           <div class="expand-content">
+            <div class="expand-title">任务配置</div>
+            <div class="expand-body">
+              {{ getJobConfigText(row) }}
+            </div>
+            <div class="expand-title">执行情况</div>
+            <div class="expand-body">
+              {{ getStatsDetail(row) }}
+            </div>
             <div class="expand-title">错误信息</div>
             <div class="expand-body">
               {{ row.error_message || row.error || '无' }}
@@ -47,9 +70,9 @@
           {{ row.started_at ? formatTime(row.started_at) : '-' }}
         </template>
       </el-table-column>
-      <el-table-column prop="finished_at" label="结束时间" width="160">
+      <el-table-column prop="ended_at" label="结束时间" width="160">
         <template #default="{ row }">
-          {{ row.finished_at ? formatTime(row.finished_at) : '-' }}
+          {{ row.ended_at ? formatTime(row.ended_at) : '-' }}
         </template>
       </el-table-column>
       <el-table-column label="耗时" width="110">
@@ -64,14 +87,24 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="统计" min-width="160">
+      <el-table-column label="STRM" min-width="160">
         <template #default="{ row }">
-          {{ getStatsText(row) }}
+          {{ getStrmStatsText(row) }}
+        </template>
+      </el-table-column>
+      <el-table-column label="元数据" min-width="180">
+        <template #default="{ row }">
+          {{ getMetaStatsText(row) }}
+        </template>
+      </el-table-column>
+      <el-table-column label="总数" min-width="160">
+        <template #default="{ row }">
+          {{ getTotalStatsText(row) }}
         </template>
       </el-table-column>
     </el-table>
 
-    <div class="pagination">
+    <div class="page-pagination">
       <el-pagination
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.pageSize"
@@ -91,6 +124,7 @@ import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
 import { getRunList } from '@/api/runs'
+import { getJobList } from '@/api/jobs'
 import { normalizeListResponse } from '@/api/normalize'
 
 dayjs.extend(relativeTime)
@@ -98,10 +132,12 @@ dayjs.locale('zh-cn')
 
 const loading = ref(false)
 const runList = ref([])
+const jobOptions = ref([])
 const autoRefresh = ref(false)
 let refreshTimer = null
 
 const filters = reactive({
+  jobId: '',
   timeRange: [],
   status: ''
 })
@@ -118,7 +154,7 @@ const formatTime = (time) => {
 
 const getDuration = (row) => {
   if (!row.started_at) return '-'
-  const end = row.finished_at ? dayjs(row.finished_at) : dayjs()
+  const end = row.ended_at ? dayjs(row.ended_at) : dayjs()
   const diff = end.diff(dayjs(row.started_at), 'second')
   if (diff < 60) return `${diff}s`
   if (diff < 3600) return `${Math.floor(diff / 60)}m`
@@ -147,11 +183,68 @@ const getStatusText = (status) => {
   return map[status] || status || '-'
 }
 
-const getStatsText = (row) => {
-  const stats = row.stats || {}
-  const processed = stats.processed || row.processed_count || row.processed || 0
-  const created = stats.created || row.created_count || row.created || 0
-  return `处理 ${processed}，生成 ${created}`
+const getStrmStatsText = (row) => {
+  const created = (row.created_files ?? row.created) || 0
+  const updated = (row.updated_files ?? row.updated) || 0
+  const failed = (row.failed_files ?? row.failed) || 0
+  return `生成 ${created}，更新 ${updated}，失败 ${failed}`
+}
+
+const getMetaStatsText = (row) => {
+  const created = row.meta_created_files ?? 0
+  const updated = row.meta_updated_files ?? 0
+  const failed = row.meta_failed_files ?? 0
+  return `复制 ${created}，更新 ${updated}，失败 ${failed}`
+}
+
+const getTotalStatsText = (row) => {
+  const total = (row.total_files ?? row.total) || 0
+  const failed = (row.failed_files ?? row.failed) || 0
+  const skipped = row.skipped_files ?? 0
+  return `总 ${total}，失败 ${failed}，跳过 ${skipped}`
+}
+
+const getStatsDetail = (row) => {
+  const total = row.total_files ?? 0
+  const filtered = row.filtered_files ?? 0
+  const processed = row.processed_files ?? 0
+  const created = row.created_files ?? 0
+  const updated = row.updated_files ?? 0
+  const skipped = row.skipped_files ?? 0
+  const failed = row.failed_files ?? 0
+  const metaTotal = row.meta_total_files ?? 0
+  const metaCreated = row.meta_created_files ?? 0
+  const metaUpdated = row.meta_updated_files ?? 0
+  const metaProcessed = row.meta_processed_files ?? 0
+  const metaFailed = row.meta_failed_files ?? 0
+  return `扫描 ${total}，过滤 ${filtered}，处理 ${processed}，生成 ${created}，更新 ${updated}，跳过 ${skipped}，失败 ${failed}，元数据 复制 ${metaCreated} / 更新 ${metaUpdated} / 失败 ${metaFailed}（总 ${metaTotal}，已处理 ${metaProcessed}）`
+}
+
+const getJobConfigText = (row) => {
+  const job = row.job || {}
+  const optionsText = formatOptions(job.options)
+  return [
+    `任务ID：${job.id ?? row.job_id ?? '-'}`,
+    `监控模式：${job.watch_mode || '-'}`,
+    `数据服务器ID：${job.data_server_id ?? '-'}`,
+    `媒体服务器ID：${job.media_server_id ?? '-'}`,
+    `访问目录：${job.source_path || '-'}`,
+    `输出目录：${job.target_path || '-'}`,
+    `STRM路径：${job.strm_path || '-'}`,
+    `选项：${optionsText}`
+  ].join('\n')
+}
+
+const formatOptions = (raw) => {
+  if (!raw) return '-'
+  if (typeof raw !== 'string') {
+    return JSON.stringify(raw)
+  }
+  try {
+    return JSON.stringify(JSON.parse(raw))
+  } catch (error) {
+    return raw
+  }
 }
 
 const loadRuns = async () => {
@@ -159,6 +252,7 @@ const loadRuns = async () => {
   try {
     const [from, to] = filters.timeRange || []
     const params = {
+      job_id: filters.jobId || undefined,
       status: filters.status,
       from: from || undefined,
       to: to || undefined,
@@ -173,6 +267,16 @@ const loadRuns = async () => {
     console.error('加载运行记录失败:', error)
   } finally {
     loading.value = false
+  }
+}
+
+const loadJobs = async () => {
+  try {
+    const response = await getJobList({ page: 1, pageSize: 200 })
+    const { list } = normalizeListResponse(response)
+    jobOptions.value = list
+  } catch (error) {
+    console.error('加载任务列表失败:', error)
   }
 }
 
@@ -211,6 +315,7 @@ watch(autoRefresh, (enabled) => {
 })
 
 onMounted(() => {
+  loadJobs()
   loadRuns()
 })
 
@@ -221,22 +326,6 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .runs-page {
-  .toolbar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-    padding: 12px 16px;
-    background: var(--el-bg-color);
-    border-radius: 4px;
-  }
-
-  .pagination {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 16px;
-  }
-
   .expand-content {
     padding: 8px 12px;
     background: var(--el-fill-color-light);

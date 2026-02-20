@@ -22,6 +22,7 @@
           <template #title>{{ route.meta.title }}</template>
         </el-menu-item>
       </el-menu>
+
     </el-aside>
 
     <!-- 主内容区 -->
@@ -36,6 +37,15 @@
         </div>
 
         <div class="header-right">
+          <a
+            class="header-link"
+            href="https://github.com/wuyaos/strmsync"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            主页
+          </a>
+          <div class="version-info">{{ displayVersion }}</div>
           <!-- 暗色模式切换 -->
           <el-tooltip :content="isDark ? '切换到亮色模式' : '切换到暗色模式'">
             <el-icon :size="20" @click="toggleTheme" class="theme-toggle">
@@ -66,11 +76,17 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useSystemInfo } from '@/composables/useSystemInfo'
 
 const route = useRoute()
 const router = useRouter()
+const { frontendVersion, loadSystemInfo } = useSystemInfo()
+const displayVersion = computed(() => {
+  const version = frontendVersion.value || 'unknown'
+  return `STRMSync v${version}`
+})
 
 // 侧边栏折叠状态
 const isCollapse = ref(false)
@@ -119,6 +135,10 @@ const initTheme = () => {
 }
 
 initTheme()
+
+onMounted(() => {
+  loadSystemInfo()
+})
 </script>
 
 <style scoped lang="scss">
@@ -127,6 +147,7 @@ initTheme()
 }
 
 .sidebar {
+  position: relative;
   background-color: var(--el-bg-color);
   border-right: 1px solid var(--el-border-color);
   transition: width 0.3s;
@@ -150,6 +171,7 @@ initTheme()
   .sidebar-menu {
     border-right: none;
   }
+
 }
 
 .header {
@@ -176,6 +198,20 @@ initTheme()
     display: flex;
     align-items: center;
     gap: 20px;
+
+    .header-link {
+      color: var(--el-text-color-secondary);
+      text-decoration: none;
+
+      &:hover {
+        color: var(--el-color-primary);
+      }
+    }
+
+    .version-info {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+    }
 
     .el-icon {
       cursor: pointer;

@@ -18,6 +18,14 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 
 app.use(pinia)
 app.use(router)
-app.use(ElementPlus)
+
+// Element Plus 全局配置
+app.use(ElementPlus, {
+  size: 'default',
+  zIndex: 3000
+})
+
+const appVersion = import.meta.env.VITE_APP_VERSION || 'unknown'
+console.info(`[STRMSync] 前端版本: ${appVersion}`)
 
 app.mount('#app')
