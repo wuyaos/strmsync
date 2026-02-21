@@ -123,6 +123,21 @@ type TaskRun struct {
 	Job *Job `gorm:"foreignKey:JobID" json:"job,omitempty"` // 关联的任务
 }
 
+// TaskRunEvent 任务执行事件明细
+// 记录执行过程中的单个文件操作
+type TaskRunEvent struct {
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	TaskRunID    uint      `gorm:"index;not null" json:"task_run_id"`
+	JobID        uint      `gorm:"index;not null" json:"job_id"`
+	Kind         string    `gorm:"index;not null" json:"kind"`   // strm/meta
+	Op           string    `gorm:"index;not null" json:"op"`     // create/update/delete/copy/skip
+	Status       string    `gorm:"index;not null" json:"status"` // success/failed/skipped
+	SourcePath   string    `gorm:"type:text" json:"source_path"`
+	TargetPath   string    `gorm:"type:text" json:"target_path"`
+	ErrorMessage string    `gorm:"type:text" json:"error_message"`
+	CreatedAt    time.Time `gorm:"index" json:"created_at"`
+}
+
 // LogEntry 日志记录模型
 type LogEntry struct {
 	ID         uint      `gorm:"primaryKey" json:"id"`
@@ -153,12 +168,13 @@ type QoSSettings struct {
 }
 
 // TableName 指定表名
-func (DataServer) TableName() string  { return "data_servers" }
-func (MediaServer) TableName() string { return "media_servers" }
-func (Job) TableName() string         { return "jobs" }
-func (TaskRun) TableName() string     { return "task_runs" }
-func (LogEntry) TableName() string    { return "logs" }
-func (Setting) TableName() string     { return "settings" }
+func (DataServer) TableName() string   { return "data_servers" }
+func (MediaServer) TableName() string  { return "media_servers" }
+func (Job) TableName() string          { return "jobs" }
+func (TaskRun) TableName() string      { return "task_runs" }
+func (TaskRunEvent) TableName() string { return "task_run_events" }
+func (LogEntry) TableName() string     { return "logs" }
+func (Setting) TableName() string      { return "settings" }
 
 // BeforeCreate 在创建 DataServer 前生成 UID
 func (s *DataServer) BeforeCreate(tx *gorm.DB) error {

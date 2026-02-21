@@ -36,13 +36,13 @@ export default defineConfig({
     manifest: false
   },
   server: {
-    port: 5676,
+    port: 5678,
     proxy: {
       '/api': {
         // 支持环境变量配置后端端口（用于开发/测试环境切换）
         target: process.env.VITE_BACKEND_PORT
           ? `http://localhost:${process.env.VITE_BACKEND_PORT}`
-          : 'http://localhost:6754',
+          : 'http://localhost:5677',
         changeOrigin: true
       }
     }

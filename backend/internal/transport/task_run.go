@@ -34,7 +34,9 @@ func (h *TaskRunHandler) ListTaskRuns(c *gin.Context) {
 	pagination := parsePagination(c, 1, 50, 200)
 
 	query := h.db.Model(&model.TaskRun{}).
-		Preload("Job")
+		Preload("Job").
+		Preload("Job.DataServer").
+		Preload("Job.MediaServer")
 
 	// job_id过滤
 	if jobIDStr := strings.TrimSpace(c.Query("job_id")); jobIDStr != "" {
@@ -115,6 +117,55 @@ func (h *TaskRunHandler) GetTaskRun(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"run": run})
+}
+
+// ListRunEvents 获取执行事件明细
+// GET /api/runs/:id/events
+func (h *TaskRunHandler) ListRunEvents(c *gin.Context) {
+	id, err := parseUintParam(c, "id")
+	if err != nil {
+		respondError(c, http.StatusBadRequest, "invalid_request", "无效的ID参数", nil)
+		return
+	}
+
+	pagination := parsePagination(c, 1, 100, 500)
+
+	query := h.db.Model(&model.TaskRunEvent{}).
+		Where("task_run_id = ?", id)
+
+	if kind := strings.TrimSpace(c.Query("kind")); kind != "" {
+		query = query.Where("kind = ?", kind)
+	}
+	if op := strings.TrimSpace(c.Query("op")); op != "" {
+		query = query.Where("op = ?", op)
+	}
+	if status := strings.TrimSpace(c.Query("status")); status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		h.logger.Error("统计执行事件失败", zap.Error(err))
+		respondError(c, http.StatusInternalServerError, "db_error", "查询失败", nil)
+		return
+	}
+
+	var items []model.TaskRunEvent
+	if err := query.Order("created_at DESC").
+		Offset(pagination.Offset).
+		Limit(pagination.PageSize).
+		Find(&items).Error; err != nil {
+		h.logger.Error("查询执行事件失败", zap.Error(err))
+		respondError(c, http.StatusInternalServerError, "db_error", "查询失败", nil)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"items":     items,
+		"total":     total,
+		"page":      pagination.Page,
+		"page_size": pagination.PageSize,
+	})
 }
 
 // CancelRun 取消正在运行的任务

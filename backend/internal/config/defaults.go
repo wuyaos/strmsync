@@ -3,7 +3,7 @@ package config
 
 // 默认环境变量值
 const (
-	DefaultServerPort              = 6754
+	DefaultServerPort              = 5677
 	DefaultServerHost              = "0.0.0.0"
 	DefaultDBPath                  = "data.db"
 	DefaultLogLevel                = "info"

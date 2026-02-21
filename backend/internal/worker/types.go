@@ -210,6 +210,12 @@ type TaskRunRepository interface {
 	UpdateProgress(ctx context.Context, taskID uint, progress TaskRunProgress) error
 }
 
+// TaskRunEventRepository 定义 TaskRunEvent 写入接口
+type TaskRunEventRepository interface {
+	// Create 写入单条执行事件
+	Create(ctx context.Context, event *model.TaskRunEvent) error
+}
+
 // DriverFactory 根据 DataServer 构建 Driver 实例
 //
 // 用于构建不同类型的数据源驱动（CloudDrive2、OpenList 等）。
@@ -265,6 +271,11 @@ type WorkerConfig struct {
 	//
 	// Worker 通过此仓储更新任务进度。
 	TaskRuns TaskRunRepository
+
+	// TaskRunEvents TaskRunEvent 仓储（可选）
+	//
+	// Worker 通过此仓储写入执行事件明细。
+	TaskRunEvents TaskRunEventRepository
 
 	// DriverFactory 驱动工厂（可选，默认使用 DefaultDriverFactory）
 	//

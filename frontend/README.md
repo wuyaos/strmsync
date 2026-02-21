@@ -26,7 +26,7 @@ npm install
 npm run dev
 ```
 
-访问 http://localhost:5676
+访问 http://localhost:5678
 
 > 推荐在项目根目录使用 `make dev` 一键启动后端与前端。
 
@@ -83,7 +83,7 @@ frontend/
 
 ## API 代理
 
-开发模式下，所有 `/api` 请求会被代理到 `http://localhost:6754`。
+开发模式下，所有 `/api` 请求会被代理到 `http://localhost:5677`。
 
 如需修改后端地址，请编辑 `vite.config.js` 中的 proxy 配置。
 

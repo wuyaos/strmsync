@@ -98,6 +98,7 @@ func NewWorker(cfg WorkerConfig) (*WorkerPool, error) {
 		JobRepo:       cfg.Jobs,
 		DataServers:   cfg.DataServers,
 		TaskRuns:      cfg.TaskRuns,
+		TaskRunEvents: cfg.TaskRunEvents,
 		DriverFactory: cfg.DriverFactory,
 		WriterFactory: cfg.WriterFactory,
 		Logger:        cfg.Logger,

@@ -598,10 +598,20 @@ const handleServerChange = () => {
 const pathDialogField = ref('')
 const autoMediaDir = ref('')
 
+const isLocalLikePath = (value) => {
+  const raw = String(value || '').trim()
+  if (!raw) return false
+  if (/^[a-zA-Z]:[\\/]/.test(raw)) return true
+  return raw.startsWith('/mnt/')
+}
+
 const resolveAccessRoot = () => {
   const server = currentServer.value
   if (!server) return '/'
   const accessPath = normalizePath(server.accessPath || '')
+  if (server.type !== 'local' && isLocalLikePath(accessPath)) {
+    return '/'
+  }
   if (server.type === 'openlist' && !String(server.accessPath || '').trim()) {
     return '/'
   }
@@ -618,7 +628,7 @@ const applyDefaultMediaDir = () => {
 
 const buildDirectoryParams = (path) => {
   const server = currentServer.value
-  if (!server || server.type === 'local') {
+  if (!server || server.type === 'local' || isLocalLikePath(path)) {
     return { path, mode: 'local' }
   }
   return {

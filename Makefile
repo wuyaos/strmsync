@@ -36,8 +36,8 @@ PLATFORMS := linux windows darwin
 ARCHS := amd64 arm64
 
 # 端口配置
-BACKEND_PORT := 6754
-FRONTEND_PORT := 5676
+BACKEND_PORT := 5677
+FRONTEND_PORT := 5678
 
 # ==================== 帮助信息 ====================
 
@@ -152,7 +152,7 @@ dev-backend:
 		air -c .air.toml; \
 	else \
 		echo "Air 未安装，使用 go run..."; \
-		cd $(BACKEND_DIR) && go run ./cmd/server; \
+		@bash -lc "set -a; if [ -f \"tests/.env.test\" ]; then . \"tests/.env.test\"; fi; set +a; exec go -C \"$(BACKEND_DIR)\" run ./cmd/server"; \
 	fi
 
 ## dev: 启动完整开发环境
@@ -184,6 +184,27 @@ clean:
 	rm -rf $(FRONTEND_DIR)/dist
 	rm -rf $(BACKEND_DIR)/coverage.out
 	@echo "✓ 清理完成"
+
+## clean-all: 清理开发缓存并释放端口（不清理依赖）
+clean-all: clean
+	@echo "==> 清理开发缓存..."
+	rm -rf tests/.cache
+	rm -rf $(BACKEND_DIR)/tmp
+	@echo "==> 释放开发端口..."
+	@-if command -v lsof > /dev/null; then \
+		lsof -nP -t -iTCP:$(BACKEND_PORT) -sTCP:LISTEN | xargs -r kill -9; \
+		lsof -nP -t -iTCP:$(FRONTEND_PORT) -sTCP:LISTEN | xargs -r kill -9; \
+	fi
+	@echo "✓ 清理完成"
+
+## free-ports: 释放开发端口
+free-ports:
+	@echo "==> 释放开发端口..."
+	@-if command -v lsof > /dev/null; then \
+		lsof -nP -t -iTCP:$(BACKEND_PORT) -sTCP:LISTEN | xargs -r kill -9; \
+		lsof -nP -t -iTCP:$(FRONTEND_PORT) -sTCP:LISTEN | xargs -r kill -9; \
+	fi
+	@echo "✓ 端口释放完成"
 
 # ==================== 发布构建 ====================
 

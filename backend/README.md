@@ -4,7 +4,7 @@
 
 ## 基础信息
 
-- **基础URL**: `http://localhost:6754/api`
+- **基础URL**: `http://localhost:5677/api`
 - **协议**: HTTP/1.1
 - **认证**: 无（待实现）
 - **Content-Type**: `application/json`

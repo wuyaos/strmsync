@@ -372,7 +372,9 @@ func applyStrmReplaceRules(input string, rules []ports.STRMReplaceRule) string {
 		if from == "" {
 			continue
 		}
-		output = strings.ReplaceAll(output, from, rule.To)
+		if strings.HasPrefix(output, from) {
+			output = rule.To + strings.TrimPrefix(output, from)
+		}
 	}
 	return output
 }

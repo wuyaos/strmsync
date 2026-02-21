@@ -61,12 +61,12 @@ func (p *localProvider) List(ctx context.Context, listPath string, recursive boo
 		return nil, err
 	}
 
-	mountRoot := strings.TrimSpace(p.config.StrmMountPath)
+	mountRoot := strings.TrimSpace(p.config.MountPath)
 	if mountRoot == "" {
-		mountRoot = strings.TrimSpace(p.config.MountPath)
+		mountRoot = strings.TrimSpace(p.config.StrmMountPath)
 	}
 	if mountRoot == "" {
-		return syncengine.StrmInfo{}, fmt.Errorf("local: mount_path is required: %w", syncengine.ErrInvalidInput)
+		return nil, fmt.Errorf("local: mount_path is required: %w", syncengine.ErrInvalidInput)
 	}
 	mountRoot = filepath.Clean(mountRoot)
 
@@ -227,12 +227,12 @@ func (p *localProvider) Stat(ctx context.Context, targetPath string) (filesystem
 		return filesystem.RemoteFile{}, fmt.Errorf("local: 路径规范化失败: %w", err)
 	}
 
-	mountRoot := strings.TrimSpace(p.config.StrmMountPath)
+	mountRoot := strings.TrimSpace(p.config.MountPath)
 	if mountRoot == "" {
-		mountRoot = strings.TrimSpace(p.config.MountPath)
+		mountRoot = strings.TrimSpace(p.config.StrmMountPath)
 	}
 	if mountRoot == "" {
-		return syncengine.StrmInfo{}, fmt.Errorf("local: mount_path is required: %w", syncengine.ErrInvalidInput)
+		return filesystem.RemoteFile{}, fmt.Errorf("local: mount_path is required: %w", syncengine.ErrInvalidInput)
 	}
 	mountRoot = filepath.Clean(mountRoot)
 	fullPath := filepath.Join(mountRoot, normalizedPath)

@@ -86,6 +86,7 @@ func InitWithConfig(dbPath string, logCfg *LogConfig) error {
 		model.MediaServer{},
 		model.Job{},
 		model.TaskRun{},
+		model.TaskRunEvent{},
 		model.LogEntry{},
 		model.Setting{},
 	); err != nil {
@@ -159,8 +160,8 @@ func Close() error {
 // customLogger 自定义 GORM Logger，过滤掉 ErrRecordNotFound 等正常情况的日志
 // customLogger 实现 GORM Logger 接口，过滤 ErrRecordNotFound 并支持独立 SQL 日志配置
 type customLogger struct {
-	logSQL       bool // 是否启用 SQL 日志
-	sqlSlowMs    int  // 慢查询阈值（毫秒）
+	logSQL       bool          // 是否启用 SQL 日志
+	sqlSlowMs    int           // 慢查询阈值（毫秒）
 	sqlSlowThres time.Duration // 慢查询阈值（预计算）
 }
 

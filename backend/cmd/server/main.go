@@ -133,6 +133,11 @@ func main() {
 		logger.LogError("TaskRunRepository 初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
+	taskRunEventRepo, err := worker.NewGormTaskRunEventRepository(db)
+	if err != nil {
+		logger.LogError("TaskRunEventRepository 初始化失败", zap.Error(err))
+		os.Exit(1)
+	}
 
 	// 初始化 Scheduler
 	cronScheduler, err := scheduler.NewScheduler(scheduler.SchedulerConfig{
@@ -147,11 +152,12 @@ func main() {
 
 	// 初始化 Worker
 	workerPool, err := worker.NewWorker(worker.WorkerConfig{
-		Queue:       queue,
-		Jobs:        jobRepo,        // 使用共享的 Repository
-		DataServers: dataServerRepo, // 使用共享的 Repository
-		TaskRuns:    taskRunRepo,
-		Logger:      logger.With(zap.String("component", "worker")),
+		Queue:         queue,
+		Jobs:          jobRepo,        // 使用共享的 Repository
+		DataServers:   dataServerRepo, // 使用共享的 Repository
+		TaskRuns:      taskRunRepo,
+		TaskRunEvents: taskRunEventRepo,
+		Logger:        logger.With(zap.String("component", "worker")),
 	})
 	if err != nil {
 		logger.LogError("Worker 初始化失败", zap.Error(err))
@@ -463,6 +469,7 @@ func setupRouter(db *gorm.DB, logDir string, scheduler httphandlers.JobScheduler
 		{
 			runs.GET("", taskRunHandler.ListTaskRuns)
 			runs.GET("/:id", taskRunHandler.GetTaskRun)
+			runs.GET("/:id/events", taskRunHandler.ListRunEvents)
 			runs.POST("/:id/cancel", taskRunHandler.CancelRun)
 			runs.GET("/stats", taskRunHandler.GetRunStats)
 		}
@@ -493,11 +500,11 @@ func setupRouter(db *gorm.DB, logDir string, scheduler httphandlers.JobScheduler
 func loadDotEnv() {
 	// 查找候选路径（优先级从高到低）
 	candidates := []string{
-		".env",                    // 当前工作目录
-		"../.env",                 // 父目录（开发环境）
-		"../../.env",              // 祖父目录
-		"/app/.env",               // Docker 容器标准路径
-		"/etc/strmsync/.env",      // 系统级配置路径
+		".env",               // 当前工作目录
+		"../.env",            // 父目录（开发环境）
+		"../../.env",         // 祖父目录
+		"/app/.env",          // Docker 容器标准路径
+		"/etc/strmsync/.env", // 系统级配置路径
 	}
 
 	// 如果可执行文件路径可获取，添加可执行文件同级目录
@@ -729,9 +736,9 @@ func setupStaticFiles(router *gin.Engine) {
 // findWebStaticsDir 查找 web_statics 目录（按优先级）
 func findWebStaticsDir() string {
 	candidates := []string{
-		"web_statics",           // 当前工作目录
-		"../web_statics",        // 父目录（开发环境）
-		"../../web_statics",     // 祖父目录
+		"web_statics",       // 当前工作目录
+		"../web_statics",    // 父目录（开发环境）
+		"../../web_statics", // 祖父目录
 	}
 
 	// 如果可执行文件路径可获取，添加可执行文件同级目录

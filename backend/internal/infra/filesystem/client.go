@@ -371,6 +371,20 @@ func (c *ClientImpl) ResolveMountPath(ctx context.Context, remotePath string) (s
 	return mountedPath, nil
 }
 
+// ResolveAccessPath 将远端路径映射到本地访问路径（若可用）
+func (c *ClientImpl) ResolveAccessPath(ctx context.Context, remotePath string) (string, error) {
+	mountRoot := strings.TrimSpace(c.Config.MountPath)
+	if mountRoot == "" {
+		return "", fmt.Errorf("filesystem: access_path not configured")
+	}
+
+	cleanPath := strings.TrimPrefix(cleanRemotePath(remotePath), "/")
+	localPath := filepath.FromSlash(cleanPath)
+	accessPath := filepath.Join(mountRoot, localPath)
+
+	return accessPath, nil
+}
+
 // Download 下载文件内容到writer
 func (c *ClientImpl) Download(ctx context.Context, remotePath string, w io.Writer) error {
 	// 防御 nil context

@@ -42,6 +42,13 @@ type Engine struct {
 	running atomic.Bool
 }
 
+func (e *Engine) emitStrmEvent(ctx context.Context, event StrmEvent) {
+	if e == nil || e.opts.EventSink == nil {
+		return
+	}
+	e.opts.EventSink.OnStrmEvent(ctx, event)
+}
+
 // Writer STRM 文件写入器接口
 //
 // 注意：此接口是 syncengine 内部定义，与 strmwriter.StrmWriter 功能相同
@@ -327,6 +334,13 @@ func (e *Engine) RunIncremental(ctx context.Context, events []EngineEvent) (Sync
 				e.logger.Debug("Dry Run: 删除 STRM 文件",
 					zap.String("output_path", outputPath))
 				atomic.AddInt64(&stats.DeletedOrphans, 1)
+				e.emitStrmEvent(ctx, StrmEvent{
+					Op:           "delete",
+					Status:       "skipped",
+					SourcePath:   path,
+					TargetPath:   outputPath,
+					ErrorMessage: "dry_run",
+				})
 				continue
 			}
 
@@ -336,12 +350,25 @@ func (e *Engine) RunIncremental(ctx context.Context, events []EngineEvent) (Sync
 				e.logger.Warn("删除 STRM 文件失败",
 					zap.String("output_path", outputPath),
 					zap.Error(err))
+				e.emitStrmEvent(ctx, StrmEvent{
+					Op:           "delete",
+					Status:       "failed",
+					SourcePath:   path,
+					TargetPath:   outputPath,
+					ErrorMessage: err.Error(),
+				})
 				continue
 			}
 
 			atomic.AddInt64(&stats.DeletedOrphans, 1)
 			e.logger.Debug("删除 STRM 文件",
 				zap.String("output_path", outputPath))
+			e.emitStrmEvent(ctx, StrmEvent{
+				Op:         "delete",
+				Status:     "success",
+				SourcePath: path,
+				TargetPath: outputPath,
+			})
 			removeEmptyParents(outputPath)
 		case DriverEventCreate, DriverEventUpdate:
 			// 交由后续处理
@@ -478,7 +505,9 @@ func applyStrmReplaceRules(input string, rules []StrmReplaceRule) string {
 		if rule.From == "" {
 			continue
 		}
-		output = strings.ReplaceAll(output, rule.From, rule.To)
+		if strings.HasPrefix(output, rule.From) {
+			output = rule.To + strings.TrimPrefix(output, rule.From)
+		}
 	}
 	return output
 }
@@ -703,6 +732,13 @@ func (e *Engine) processFile(ctx context.Context, entry RemoteEntry, stats *Sync
 			zap.String("remote_path", entry.Path),
 			zap.String("output_path", outputPath))
 		atomic.AddInt64(&stats.SkippedFiles, 1)
+		e.emitStrmEvent(ctx, StrmEvent{
+			Op:           "skip",
+			Status:       "skipped",
+			SourcePath:   entry.Path,
+			TargetPath:   outputPath,
+			ErrorMessage: "dry_run",
+		})
 		return nil
 	}
 
@@ -725,6 +761,13 @@ func (e *Engine) processFile(ctx context.Context, entry RemoteEntry, stats *Sync
 			e.logger.Debug("跳过已存在文件",
 				zap.String("output_path", outputPath))
 			atomic.AddInt64(&stats.SkippedFiles, 1)
+			e.emitStrmEvent(ctx, StrmEvent{
+				Op:           "skip",
+				Status:       "skipped",
+				SourcePath:   entry.Path,
+				TargetPath:   outputPath,
+				ErrorMessage: "skip_existing",
+			})
 			return nil
 		}
 		if err != nil && !isNotExist(err) {
@@ -794,11 +837,29 @@ func (e *Engine) processFile(ctx context.Context, entry RemoteEntry, stats *Sync
 		e.logger.Debug("跳过更新",
 			zap.String("path", outputPath),
 			zap.String("reason", decision.Reason.String()))
+		e.emitStrmEvent(ctx, StrmEvent{
+			Op:           "skip",
+			Status:       "skipped",
+			SourcePath:   entry.Path,
+			TargetPath:   outputPath,
+			ErrorMessage: decision.Reason.String(),
+		})
 		return nil
 	}
 
 	// 步骤8: 写入或更新文件
+	op := "update"
+	if !localExists {
+		op = "create"
+	}
 	if err := e.writer.Write(ctx, outputPath, expectedContent, entry.ModTime); err != nil {
+		e.emitStrmEvent(ctx, StrmEvent{
+			Op:           op,
+			Status:       "failed",
+			SourcePath:   entry.Path,
+			TargetPath:   outputPath,
+			ErrorMessage: err.Error(),
+		})
 		return fmt.Errorf("写入 STRM 文件失败: %w", err)
 	}
 
@@ -807,6 +868,12 @@ func (e *Engine) processFile(ctx context.Context, entry RemoteEntry, stats *Sync
 		atomic.AddInt64(&stats.CreatedFiles, 1)
 		e.logger.Debug("创建 STRM 文件",
 			zap.String("output_path", outputPath))
+		e.emitStrmEvent(ctx, StrmEvent{
+			Op:         "create",
+			Status:     "success",
+			SourcePath: entry.Path,
+			TargetPath: outputPath,
+		})
 	} else {
 		atomic.AddInt64(&stats.UpdatedFiles, 1)
 		if decision.Reason == ChangeReasonModTime {
@@ -815,6 +882,12 @@ func (e *Engine) processFile(ctx context.Context, entry RemoteEntry, stats *Sync
 		e.logger.Debug("更新 STRM 文件",
 			zap.String("output_path", outputPath),
 			zap.String("reason", decision.Reason.String()))
+		e.emitStrmEvent(ctx, StrmEvent{
+			Op:         "update",
+			Status:     "success",
+			SourcePath: entry.Path,
+			TargetPath: outputPath,
+		})
 	}
 
 	return nil

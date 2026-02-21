@@ -22,6 +22,21 @@ type MetadataReplicator struct {
 	logger     *zap.Logger
 	// 策略配置
 	preferMount bool // true=优先挂载路径复制，false=优先API下载
+	eventSink   MetaEventSink
+}
+
+// MetaEvent 元数据处理事件
+type MetaEvent struct {
+	Op           string
+	Status       string
+	SourcePath   string
+	TargetPath   string
+	ErrorMessage string
+}
+
+// MetaEventSink 元数据事件回调
+type MetaEventSink interface {
+	OnMetaEvent(ctx context.Context, event MetaEvent)
 }
 
 // MetadataReplicatorOption 复制器配置选项
@@ -31,6 +46,13 @@ type MetadataReplicatorOption func(*MetadataReplicator)
 func WithPreferMount(prefer bool) MetadataReplicatorOption {
 	return func(r *MetadataReplicator) {
 		r.preferMount = prefer
+	}
+}
+
+// WithEventSink 设置元数据事件回调
+func WithEventSink(sink MetaEventSink) MetadataReplicatorOption {
+	return func(r *MetadataReplicator) {
+		r.eventSink = sink
 	}
 }
 
@@ -105,16 +127,40 @@ func (r *MetadataReplicator) Apply(ctx context.Context, items <-chan ports.SyncP
 					zap.String("source_path", item.SourcePath),
 					zap.String("target_path", item.TargetMetaPath),
 					zap.Error(err))
+				r.emitMetaEvent(ctx, &item, "failed", err.Error())
 				failed++
 			} else {
 				r.logger.Debug("元数据项处理成功",
 					zap.String("op", item.Op.String()),
 					zap.String("source_path", item.SourcePath),
 					zap.String("target_path", item.TargetMetaPath))
+				r.emitMetaEvent(ctx, &item, "success", "")
 				succeeded++
 			}
 		}
 	}
+}
+
+func (r *MetadataReplicator) emitMetaEvent(ctx context.Context, item *ports.SyncPlanItem, status string, errMsg string) {
+	if r == nil || r.eventSink == nil || item == nil {
+		return
+	}
+	op := "copy"
+	switch item.Op {
+	case ports.SyncOpUpdate:
+		op = "update"
+	case ports.SyncOpDelete:
+		op = "delete"
+	case ports.SyncOpCreate:
+		op = "copy"
+	}
+	r.eventSink.OnMetaEvent(ctx, MetaEvent{
+		Op:           op,
+		Status:       status,
+		SourcePath:   item.SourcePath,
+		TargetPath:   item.TargetMetaPath,
+		ErrorMessage: errMsg,
+	})
 }
 
 // applyItem 处理单个元数据计划项
@@ -142,40 +188,33 @@ func (r *MetadataReplicator) copyOrDownload(ctx context.Context, item *ports.Syn
 		zap.Bool("prefer_mount", r.preferMount))
 
 	if r.preferMount {
-		// 策略1: 优先挂载路径复制
-		if mountPath, err := r.fs.ResolveMountPath(ctx, item.SourcePath); err == nil {
-			r.logger.Debug("使用挂载路径复制",
-				zap.String("mount_path", mountPath),
-				zap.String("target", item.TargetMetaPath))
-			return r.copyLocal(mountPath, item.TargetMetaPath, item.ModTime)
-		} else {
-			r.logger.Debug("挂载路径不可用，回退到API下载",
-				zap.String("source", item.SourcePath),
-				zap.Error(err))
+		// 策略1: 本地模式，仅使用访问路径复制
+		accessPath, err := r.fs.ResolveAccessPath(ctx, item.SourcePath)
+		if err != nil {
+			return fmt.Errorf("resolve access path: %w", err)
 		}
-
-		// 回退到API下载
-		return r.downloadToFile(ctx, item.SourcePath, item.TargetMetaPath, item.ModTime)
-	} else {
-		// 策略2: 优先API下载
-		if err := r.downloadToFile(ctx, item.SourcePath, item.TargetMetaPath, item.ModTime); err != nil {
-			r.logger.Debug("API下载失败，尝试挂载路径复制",
-				zap.String("source", item.SourcePath),
-				zap.Error(err))
-
-			// 回退到挂载路径复制
-			if mountPath, err2 := r.fs.ResolveMountPath(ctx, item.SourcePath); err2 == nil {
-				r.logger.Debug("使用挂载路径复制（回退）",
-					zap.String("mount_path", mountPath),
-					zap.String("target", item.TargetMetaPath))
-				return r.copyLocal(mountPath, item.TargetMetaPath, item.ModTime)
-			}
-
-			// 两种方式都失败，返回原始错误
-			return err
-		}
-		return nil
+		r.logger.Debug("使用访问路径复制",
+			zap.String("access_path", accessPath),
+			zap.String("target", item.TargetMetaPath))
+		return r.copyLocal(accessPath, item.TargetMetaPath, item.ModTime)
 	}
+
+	// 策略2: API 模式，优先下载，失败再尝试访问路径复制
+	if err := r.downloadToFile(ctx, item.SourcePath, item.TargetMetaPath, item.ModTime); err != nil {
+		r.logger.Debug("API下载失败，尝试访问路径复制",
+			zap.String("source", item.SourcePath),
+			zap.Error(err))
+
+		if accessPath, err2 := r.fs.ResolveAccessPath(ctx, item.SourcePath); err2 == nil {
+			r.logger.Debug("使用访问路径复制（回退）",
+				zap.String("access_path", accessPath),
+				zap.String("target", item.TargetMetaPath))
+			return r.copyLocal(accessPath, item.TargetMetaPath, item.ModTime)
+		}
+
+		return err
+	}
+	return nil
 }
 
 // copyLocal 从本地挂载路径复制文件

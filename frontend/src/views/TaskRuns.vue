@@ -47,56 +47,51 @@
           <div class="expand-content">
             <div class="expand-title">任务配置</div>
             <div class="expand-body">
-              <div class="kv-list">
-                <div
-                  v-for="item in getJobConfigRows(row)"
-                  :key="item.label"
-                  class="kv-row"
-                >
-                  <span class="kv-label">{{ item.label }}</span>
-                  <span class="kv-value" :class="{ mono: item.mono }">
-                    <pre v-if="item.pre" class="kv-pre">{{ item.value }}</pre>
+              <div class="info-box">
+                <div class="kv-list">
+                  <div
+                    v-for="item in getJobConfigRows(row)"
+                    :key="item.label"
+                    class="kv-row"
+                  >
+                    <span class="kv-label">{{ item.label }}</span>
+                  <span
+                    class="kv-value"
+                    :class="{ mono: item.mono, 'single-line': item.singleLine }"
+                    :title="item.title || ''"
+                  >
+                    <template v-if="item.pre">
+                      <pre class="kv-pre">{{ item.value }}</pre>
+                    </template>
                     <template v-else>{{ item.value }}</template>
                   </span>
+                </div>
+              </div>
+                <div class="info-divider"></div>
+                <div class="kv-list">
+                  <div
+                    v-for="item in getSummaryRows(row)"
+                    :key="item.label"
+                    class="kv-row"
+                  >
+                    <span class="kv-label">{{ item.label }}</span>
+                    <span class="kv-value">{{ item.value }}</span>
+                  </div>
+                </div>
+                <div class="info-divider"></div>
+                <div class="kv-list">
+                  <div class="kv-row">
+                    <span class="kv-label">错误信息</span>
+                    <span class="kv-value">
+                      {{ row.error_message || row.error || '无' }}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
             <div class="expand-title">执行情况</div>
             <div class="expand-body">
-              <div class="kv-list">
-                <div
-                  v-for="item in getExecutionRows(row)"
-                  :key="item.label"
-                  class="kv-row"
-                >
-                  <span class="kv-label">{{ item.label }}</span>
-                  <span class="kv-value">{{ item.value }}</span>
-                </div>
-              </div>
-            </div>
-            <div class="expand-title">总结</div>
-            <div class="expand-body">
-              <div class="kv-list">
-                <div
-                  v-for="item in getSummaryRows(row)"
-                  :key="item.label"
-                  class="kv-row"
-                >
-                  <span class="kv-label">{{ item.label }}</span>
-                  <span class="kv-value">{{ item.value }}</span>
-                </div>
-              </div>
-            </div>
-            <div class="expand-title">错误信息</div>
-            <div class="expand-body">
-              <div class="kv-list">
-                <div class="kv-row">
-                  <span class="kv-label">错误信息</span>
-                  <span class="kv-value">
-                    {{ row.error_message || row.error || '无' }}
-                  </span>
-                </div>
-              </div>
+              <RunExecutionDetail :run-id="row.id" />
             </div>
           </div>
         </template>
@@ -167,6 +162,7 @@ import 'dayjs/locale/zh-cn'
 import { getRunList } from '@/api/runs'
 import { getJobList } from '@/api/jobs'
 import { normalizeListResponse } from '@/api/normalize'
+import RunExecutionDetail from '@/components/runs/RunExecutionDetail.vue'
 
 dayjs.extend(relativeTime)
 dayjs.locale('zh-cn')
@@ -245,19 +241,6 @@ const getTotalStatsText = (row) => {
   return `总 ${total}，失败 ${failed}，跳过 ${skipped}`
 }
 
-const getExecutionRows = (row) => {
-  const created = row.created_files ?? 0
-  const updated = row.updated_files ?? 0
-  const failed = row.failed_files ?? 0
-  const metaCreated = row.meta_created_files ?? 0
-  const metaUpdated = row.meta_updated_files ?? 0
-  const metaFailed = row.meta_failed_files ?? 0
-  return [
-    { label: 'STRM', value: `生成 ${created}，更新 ${updated}，失败 ${failed}` },
-    { label: '元数据', value: `复制 ${metaCreated}，更新 ${metaUpdated}，失败 ${metaFailed}` }
-  ]
-}
-
 const getSummaryRows = (row) => {
   const total = row.total_files ?? 0
   const filtered = row.filtered_files ?? 0
@@ -301,20 +284,21 @@ const getJobConfigRows = (row) => {
     { label: 'STRM路径', value: job.strm_path || '-' },
     {
       label: '选项',
-      value: formatOptionsPretty(job.options),
-      pre: true,
-      mono: true
+      value: formatOptionsCompact(job.options),
+      title: formatOptionsCompact(job.options),
+      mono: true,
+      singleLine: true
     }
   ]
 }
 
-const formatOptionsPretty = (raw) => {
+const formatOptionsCompact = (raw) => {
   if (!raw) return '-'
   if (typeof raw !== 'string') {
-    return JSON.stringify(raw, null, 2)
+    return JSON.stringify(raw)
   }
   try {
-    return JSON.stringify(JSON.parse(raw), null, 2)
+    return JSON.stringify(JSON.parse(raw))
   } catch (error) {
     return raw
   }
@@ -441,6 +425,27 @@ onUnmounted(() => {
   .kv-pre {
     margin: 0;
     white-space: pre-wrap;
+    max-height: 160px;
+    overflow: auto;
+  }
+
+  .kv-value.single-line {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .info-box {
+    padding: 8px 10px;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 6px;
+    background: var(--el-fill-color-blank);
+  }
+
+  .info-divider {
+    height: 1px;
+    margin: 8px 0;
+    background: var(--el-border-color-lighter);
   }
 }
 </style>

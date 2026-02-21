@@ -146,7 +146,7 @@ cd backend
 # 安装依赖
 go mod download
 
-# 运行服务（默认端口 6754）
+# 运行服务（默认端口 5677）
 go run ./cmd/server
 
 # 构建
@@ -216,7 +216,7 @@ npm run build
 
 ## 🔧 API概览
 
-### HTTP API（端口：6754）
+### HTTP API（端口：5677）
 
 **数据服务器**
 | 端点 | 方法 | 说明 |

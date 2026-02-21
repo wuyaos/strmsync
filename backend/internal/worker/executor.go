@@ -47,6 +47,7 @@ type ExecutorConfig struct {
 	JobRepo       JobRepository
 	DataServers   DataServerRepository
 	TaskRuns      TaskRunRepository
+	TaskRunEvents TaskRunEventRepository
 	DriverFactory DriverFactory
 	WriterFactory WriterFactory
 	Logger        *zap.Logger
@@ -190,6 +191,12 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 	if err != nil {
 		return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("build engine options: %w", err))
 	}
+	var eventSink *taskRunEventSink
+	if e.cfg.TaskRunEvents != nil {
+		eventLogger := e.log.With(zap.String("component", "task-run-event"))
+		eventSink = newTaskRunEventSink(e.cfg.TaskRunEvents, task.ID, job.ID, job.Name, eventLogger)
+		engineOpts.EventSink = eventSink
+	}
 
 	// 5. 创建 Engine 实例
 	engine, err := syncengine.NewEngine(driver, writer, e.log.With(
@@ -214,7 +221,7 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 	metaStats := metadataStats{}
 	var metaErr error
 	if runErr == nil {
-		metaStats, metaErr = e.syncMetadata(ctx, job, serverForDriver, driver, extra, remotePath)
+		metaStats, metaErr = e.syncMetadata(ctx, job, serverForDriver, driver, extra, remotePath, eventSink)
 	}
 	if metaErr != nil {
 		execLog.Warn("元数据同步失败", zap.Error(metaErr))
@@ -572,7 +579,7 @@ func buildMetadataClient(server model.DataServer, log *zap.Logger) (filesystem.C
 	return filesystem.NewClient(cfg, filesystem.WithLogger(log))
 }
 
-func (e *Executor) syncMetadata(ctx context.Context, job model.Job, server model.DataServer, driver syncengine.Driver, extra jobOptions, remotePath string) (metadataStats, error) {
+func (e *Executor) syncMetadata(ctx context.Context, job model.Job, server model.DataServer, driver syncengine.Driver, extra jobOptions, remotePath string, eventSink *taskRunEventSink) (metadataStats, error) {
 	metaExts := normalizeExtensions(extra.MetaExts, appconfig.DefaultMetaExtensions())
 	if len(metaExts) == 0 {
 		return metadataStats{}, nil
@@ -604,7 +611,13 @@ func (e *Executor) syncMetadata(ctx context.Context, job model.Job, server model
 		mode = "download"
 	}
 	preferMount := mode != "download"
-	replicator := appsync.NewMetadataReplicator(client, job.TargetPath, metaLogger, appsync.WithPreferMount(preferMount))
+	options := []appsync.MetadataReplicatorOption{
+		appsync.WithPreferMount(preferMount),
+	}
+	if eventSink != nil {
+		options = append(options, appsync.WithEventSink(eventSink))
+	}
+	replicator := appsync.NewMetadataReplicator(client, job.TargetPath, metaLogger, options...)
 
 	strategy := resolveMetaStrategy(extra.SyncOpts)
 	metaLogger.Info("开始同步元数据",
@@ -655,10 +668,28 @@ func (e *Executor) syncMetadata(ctx context.Context, job model.Job, server model
 			switch strategy {
 			case metaStrategySkip:
 				if exists {
+					if eventSink != nil {
+						eventSink.OnMetaEvent(ctx, appsync.MetaEvent{
+							Op:           "skip",
+							Status:       "skipped",
+							SourcePath:   entry.Path,
+							TargetPath:   targetPath,
+							ErrorMessage: "skip_existing",
+						})
+					}
 					continue
 				}
 			case metaStrategyUpdate:
 				if exists && same {
+					if eventSink != nil {
+						eventSink.OnMetaEvent(ctx, appsync.MetaEvent{
+							Op:           "skip",
+							Status:       "skipped",
+							SourcePath:   entry.Path,
+							TargetPath:   targetPath,
+							ErrorMessage: "unchanged",
+						})
+					}
 					continue
 				}
 			case metaStrategyOverwrite:
@@ -997,4 +1028,209 @@ func (r *GormTaskRunRepository) UpdateProgress(ctx context.Context, taskID uint,
 	return r.db.WithContext(ctx).Model(&model.TaskRun{}).
 		Where("id = ?", taskID).
 		Updates(updates).Error
+}
+
+// GormTaskRunEventRepository 是基于 GORM 的 TaskRunEventRepository 实现
+type GormTaskRunEventRepository struct {
+	db *gorm.DB
+}
+
+// NewGormTaskRunEventRepository 创建 GormTaskRunEventRepository
+func NewGormTaskRunEventRepository(db *gorm.DB) (*GormTaskRunEventRepository, error) {
+	if db == nil {
+		return nil, fmt.Errorf("worker: gorm db is nil")
+	}
+	return &GormTaskRunEventRepository{db: db}, nil
+}
+
+// Create 写入单条执行事件
+func (r *GormTaskRunEventRepository) Create(ctx context.Context, event *model.TaskRunEvent) error {
+	if r == nil || r.db == nil {
+		return fmt.Errorf("worker: task run event repo is nil")
+	}
+	if event == nil {
+		return fmt.Errorf("worker: task run event is nil")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return r.db.WithContext(ctx).Create(event).Error
+}
+
+type taskRunEventSink struct {
+	repo    TaskRunEventRepository
+	now     func() time.Time
+	task    uint
+	job     uint
+	jobName string
+	logger  *zap.Logger
+}
+
+func newTaskRunEventSink(repo TaskRunEventRepository, taskID uint, jobID uint, jobName string, logger *zap.Logger) *taskRunEventSink {
+	if repo == nil {
+		return nil
+	}
+	return &taskRunEventSink{
+		repo:    repo,
+		now:     time.Now,
+		task:    taskID,
+		job:     jobID,
+		jobName: strings.TrimSpace(jobName),
+		logger:  logger,
+	}
+}
+
+func (s *taskRunEventSink) logEvent(kind string, op string, status string, source string, target string, errMsg string) {
+	if s == nil || s.logger == nil {
+		return
+	}
+	name := s.jobName
+	if name == "" {
+		name = fmt.Sprintf("任务%d", s.job)
+	} else if !strings.HasPrefix(name, "任务") {
+		name = "任务" + name
+	}
+	action := formatEventAction(kind, op)
+	message := formatEventMessage(name, action, source, target, status, errMsg)
+	s.logger.Info(message)
+}
+
+func formatEventAction(kind string, op string) string {
+	kind = strings.ToLower(strings.TrimSpace(kind))
+	op = strings.ToLower(strings.TrimSpace(op))
+	switch kind {
+	case "meta":
+		if op == "copy" || op == "create" {
+			return "复制元数据"
+		}
+		if op == "update" {
+			return "更新元数据"
+		}
+		if op == "delete" {
+			return "删除元数据"
+		}
+		if op == "skip" {
+			return "跳过元数据"
+		}
+	default:
+		if op == "create" {
+			return "生成STRM"
+		}
+		if op == "update" {
+			return "更新STRM"
+		}
+		if op == "delete" {
+			return "删除STRM"
+		}
+		if op == "skip" {
+			return "跳过STRM"
+		}
+	}
+	if op == "" {
+		return "操作"
+	}
+	return "操作" + op
+}
+
+func formatEventMessage(jobName string, action string, source string, target string, status string, errMsg string) string {
+	source = strings.TrimSpace(source)
+	target = strings.TrimSpace(target)
+	status = strings.ToLower(strings.TrimSpace(status))
+	errMsg = strings.TrimSpace(errMsg)
+
+	pathPart := source
+	if target != "" {
+		if pathPart != "" {
+			pathPart = pathPart + " => " + target
+		} else {
+			pathPart = target
+		}
+	}
+
+	reason := ""
+	if status == "skipped" {
+		switch errMsg {
+		case "skip_existing":
+			reason = "已存在,跳过"
+		case "unchanged":
+			reason = "内容未变化,跳过"
+		case "dry_run":
+			reason = "dry_run,跳过"
+		default:
+			if errMsg != "" {
+				reason = errMsg
+			} else {
+				reason = "已跳过"
+			}
+		}
+	} else if status == "failed" && errMsg != "" {
+		reason = errMsg
+	}
+
+	if pathPart != "" && reason != "" {
+		return fmt.Sprintf("%s %s %s %s", jobName, action, pathPart, reason)
+	}
+	if pathPart != "" {
+		return fmt.Sprintf("%s %s %s", jobName, action, pathPart)
+	}
+	if reason != "" {
+		return fmt.Sprintf("%s %s %s", jobName, action, reason)
+	}
+	return fmt.Sprintf("%s %s", jobName, action)
+}
+
+func (s *taskRunEventSink) OnStrmEvent(ctx context.Context, event syncengine.StrmEvent) {
+	if s == nil || s.repo == nil {
+		return
+	}
+	op := strings.TrimSpace(event.Op)
+	if op == "" {
+		op = "unknown"
+	}
+	status := strings.TrimSpace(event.Status)
+	if status == "" {
+		status = "success"
+	}
+	errMsg := strings.TrimSpace(event.ErrorMessage)
+	record := &model.TaskRunEvent{
+		TaskRunID:    s.task,
+		JobID:        s.job,
+		Kind:         "strm",
+		Op:           op,
+		Status:       status,
+		SourcePath:   strings.TrimSpace(event.SourcePath),
+		TargetPath:   strings.TrimSpace(event.TargetPath),
+		ErrorMessage: errMsg,
+		CreatedAt:    s.now(),
+	}
+	_ = s.repo.Create(ctx, record)
+	s.logEvent("strm", op, status, record.SourcePath, record.TargetPath, errMsg)
+}
+
+func (s *taskRunEventSink) OnMetaEvent(ctx context.Context, event appsync.MetaEvent) {
+	if s == nil || s.repo == nil {
+		return
+	}
+	op := strings.TrimSpace(event.Op)
+	if op == "" {
+		op = "unknown"
+	}
+	status := strings.TrimSpace(event.Status)
+	if status == "" {
+		status = "success"
+	}
+	errMsg := strings.TrimSpace(event.ErrorMessage)
+	record := &model.TaskRunEvent{
+		TaskRunID:    s.task,
+		JobID:        s.job,
+		Kind:         "meta",
+		Op:           op,
+		Status:       status,
+		SourcePath:   strings.TrimSpace(event.SourcePath),
+		TargetPath:   strings.TrimSpace(event.TargetPath),
+		ErrorMessage: errMsg,
+		CreatedAt:    s.now(),
+	}
+	_ = s.repo.Create(ctx, record)
+	s.logEvent("meta", op, status, record.SourcePath, record.TargetPath, errMsg)
 }

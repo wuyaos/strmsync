@@ -5,6 +5,7 @@
 package syncengine
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"time"
@@ -323,6 +324,20 @@ type StrmReplaceRule struct {
 	To   string
 }
 
+// StrmEvent 表示 STRM 文件处理事件
+type StrmEvent struct {
+	Op           string
+	Status       string
+	SourcePath   string
+	TargetPath   string
+	ErrorMessage string
+}
+
+// StrmEventSink 处理 STRM 事件回调
+type StrmEventSink interface {
+	OnStrmEvent(ctx context.Context, event StrmEvent)
+}
+
 // EngineOptions 引擎配置选项
 //
 // 这些选项控制同步引擎的行为，包括并发控制、
@@ -374,6 +389,9 @@ type EngineOptions struct {
 
 	// ExcludeDirs 排除目录（相对远端根路径）
 	ExcludeDirs []string
+
+	// EventSink STRM 事件回调（可选）
+	EventSink StrmEventSink
 }
 
 // SyncStats 同步统计信息
