@@ -29,40 +29,58 @@
     </FilterToolbar>
 
     <el-table v-loading="loading" :data="jobList" stripe class="w-full">
-      <el-table-column prop="name" label="名称" min-width="160" />
-      <el-table-column label="数据服务器" min-width="160">
-        <template #default="{ row }">
-          {{ getServerName(row, 'data') }}
-        </template>
-      </el-table-column>
-      <el-table-column label="媒体服务器" min-width="160">
-        <template #default="{ row }">
-          {{ getServerName(row, 'media') }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="cron" label="调度配置" min-width="160">
-        <template #default="{ row }">
-          <el-tag size="small" type="info">{{ row.cron || '-' }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="enabled" label="状态" width="90">
+      <el-table-column prop="enabled" label="状态" width="80" sortable :sort-by="(row) => (row.enabled ? 1 : 0)">
         <template #default="{ row }">
           <el-tag :type="row.enabled ? 'success' : 'info'" size="small">
             {{ row.enabled ? '启用' : '禁用' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="last_run_at" label="最后运行" width="150">
+      <el-table-column prop="name" label="名称" width="140" sortable />
+      <el-table-column label="数据服务器" width="160" sortable :sort-by="(row) => getServerName(row, 'data')">
         <template #default="{ row }">
-          {{ row.last_run_at ? formatTime(row.last_run_at) : '-' }}
+          {{ getServerName(row, 'data') }}
+        </template>
+      </el-table-column>
+      <el-table-column label="媒体服务器" width="160" sortable :sort-by="(row) => getServerName(row, 'media')">
+        <template #default="{ row }">
+          {{ getServerName(row, 'media') }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="cron" label="调度配置" width="160" sortable :sort-by="(row) => row.cron || ''">
+        <template #default="{ row }">
+          <el-tag size="small" type="info">{{ row.cron || '-' }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="cron" label="定时同步" width="110" sortable :sort-by="(row) => (row.cron ? 1 : 0)">
+        <template #default="{ row }">
+          <el-tag size="small" :type="row.cron ? 'success' : 'info'">
+            {{ row.cron ? '启用' : '关闭' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="同步策略" width="120" sortable :sort-by="(row) => getSyncStrategy(row)">
+        <template #default="{ row }">
+          <el-tag size="small" type="info">{{ getSyncStrategy(row) }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="STRM 模式" width="140" sortable :sort-by="(row) => getStrmMode(row)">
+        <template #default="{ row }">
+          <el-tag size="small" type="info">{{ getStrmMode(row) }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="source_path" label="媒体目录" width="180" sortable :sort-by="(row) => getMediaDir(row)">
+        <template #default="{ row }">
+          {{ getMediaDir(row) }}
         </template>
       </el-table-column>
       <el-table-column label="操作" width="220" fixed="right">
         <template #default="{ row }">
           <el-tooltip content="立即执行" placement="top">
             <el-button
-              size="small"
+              size="default"
               :icon="VideoPlay"
+              class="action-button-large"
               :loading="actionLoading.trigger[row.id]"
               :disabled="isRowActionPending(row.id)"
               @click="handleTrigger(row)"
@@ -70,16 +88,18 @@
           </el-tooltip>
           <el-tooltip content="编辑任务" placement="top">
             <el-button
-              size="small"
+              size="default"
               :icon="Edit"
+              class="action-button-large"
               :disabled="isRowActionPending(row.id)"
               @click="handleEdit(row)"
             />
           </el-tooltip>
           <el-tooltip :content="row.enabled ? '禁用任务' : '启用任务'" placement="top">
             <el-button
-              size="small"
-              :icon="Switch"
+              size="default"
+              :icon="getToggleIcon(row)"
+              class="action-button-large"
               :loading="actionLoading.toggle[row.id]"
               :disabled="isRowActionPending(row.id)"
               @click="handleToggle(row)"
@@ -87,9 +107,10 @@
           </el-tooltip>
           <el-tooltip content="删除任务" placement="top">
             <el-button
-              size="small"
+              size="default"
               type="danger"
               :icon="Delete"
+              class="action-button-large"
               :disabled="isRowActionPending(row.id)"
               @click="handleDelete(row)"
             />
@@ -118,6 +139,7 @@
       :exclude-dirs-text="excludeDirsText"
       :current-server-has-api="currentServerHasApi"
       :current-server-supports-url="currentServerSupportsUrl"
+      :current-server-is-local="currentServerIsLocal"
       :show-media-dir-warning="showMediaDirWarning"
       :force-remote-only="currentServerRemoteOnly"
       :media-dir-disabled="mediaDirDisabled"
@@ -140,12 +162,14 @@
       :selected-name="pathDlg.selectedName.value"
       :selected-names="pathDlg.selectedNames.value"
       :at-root="pathDlg.atRoot.value"
+      :refresh-key="pathDlg.refreshKey.value"
       @up="pathDlg.goUp"
       @to-root="pathDlg.goRoot"
       @jump="pathDlg.jump"
       @enter="(name) => pathDlg.enterDirectory(name)"
       @select="handlePathSelect"
       @toggle="handlePathToggle"
+      @refresh="() => pathDlg.load(pathDlg.path.value)"
       @load-more="pathDlg.loadMore"
       @confirm="handlePathConfirm"
     />
@@ -155,7 +179,13 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Delete, Edit, Plus, Search, Switch, VideoPlay } from '@element-plus/icons-vue'
+import CircleCheckFilled from '~icons/ep/circle-check-filled'
+import CircleCloseFilled from '~icons/ep/circle-close-filled'
+import Delete from '~icons/ep/delete'
+import Edit from '~icons/ep/edit'
+import Plus from '~icons/ep/plus'
+import Search from '~icons/ep/search'
+import VideoPlay from '~icons/ep/video-play'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
@@ -343,6 +373,9 @@ const currentServerRemoteOnly = computed(() => {
   return !String(server.accessPath || '').trim()
 })
 
+const currentServerIsLocal = computed(() => {
+  return currentServer.value?.type === 'local'
+})
 
 const showMediaDirWarning = computed(() => currentServer.value?.type === 'openlist')
 
@@ -388,6 +421,28 @@ const excludeDirsText = computed({
 
 const formatTime = (time) => {
   return dayjs(time).fromNow()
+}
+
+const getMediaDir = (row) => {
+  if (!row) return '-'
+  return row.source_path || row.media_dir || '-'
+}
+
+const getSyncStrategy = (row) => {
+  const options = parseOptions(row?.options)
+  const syncOpts = options.sync_opts || row?.sync_opts || {}
+  if (syncOpts.full_resync) return '全量同步'
+  return '更新同步'
+}
+
+const getStrmMode = (row) => {
+  const options = parseOptions(row?.options)
+  const mode = options.strm_mode || row?.strm_mode || 'local'
+  return mode === 'url' ? '远程 URL' : '本地路径'
+}
+
+const getToggleIcon = (row) => {
+  return row?.enabled ? CircleCloseFilled : CircleCheckFilled
 }
 
 // 判断某一行是否有操作正在进行
@@ -643,6 +698,10 @@ const handleServerChange = async () => {
   if (currentServerRemoteOnly.value) {
     formData.strm_mode = 'url'
     formData.metadata_mode = 'download'
+  }
+  // 如果切换到 local 服务器，禁用下载模式
+  if (currentServerIsLocal.value && formData.metadata_mode === 'download') {
+    formData.metadata_mode = 'copy'
     formData.prefer_remote_list = true
   }
   if (currentServerHasApi.value && !String(formData.remote_root || '').trim()) {
@@ -754,7 +813,11 @@ const openPathDialog = async (field, options = {}) => {
       .map(item => toAbsolutePath(item, dialogRoot))
       .filter(Boolean)
   } else if (typeof formData[field] === 'string' && formData[field]) {
-    pathDlg.selectedName.value = normalizePath(formData[field])
+    const normalized = normalizePath(formData[field])
+    // 只有当值不是根目录时才设置选中状态，避免空值被错误初始化为根目录
+    if (normalized !== '/' && normalized !== dialogRoot) {
+      pathDlg.selectedName.value = normalized
+    }
   }
 }
 
@@ -875,4 +938,8 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+.action-button-large {
+  font-size: 14px;
+  padding: 6px 8px;
+}
 </style>

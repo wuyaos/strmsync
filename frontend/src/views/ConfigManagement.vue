@@ -35,7 +35,8 @@
 
 <script setup>
 import { ref } from 'vue'
-import { FolderOpened, Monitor } from '@element-plus/icons-vue'
+import FolderOpened from '~icons/ep/folder-opened'
+import Monitor from '~icons/ep/monitor'
 import Servers from '@/views/Servers.vue'
 import ServerConfig from '@/views/ServerConfig.vue'
 

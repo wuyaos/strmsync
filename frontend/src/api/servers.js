@@ -170,6 +170,16 @@ export function testServer(id, type) {
   })
 }
 
+// 静默测试服务器连接（不弹错误提示）
+export function testServerSilent(id, type) {
+  const category = inferCategory(type)
+  return request({
+    url: `/servers/${category}/${id}/test`,
+    method: 'post',
+    silent: true
+  })
+}
+
 /**
  * 临时测试服务器连接（未保存）
  * @param {Object} data 服务器数据

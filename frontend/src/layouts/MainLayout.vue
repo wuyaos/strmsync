@@ -43,6 +43,7 @@
             target="_blank"
             rel="noopener noreferrer"
           >
+            <img :src="githubSvg" alt="GitHub" class="header-link-icon" />
             主页
           </a>
           <div class="version-info">{{ displayVersion }}</div>
@@ -80,6 +81,12 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSystemInfo } from '@/composables/useSystemInfo'
 import logoSvg from '@/assets/icons/logo.svg'
+import githubSvg from '@/assets/icons/github.svg'
+import Expand from '~icons/ep/expand'
+import Fold from '~icons/ep/fold'
+import Moon from '~icons/ep/moon'
+import Sunny from '~icons/ep/sunny'
+import Refresh from '~icons/ep/refresh'
 
 const route = useRoute()
 const router = useRouter()
@@ -212,12 +219,21 @@ onMounted(() => {
     gap: 20px;
 
     .header-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       color: var(--el-text-color-secondary);
       text-decoration: none;
 
       &:hover {
         color: var(--el-color-primary);
       }
+    }
+
+    .header-link-icon {
+      width: 16px;
+      height: 16px;
+      display: inline-block;
     }
 
     .version-info {

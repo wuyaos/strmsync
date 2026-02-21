@@ -1,5 +1,10 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+import Icons from 'unplugin-icons/vite'
+import IconsResolver from 'unplugin-icons/resolver'
 import { resolve } from 'path'
 import { readFileSync } from 'fs'
 
@@ -11,7 +16,21 @@ const backendPort = process.env.VITE_BACKEND_PORT || '6786'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    AutoImport({
+      resolvers: [ElementPlusResolver()],
+      dts: false
+    }),
+    Components({
+      resolvers: [
+        ElementPlusResolver({ importStyle: 'css' }),
+        IconsResolver({ prefix: 'Icon' })
+      ],
+      dts: false
+    }),
+    Icons({ autoInstall: true })
+  ],
   define: {
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion)
   },
@@ -37,7 +56,9 @@ export default defineConfig({
     // 资源路径使用相对路径
     assetsDir: 'assets',
     // 生成 manifest.json 用于资源映射
-    manifest: false
+    manifest: false,
+    // 开启代码压缩
+    minify: 'esbuild'
   },
   server: {
     port: frontendPort,

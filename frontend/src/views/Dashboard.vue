@@ -11,14 +11,24 @@
     <!-- KPI 统计卡片 -->
     <el-row :gutter="16" class="kpi-row">
       <el-col :xs="24" :sm="12" :md="6">
-        <el-card shadow="hover" class="stat-card">
-          <el-statistic title="服务器数量" :value="stats.serverCount" />
+        <el-card shadow="hover" class="stat-card stat-card--split">
+          <div class="stat-title">服务器数量</div>
+          <div class="stat-value">{{ stats.serverTotal }}</div>
+          <div class="stat-split">
+            <span class="stat-item success">启用 {{ stats.serverEnabled }}</span>
+            <span class="stat-item muted">禁用 {{ stats.serverDisabled }}</span>
+          </div>
         </el-card>
       </el-col>
 
       <el-col :xs="24" :sm="12" :md="6">
-        <el-card shadow="hover" class="stat-card">
-          <el-statistic title="任务配置数量" :value="stats.jobCount" />
+        <el-card shadow="hover" class="stat-card stat-card--split">
+          <div class="stat-title">任务配置数量</div>
+          <div class="stat-value">{{ stats.jobTotal }}</div>
+          <div class="stat-split">
+            <span class="stat-item success">启用 {{ stats.jobEnabled }}</span>
+            <span class="stat-item muted">禁用 {{ stats.jobDisabled }}</span>
+          </div>
         </el-card>
       </el-col>
 
@@ -35,73 +45,33 @@
       </el-col>
     </el-row>
 
-    <!-- 服务器概览 / 最近运行记录 -->
+    <!-- 图表区 -->
     <el-row :gutter="16" style="margin-top: 16px">
-      <el-col :xs="24" :md="16">
-        <el-card shadow="hover">
+      <el-col :xs="24" :md="12">
+        <el-card shadow="hover" class="chart-card">
           <template #header>
             <div class="card-header">
-              <span>服务器概览</span>
-              <el-button text @click="$router.push('/servers')">
-                查看全部 <el-icon><ArrowRight /></el-icon>
-              </el-button>
+              <span>近7日运行结果</span>
             </div>
           </template>
-
-          <el-empty
-            v-if="dataServers.length === 0 && mediaServers.length === 0"
-            description="暂无服务器"
-          />
-
-          <div v-else class="server-list">
-            <div class="server-group">
-              <div class="group-title">数据服务器</div>
-              <el-empty v-if="dataServers.length === 0" description="暂无数据服务器" />
-              <div
-                v-for="server in dataServers"
-                :key="server.id"
-                class="server-item"
-                @click="$router.push('/servers')"
-              >
-                <div class="server-info">
-                  <div class="server-name">{{ server.name }}</div>
-                  <div class="server-meta">
-                    {{ server.type }} · {{ server.host }}:{{ server.port }}
-                  </div>
-                </div>
-                <el-tag :type="server.enabled ? 'success' : 'info'" size="small">
-                  {{ server.enabled ? '启用' : '禁用' }}
-                </el-tag>
-              </div>
-            </div>
-
-            <el-divider />
-
-            <div class="server-group">
-              <div class="group-title">媒体服务器</div>
-              <el-empty v-if="mediaServers.length === 0" description="暂无媒体服务器" />
-              <div
-                v-for="server in mediaServers"
-                :key="server.id"
-                class="server-item"
-                @click="$router.push('/servers')"
-              >
-                <div class="server-info">
-                  <div class="server-name">{{ server.name }}</div>
-                  <div class="server-meta">
-                    {{ server.type }} · {{ server.host }}:{{ server.port }}
-                  </div>
-                </div>
-                <el-tag :type="server.enabled ? 'success' : 'info'" size="small">
-                  {{ server.enabled ? '启用' : '禁用' }}
-                </el-tag>
-              </div>
-            </div>
-          </div>
+          <div ref="runTrendRef" class="chart-container"></div>
         </el-card>
       </el-col>
+      <el-col :xs="24" :md="12">
+        <el-card shadow="hover" class="chart-card">
+          <template #header>
+            <div class="card-header">
+              <span>运行耗时分布</span>
+            </div>
+          </template>
+          <div ref="durationDistRef" class="chart-container"></div>
+        </el-card>
+      </el-col>
+    </el-row>
 
-      <el-col :xs="24" :md="8">
+    <!-- 最近运行记录 -->
+    <el-row :gutter="16" style="margin-top: 16px">
+      <el-col :xs="24" :md="24">
         <el-card shadow="hover">
           <template #header>
             <div class="card-header">
@@ -135,8 +105,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { Refresh, ArrowRight } from '@element-plus/icons-vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import * as echarts from 'echarts'
+import Refresh from '~icons/ep/refresh'
+import ArrowRight from '~icons/ep/arrow-right'
 import { getServerList } from '@/api/servers'
 import { getJobList } from '@/api/jobs'
 import { getRunList } from '@/api/runs'
@@ -150,20 +122,25 @@ dayjs.locale('zh-cn')
 
 // 统计数据
 const stats = ref({
-  serverCount: 0,
-  jobCount: 0,
+  serverTotal: 0,
+  serverEnabled: 0,
+  serverDisabled: 0,
+  jobTotal: 0,
+  jobEnabled: 0,
+  jobDisabled: 0,
   recentRuns: 0,
   failedRuns: 0
 })
 
-// 服务器列表
-const dataServers = ref([])
-const mediaServers = ref([])
-
 // 运行记录列表
 const runList = ref([])
+const runTrendRef = ref(null)
+const durationDistRef = ref(null)
+let runTrendChart = null
+let durationDistChart = null
 
 let refreshTimer = null
+let resizeHandler = null
 
 // 加载数据
 const loadData = async () => {
@@ -173,40 +150,140 @@ const loadData = async () => {
     const last24h = now.subtract(24, 'hour').toISOString()
 
     const [
-      dataServersResp,
-      mediaServersResp,
-      jobsResp,
+      dataServersTotalResp,
+      dataServersEnabledResp,
+      dataServersDisabledResp,
+      mediaServersTotalResp,
+      mediaServersEnabledResp,
+      mediaServersDisabledResp,
+      jobsTotalResp,
+      jobsEnabledResp,
+      jobsDisabledResp,
       runsResp,
       recentRunsResp,
       failedRunsResp
     ] = await Promise.all([
-      getServerList({ type: 'data', page: 1, pageSize: 5 }),
-      getServerList({ type: 'media', page: 1, pageSize: 5 }),
+      getServerList({ type: 'data', page: 1, pageSize: 1 }),
+      getServerList({ type: 'data', enabled: 'true', page: 1, pageSize: 1 }),
+      getServerList({ type: 'data', enabled: 'false', page: 1, pageSize: 1 }),
+      getServerList({ type: 'media', page: 1, pageSize: 1 }),
+      getServerList({ type: 'media', enabled: 'true', page: 1, pageSize: 1 }),
+      getServerList({ type: 'media', enabled: 'false', page: 1, pageSize: 1 }),
       getJobList({ page: 1, pageSize: 1 }),
-      getRunList({ page: 1, pageSize: 10 }),
+      getJobList({ enabled: 'true', page: 1, pageSize: 1 }),
+      getJobList({ enabled: 'false', page: 1, pageSize: 1 }),
+      getRunList({ page: 1, pageSize: 200 }),
       getRunList({ from: lastHour, to: now.toISOString(), page: 1, pageSize: 1 }),
       getRunList({ status: 'failed', from: last24h, to: now.toISOString(), page: 1, pageSize: 1 })
     ])
 
-    const dataServersResult = normalizeListResponse(dataServersResp)
-    const mediaServersResult = normalizeListResponse(mediaServersResp)
-    const jobsResult = normalizeListResponse(jobsResp)
+    const dataServersTotal = normalizeListResponse(dataServersTotalResp)
+    const dataServersEnabled = normalizeListResponse(dataServersEnabledResp)
+    const dataServersDisabled = normalizeListResponse(dataServersDisabledResp)
+    const mediaServersTotal = normalizeListResponse(mediaServersTotalResp)
+    const mediaServersEnabled = normalizeListResponse(mediaServersEnabledResp)
+    const mediaServersDisabled = normalizeListResponse(mediaServersDisabledResp)
+    const jobsTotal = normalizeListResponse(jobsTotalResp)
+    const jobsEnabled = normalizeListResponse(jobsEnabledResp)
+    const jobsDisabled = normalizeListResponse(jobsDisabledResp)
     const runsResult = normalizeListResponse(runsResp)
     const recentRunsResult = normalizeListResponse(recentRunsResp)
     const failedRunsResult = normalizeListResponse(failedRunsResp)
 
-    dataServers.value = dataServersResult.list
-    mediaServers.value = mediaServersResult.list
-    runList.value = runsResult.list
+    runList.value = runsResult.list.slice(0, 10)
 
-    stats.value.serverCount = (dataServersResult.total || dataServersResult.list.length)
-      + (mediaServersResult.total || mediaServersResult.list.length)
-    stats.value.jobCount = jobsResult.total || jobsResult.list.length
+    stats.value.serverTotal = (dataServersTotal.total || dataServersTotal.list.length)
+      + (mediaServersTotal.total || mediaServersTotal.list.length)
+    stats.value.serverEnabled = (dataServersEnabled.total || dataServersEnabled.list.length)
+      + (mediaServersEnabled.total || mediaServersEnabled.list.length)
+    stats.value.serverDisabled = (dataServersDisabled.total || dataServersDisabled.list.length)
+      + (mediaServersDisabled.total || mediaServersDisabled.list.length)
+    stats.value.jobTotal = jobsTotal.total || jobsTotal.list.length
+    stats.value.jobEnabled = jobsEnabled.total || jobsEnabled.list.length
+    stats.value.jobDisabled = jobsDisabled.total || jobsDisabled.list.length
     stats.value.recentRuns = recentRunsResult.total || recentRunsResult.list.length
     stats.value.failedRuns = failedRunsResult.total || failedRunsResult.list.length
+
+    await nextTick()
+    renderCharts(runsResult.list)
   } catch (error) {
     console.error('加载数据失败:', error)
   }
+}
+
+const buildRunTrendData = (runs) => {
+  const days = []
+  const dayKeys = []
+  for (let i = 6; i >= 0; i -= 1) {
+    const day = dayjs().subtract(i, 'day')
+    days.push(day.format('MM-DD'))
+    dayKeys.push(day.format('YYYY-MM-DD'))
+  }
+  const success = Array(7).fill(0)
+  const failed = Array(7).fill(0)
+  const keyIndex = new Map(dayKeys.map((key, idx) => [key, idx]))
+
+  for (const run of runs || []) {
+    if (!run?.started_at) continue
+    const key = dayjs(run.started_at).format('YYYY-MM-DD')
+    const idx = keyIndex.get(key)
+    if (idx === undefined) continue
+    if (run.status === 'completed') success[idx] += 1
+    if (run.status === 'failed') failed[idx] += 1
+  }
+  return { days, success, failed }
+}
+
+const buildDurationBuckets = (runs) => {
+  const buckets = [
+    { label: '0-5m', max: 300 },
+    { label: '5-15m', max: 900 },
+    { label: '15-30m', max: 1800 },
+    { label: '30-60m', max: 3600 },
+    { label: '60m+', max: Infinity }
+  ]
+  const counts = Array(buckets.length).fill(0)
+  for (const run of runs || []) {
+    const sec = Number(run?.duration || 0)
+    if (!Number.isFinite(sec) || sec <= 0) continue
+    const idx = buckets.findIndex(bucket => sec <= bucket.max)
+    if (idx >= 0) counts[idx] += 1
+  }
+  return { labels: buckets.map(b => b.label), counts }
+}
+
+const renderCharts = (runs) => {
+  if (runTrendRef.value && !runTrendChart) {
+    runTrendChart = echarts.init(runTrendRef.value)
+  }
+  if (durationDistRef.value && !durationDistChart) {
+    durationDistChart = echarts.init(durationDistRef.value)
+  }
+  if (!runTrendChart || !durationDistChart) return
+
+  const trend = buildRunTrendData(runs)
+  runTrendChart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['成功', '失败'] },
+    grid: { left: 32, right: 16, top: 32, bottom: 24, containLabel: true },
+    xAxis: { type: 'category', data: trend.days },
+    yAxis: { type: 'value' },
+    series: [
+      { name: '成功', type: 'line', data: trend.success, smooth: true },
+      { name: '失败', type: 'line', data: trend.failed, smooth: true }
+    ]
+  }, true)
+
+  const duration = buildDurationBuckets(runs)
+  durationDistChart.setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: 32, right: 16, top: 32, bottom: 24, containLabel: true },
+    xAxis: { type: 'category', data: duration.labels },
+    yAxis: { type: 'value' },
+    series: [
+      { name: '数量', type: 'bar', data: duration.counts, barMaxWidth: 32 }
+    ]
+  }, true)
 }
 
 // 获取运行记录类型
@@ -232,12 +309,26 @@ onMounted(() => {
 
   // 每30秒自动刷新
   refreshTimer = setInterval(loadData, 30000)
+
+  resizeHandler = () => {
+    runTrendChart?.resize()
+    durationDistChart?.resize()
+  }
+  window.addEventListener('resize', resizeHandler)
 })
 
 onUnmounted(() => {
   if (refreshTimer) {
     clearInterval(refreshTimer)
     refreshTimer = null
+  }
+  runTrendChart?.dispose()
+  durationDistChart?.dispose()
+  runTrendChart = null
+  durationDistChart = null
+  if (resizeHandler) {
+    window.removeEventListener('resize', resizeHandler)
+    resizeHandler = null
   }
 })
 </script>
@@ -249,49 +340,62 @@ onUnmounted(() => {
   }
 
   .stat-card {
+    height: 120px;
     :deep(.el-card__body) {
       padding: 20px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
-    .el-statistic__content {
+    .stat-title {
+      font-size: 14px;
+      color: var(--el-text-color-secondary);
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
       font-size: 28px;
       font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+
+    .stat-split {
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+    }
+
+    .stat-item.success {
+      color: var(--el-color-success);
+    }
+
+    .stat-item.muted {
+      color: var(--el-text-color-secondary);
     }
   }
 
-  .server-list {
-    .server-group {
-      .group-title {
-        font-weight: 600;
-        margin-bottom: 8px;
-      }
+  .stat-card--split {
+    :deep(.el-card__body) {
+      overflow: hidden;
+      height: 120px;
     }
+  }
 
-    .server-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-
-      &:hover {
-        background-color: var(--el-fill-color-light);
-      }
-
-      .server-info {
-        .server-name {
-          font-weight: 500;
-          margin-bottom: 4px;
-        }
-
-        .server-meta {
-          font-size: 12px;
-          color: var(--el-text-color-secondary);
-        }
-      }
+  .chart-card {
+    :deep(.el-card__body) {
+      padding: 12px 16px 16px;
+      overflow: hidden;
     }
+  }
+
+  .chart-container {
+    height: 210px;
+    width: 100%;
+    overflow: hidden;
   }
 
   .task-item {

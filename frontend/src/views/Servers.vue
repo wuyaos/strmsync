@@ -101,6 +101,7 @@
           </div>
           <span class="server-name">{{ server.name }}</span>
           <span
+            v-if="server.type !== 'local'"
             class="status-dot"
             :class="getConnectionStatus(server)"
             :title="server.enabled ? '已启用' : '已禁用'"
@@ -128,27 +129,30 @@
           <div class="card-divider"></div>
           <div class="card-actions">
             <el-button
-              size="small"
+              size="default"
               text
               :icon="Link"
               :disabled="server.type === 'local'"
+              class="action-button"
               @click.stop="handleTest(server)"
             >
               测试
             </el-button>
             <el-button
-              size="small"
+              size="default"
               text
               :icon="Edit"
+              class="action-button"
               @click.stop="handleEdit(server)"
             >
               编辑
             </el-button>
             <el-button
-              size="small"
+              size="default"
               text
               type="danger"
               :icon="Delete"
+              class="action-button"
               @click.stop="handleDelete(server)"
             >
               删除
@@ -178,18 +182,16 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, watch } from 'vue'
+import { onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  Cloudy,
-  Delete,
-  Edit,
-  Link,
-  Monitor,
-  Plus,
-  Search,
-  VideoPlay
-} from '@element-plus/icons-vue'
+import Cloudy from '~icons/ep/cloudy'
+import Delete from '~icons/ep/delete'
+import Edit from '~icons/ep/edit'
+import Link from '~icons/ep/link'
+import Monitor from '~icons/ep/monitor'
+import Plus from '~icons/ep/plus'
+import Search from '~icons/ep/search'
+import VideoPlay from '~icons/ep/video-play'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
@@ -198,6 +200,7 @@ import {
   getServerList,
   getServerTypes,
   testServer,
+  testServerSilent,
   updateServer
 } from '@/api/servers'
 import { normalizeListResponse } from '@/api/normalize'
@@ -239,6 +242,12 @@ const pagination = reactive({
 
 // 连接状态缓存
 const connectionStatusMap = reactive({})
+const pollingTimer = ref(null)
+const pollingInFlight = ref(false)
+const pollingIntervalMs = 10000
+const lastTestAtMap = reactive({})
+const inFlightKeyMap = reactive({})
+const maxConcurrentTests = 3
 
 const dialogVisible = ref(false)
 const editingServer = ref(null)
@@ -293,6 +302,7 @@ const loadServers = async () => {
     const { list, total } = normalizeListResponse(response)
     serverList.value = list
     pagination.total = total
+    await refreshConnectionStatus()
   } catch (error) {
     console.error('加载服务器列表失败:', error)
   } finally {
@@ -354,9 +364,11 @@ const handleTest = async (row) => {
   try {
     await testServer(row.id, row.type)
     loadingMsg.close()
+    connectionStatusMap[row.id] = 'success'
     ElMessage.success('连接测试成功')
   } catch (error) {
     loadingMsg.close()
+    connectionStatusMap[row.id] = 'error'
     // 错误已由拦截器处理
   }
 }
@@ -418,6 +430,62 @@ const getConnectionStatus = (server) => {
   return 'status-unknown'
 }
 
+const refreshConnectionStatus = async () => {
+  if (pollingInFlight.value) return
+  const targets = serverList.value.filter(server => server.enabled && server.type !== 'local')
+  if (targets.length === 0) return
+
+  pollingInFlight.value = true
+  try {
+    const now = Date.now()
+    const keyMap = new Map()
+    for (const server of targets) {
+      const host = String(server.host || '').trim()
+      const port = server.port ?? ''
+      const key = `${host}:${port}`
+      if (!keyMap.has(key)) keyMap.set(key, [])
+      keyMap.get(key).push(server)
+    }
+
+    const queue = []
+    for (const [key, servers] of keyMap.entries()) {
+      if (!key) continue
+      const lastAt = lastTestAtMap[key] || 0
+      if (now - lastAt < pollingIntervalMs) continue
+      if (inFlightKeyMap[key]) continue
+      const representative = servers[0]
+      queue.push({ key, servers, representative })
+    }
+
+    const workers = Array.from({ length: maxConcurrentTests }, async () => {
+      while (queue.length > 0) {
+        const item = queue.shift()
+        if (!item) return
+        inFlightKeyMap[item.key] = true
+        try {
+          const result = await testServerSilent(item.representative.id, item.representative.type)
+          const ok = !!result || result === undefined
+          const status = ok ? 'success' : 'error'
+          item.servers.forEach((server) => {
+            connectionStatusMap[server.id] = status
+          })
+        } catch (error) {
+          item.servers.forEach((server) => {
+            connectionStatusMap[server.id] = 'error'
+          })
+        } finally {
+          lastTestAtMap[item.key] = Date.now()
+          delete inFlightKeyMap[item.key]
+        }
+      }
+    })
+
+    await Promise.all(workers)
+  } finally {
+    pollingInFlight.value = false
+  }
+}
+
 const setSingleSelection = (server) => {
   if (selectedIds.value.size === 1 && selectedIds.value.has(server.id)) {
     return
@@ -443,11 +511,26 @@ watch(serverList, (newList) => {
       delete connectionStatusMap[id]
     }
   }
+  for (const server of newList) {
+    if (!server.enabled || server.type === 'local') {
+      delete connectionStatusMap[server.id]
+    }
+  }
 })
 
 onMounted(() => {
   loadDataServerTypes()
   loadServers()
+  pollingTimer.value = setInterval(() => {
+    refreshConnectionStatus()
+  }, pollingIntervalMs)
+})
+
+onUnmounted(() => {
+  if (pollingTimer.value) {
+    clearInterval(pollingTimer.value)
+    pollingTimer.value = null
+  }
 })
 </script>
 
@@ -618,11 +701,21 @@ onMounted(() => {
     }
 
     .card-actions {
-      min-height: 32px;
-      margin-top: 4px;
-      display: flex;
-      justify-content: flex-end;
+      min-height: 36px;
+      margin-top: 6px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
+      align-items: center;
+      justify-items: center;
+    }
+
+    .action-button {
+      font-size: 14px;
+      line-height: 1;
+      padding: 6px 0;
+      min-width: 64px;
+      justify-content: center;
     }
   }
 

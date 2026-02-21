@@ -64,7 +64,8 @@
 </template>
 
 <script setup>
-import { Plus, Search } from '@element-plus/icons-vue'
+import Plus from '~icons/ep/plus'
+import Search from '~icons/ep/search'
 
 defineProps({
   activeTab: {

@@ -143,7 +143,7 @@
 
           <el-form-item>
             <el-button type="primary" @click="saveMediaServer">保存媒体服务器配置</el-button>
-            <el-button @click="testConnection">测试连接</el-button>
+            <el-button @click="testConnection">测试</el-button>
           </el-form-item>
         </template>
 

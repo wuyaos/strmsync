@@ -12,6 +12,7 @@
       :rules="formRules"
       label-position="top"
       label-width="var(--form-label-width)"
+      class="compact-form"
     >
       <!-- 基本信息 -->
       <el-card class="section-card" shadow="never">
@@ -21,7 +22,7 @@
         <el-row :gutter="20" class="section-row">
           <el-col :xs="24" :md="8">
             <el-form-item label="任务名称" prop="name">
-              <el-input v-model="formData.name" placeholder="例如：每周电影同步" />
+              <el-input v-model="formData.name" placeholder="每周电影同步" />
             </el-form-item>
           </el-col>
           <el-col :xs="24" :md="8">
@@ -88,48 +89,70 @@
         </div>
         <el-row :gutter="20" class="section-row">
           <el-col :xs="24" :md="12">
-            <el-form-item label="媒体目录" prop="media_dir">
+            <el-form-item label="媒体目录" prop="media_dir" class="compact-field">
+              <template #label>
+                <div class="label-inline">
+                  <span class="label-text">媒体目录</span>
+                  <span class="label-help">
+                    <span v-if="mediaDirDisabled">请先选择数据服务器。</span>
+                    <template v-else>
+                      <el-icon v-if="showMediaDirWarning" class="warning-icon"><WarningFilled /></el-icon>
+                      默认为数据服务器的访问目录的根目录
+                    </template>
+                  </span>
+                </div>
+              </template>
               <el-input v-model="mediaDirProxy" placeholder="movies" :disabled="mediaDirDisabled">
                 <template #suffix>
                   <el-button link :icon="FolderOpened" :disabled="mediaDirDisabled" @click="openPath('media_dir')" />
                 </template>
               </el-input>
-              <div class="help-text">
-                <span v-if="mediaDirDisabled">请先选择数据服务器。</span>
-                <el-icon v-if="showMediaDirWarning" class="warning-icon"><WarningFilled /></el-icon>
-                默认为数据服务器的访问目录的根目录，当 OpenList 访问目录不存在时，将使用远程目录
-              </div>
             </el-form-item>
           </el-col>
           <el-col v-if="currentServerHasApi" :xs="24" :md="12">
-            <el-form-item label="远程根目录" prop="remote_root">
+            <el-form-item label="远程根目录" prop="remote_root" class="compact-field">
+              <template #label>
+                <div class="label-inline">
+                  <span class="label-text">远程根目录</span>
+                  <span class="label-help">用于 CD2/OpenList 的远程 API 根路径</span>
+                </div>
+              </template>
               <el-input v-model="formData.remote_root" placeholder="/">
                 <template #suffix>
                   <el-button link :icon="FolderOpened" @click="openPath('remote_root', { forceApi: true })" />
                 </template>
               </el-input>
-              <div class="help-text">用于 CD2/OpenList 的远程 API 根路径</div>
             </el-form-item>
           </el-col>
           <el-col :xs="24" :md="12">
-            <el-form-item label="本地输出" prop="local_dir">
+            <el-form-item label="本地输出" prop="local_dir" class="compact-field">
+              <template #label>
+                <div class="label-inline">
+                  <span class="label-text">本地输出</span>
+                  <span class="label-help">用于存放生成的 STRM 文件和元数据</span>
+                </div>
+              </template>
               <el-input v-model="formData.local_dir" placeholder="/local/strm/movies">
                 <template #suffix>
                   <el-button link :icon="FolderOpened" @click="openPath('local_dir')" />
                 </template>
               </el-input>
-              <div class="help-text">用于存放生成的 STRM 文件和元数据</div>
             </el-form-item>
           </el-col>
         </el-row>
 
-        <el-form-item label="排除目录" prop="exclude_dirs">
-          <el-input v-model="excludeDirsProxy" placeholder="例如：temp, .trash">
+        <el-form-item label="排除目录" prop="exclude_dirs" class="compact-field">
+          <template #label>
+            <div class="label-inline">
+              <span class="label-text">排除目录</span>
+              <span class="label-help">可多选，支持手动输入(用","隔开)</span>
+            </div>
+          </template>
+          <el-input v-model="excludeDirsProxy" placeholder="temp, .trash">
             <template #suffix>
               <el-button link :icon="FolderOpened" @click="openPath('exclude_dirs', { multiple: true })" />
             </template>
           </el-input>
-          <div class="help-text">可多选目录，支持手动输入，选择以媒体目录为根目录进行</div>
         </el-form-item>
       </el-card>
 
@@ -138,7 +161,6 @@
         <template #header>
           <div class="section-title">清除功能</div>
         </template>
-        <div class="help-text">在同步前清理在媒体目录中找不到对应源文件的本地文件</div>
         <div class="option-grid">
           <div v-for="item in cleanupOptions" :key="item.value" class="option-item">
             <el-checkbox v-model="formData.cleanup_opts" :label="item.value">
@@ -156,15 +178,25 @@
         </template>
 
         <el-form-item label="定时同步">
+          <template #label>
+            <div class="label-inline">
+              <span class="label-text">定时同步</span>
+              <span class="label-help">启用后按 Cron 规则定时执行同步</span>
+            </div>
+          </template>
           <div class="switch-row">
             <el-switch v-model="formData.schedule_enabled" />
-            <span class="help-text">启用后按 Cron 规则定时执行同步</span>
           </div>
         </el-form-item>
 
-        <el-form-item v-if="formData.schedule_enabled" label="Cron 表达式" prop="cron">
+        <el-form-item v-if="formData.schedule_enabled" label="Cron 表达式" prop="cron" class="compact-field">
+          <template #label>
+            <div class="label-inline">
+              <span class="label-text">Cron 表达式</span>
+              <span class="label-help">格式：分 时 日 月 周（例如：0 */6 * * * 表示每 6 小时执行一次）</span>
+            </div>
+          </template>
           <el-input v-model="formData.cron" placeholder="0 */6 * * *" />
-          <div class="help-text">格式：分 时 日 月 周（例如：0 */6 * * * 表示每 6 小时执行一次）</div>
         </el-form-item>
 
         <div class="subsection-title">同步策略</div>
@@ -185,7 +217,6 @@
         </el-form-item>
 
         <div class="subsection-title">元数据选项</div>
-        <div class="help-text">三选一：更新时会比对，相同跳过，不同/缺失则更新</div>
         <div class="option-grid">
           <div v-for="item in syncOptionGroups.meta" :key="item.value" class="option-item">
             <el-radio v-model="metaStrategy" :label="item.value">{{ item.label }}</el-radio>
@@ -198,9 +229,13 @@
             <el-form-item label="元数据模式" class="inline-field">
               <el-radio-group v-model="formData.metadata_mode">
                 <el-radio label="copy" :disabled="forceRemoteOnly">复制文件</el-radio>
-                <el-radio label="download">下载文件</el-radio>
+                <el-radio label="download" :disabled="currentServerIsLocal">下载文件</el-radio>
                 <el-radio label="none" :disabled="forceRemoteOnly">不处理</el-radio>
               </el-radio-group>
+              <div v-if="currentServerIsLocal && formData.metadata_mode === 'download'" class="warning-text">
+                <el-icon class="warning-icon"><WarningFilled /></el-icon>
+                Local 模式不支持下载，已自动切换为复制模式
+              </div>
             </el-form-item>
           </el-col>
           <el-col :xs="24" :md="12">
@@ -216,19 +251,28 @@
         <template #header>
           <div class="section-title">STRM 配置</div>
         </template>
-        <el-form-item label="STRM 模式">
+        <el-form-item label="STRM 模式" class="compact-field">
+          <template #label>
+            <div class="label-inline">
+              <span class="label-text">STRM 模式</span>
+              <span
+                v-if="!currentServerSupportsUrl"
+                class="label-help label-help--warning"
+              >
+                当前数据服务器不支持 URL 访问模式
+              </span>
+              <span
+                v-else-if="forceRemoteOnly"
+                class="label-help label-help--warning"
+              >
+                OpenList 未配置访问目录时仅支持远程 URL
+              </span>
+            </div>
+          </template>
           <el-radio-group v-model="formData.strm_mode" :disabled="!currentServerSupportsUrl">
             <el-radio label="local" :disabled="forceRemoteOnly">本地路径</el-radio>
             <el-radio label="url">远程 URL</el-radio>
           </el-radio-group>
-          <div v-if="!currentServerSupportsUrl" class="warning-text">
-            <el-icon class="warning-icon"><WarningFilled /></el-icon>
-            当前数据服务器不支持 URL 访问模式
-          </div>
-          <div v-else-if="forceRemoteOnly" class="warning-text">
-            <el-icon class="warning-icon"><WarningFilled /></el-icon>
-            OpenList 未配置访问目录时仅支持远程 URL
-          </div>
         </el-form-item>
         <el-row :gutter="20" class="section-row">
           <el-col :xs="24" :md="12">
@@ -287,7 +331,13 @@
           </el-col>
         </el-row>
 
-        <el-form-item label="媒体文件后缀">
+        <el-form-item label="媒体文件后缀" class="compact-field">
+          <template #label>
+            <div class="label-inline">
+              <span class="label-text">媒体文件后缀</span>
+              <span class="label-help">媒体文件扩展名白名单</span>
+            </div>
+          </template>
           <el-select
             v-model="formData.media_exts"
             multiple
@@ -295,13 +345,18 @@
             allow-create
             default-first-option
             :loading="extsLoading"
-            placeholder="添加后缀（例如 .mkv, .mp4）"
+            placeholder="添加后缀（.mkv, .mp4）"
             class="w-full"
           />
-          <div class="help-text">支持的媒体文件扩展名，可手动输入添加</div>
         </el-form-item>
 
-        <el-form-item label="元数据后缀">
+        <el-form-item label="元数据后缀" class="compact-field">
+          <template #label>
+            <div class="label-inline">
+              <span class="label-text">元数据后缀</span>
+              <span class="label-help">元数据文件扩展名白名单</span>
+            </div>
+          </template>
           <el-select
             v-model="formData.meta_exts"
             multiple
@@ -309,10 +364,9 @@
             allow-create
             default-first-option
             :loading="extsLoading"
-            placeholder="添加后缀（例如 .nfo, .jpg）"
+            placeholder="添加后缀（.nfo, .jpg）"
             class="w-full"
           />
-          <div class="help-text">需要同步的元数据文件扩展名</div>
         </el-form-item>
       </el-card>
     </el-form>
@@ -326,7 +380,12 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { ArrowDown, ArrowUp, Delete, FolderOpened, InfoFilled, WarningFilled } from '@element-plus/icons-vue'
+import ArrowDown from '~icons/ep/arrow-down'
+import ArrowUp from '~icons/ep/arrow-up'
+import Delete from '~icons/ep/delete'
+import FolderOpened from '~icons/ep/folder-opened'
+import InfoFilled from '~icons/ep/info-filled'
+import WarningFilled from '~icons/ep/warning-filled'
 import { joinPath, normalizePath } from '@/composables/usePathDialog'
 
 const props = defineProps({
@@ -341,6 +400,7 @@ const props = defineProps({
   excludeDirsText: { type: String, default: '' },
   currentServerHasApi: { type: Boolean, default: false },
   currentServerSupportsUrl: { type: Boolean, default: false },
+  currentServerIsLocal: { type: Boolean, default: false },
   showMediaDirWarning: { type: Boolean, default: false },
   forceRemoteOnly: { type: Boolean, default: false },
   mediaDirDisabled: { type: Boolean, default: false },
@@ -518,7 +578,7 @@ const syncOptionGroups = {
 <style scoped lang="scss">
 .task-config-dialog {
   .section-card {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     border-color: var(--el-border-color-lighter);
   }
 
@@ -526,6 +586,34 @@ const syncOptionGroups = {
     font-size: 16px;
     font-weight: 600;
     color: var(--el-text-color-primary);
+  }
+
+  .label-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .label-text {
+    white-space: nowrap;
+  }
+
+  .label-help {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    line-height: 1.4;
+    max-width: 360px;
+    white-space: normal;
+    text-align: right;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .label-help--warning {
+    color: var(--el-color-warning);
   }
 
   .help-text {
@@ -655,10 +743,46 @@ const syncOptionGroups = {
     font-size: 14px;
     color: var(--el-text-color-regular);
     font-weight: 500;
+    display: flex;
+    align-items: center;
+  }
+
+  :deep(.el-form-item__label::before) {
+    margin-right: 4px;
   }
 
   :deep(.el-form-item) {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
+  }
+
+  :deep(.compact-field .el-form-item__content) {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  :deep(.compact-field .el-input),
+  :deep(.compact-field .el-select),
+  :deep(.compact-field .el-input-number) {
+    flex: 1;
+    min-width: 0;
+  }
+
+  :deep(.compact-form .el-form-item) {
+    position: relative;
+  }
+
+  :deep(.compact-form .el-form-item__error) {
+    position: absolute;
+    right: 0;
+    top: 0;
+    margin-top: 0;
+    padding-top: 0;
+    line-height: 1.2;
+    font-size: 12px;
+    text-align: right;
+    max-width: 260px;
   }
 }
 </style>

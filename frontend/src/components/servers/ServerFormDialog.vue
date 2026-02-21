@@ -13,46 +13,55 @@
       :rules="formRules"
       label-position="top"
       label-width="var(--form-label-width)"
+      class="compact-form"
     >
       <!-- 基础信息 -->
       <el-card class="section-card" shadow="never">
         <template #header>
-          <div class="section-title">基础信息</div>
-        </template>
-        <el-form-item label="服务器名称" prop="name">
-          <el-input
-            v-model="formData.name"
-            placeholder="例如：Emby"
-            clearable
-            @input="handleNameInput"
-          />
-        </el-form-item>
-
-        <el-form-item label="服务器类型" prop="type">
-          <el-select
-            v-model="formData.type"
-            filterable
-            placeholder="选择服务器类型"
-            class="w-full"
-            @change="handleTypeChange"
-          >
-            <el-option
-              v-for="option in serverTypeOptions"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
-            >
-              <span>{{ option.label }}</span>
-              <span class="option-desc">
-                {{ option.description }}
-              </span>
-            </el-option>
-          </el-select>
-          <div v-if="serverTypeHint" class="type-hint">
-            <el-icon><InfoFilled /></el-icon>
-            {{ serverTypeHint }}
+          <div class="section-header">
+            <div class="section-title">基础信息</div>
+            <div class="section-actions">
+              <el-switch v-model="formData.enabled" />
+            </div>
           </div>
-        </el-form-item>
+        </template>
+        <el-row :gutter="12" class="section-row base-info-row">
+          <el-col :xs="24" :md="12">
+            <el-form-item label="服务器名称" prop="name" class="compact-field">
+              <el-input
+                v-model="formData.name"
+                placeholder="Emby"
+                clearable
+                @input="handleNameInput"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :md="12">
+            <el-form-item label="服务器类型" prop="type" class="compact-field">
+              <div class="type-inline">
+                <el-select
+                  v-model="formData.type"
+                  filterable
+                  placeholder="选择服务器类型"
+                  class="type-select"
+                  @change="handleTypeChange"
+                >
+                  <el-option
+                    v-for="option in serverTypeOptions"
+                    :key="option.value"
+                    :label="option.label"
+                    :value="option.value"
+                  >
+                    <span>{{ option.label }}</span>
+                    <span class="option-desc">
+                      {{ option.description }}
+                    </span>
+                  </el-option>
+                </el-select>
+              </div>
+            </el-form-item>
+          </el-col>
+        </el-row>
       </el-card>
 
       <!-- 数据服务器：动态表单 -->
@@ -61,7 +70,39 @@
           <template v-for="section in activeTypeDef.sections" :key="section.id">
             <el-card class="section-card" shadow="never">
               <template #header>
-                <div class="section-title">{{ section.label }}</div>
+                <div class="section-header">
+                  <div class="section-title">{{ section.label }}</div>
+                  <div v-if="section.id === 'auth' && showTestButton" class="section-actions">
+                    <div v-if="testStatus !== 'idle'" class="test-status" :class="`test-status--${testStatus}`">
+                      <el-icon v-if="testStatus === 'running'" class="is-loading">
+                        <Loading />
+                      </el-icon>
+                      <el-icon v-else-if="testStatus === 'success'">
+                        <CircleCheckFilled />
+                      </el-icon>
+                      <el-icon v-else-if="testStatus === 'error'">
+                        <CircleCloseFilled />
+                      </el-icon>
+                      <span>{{ testStatusText }}</span>
+                    </div>
+                    <el-tooltip
+                      :disabled="!!formData.id"
+                      content="未保存的服务器将进行临时测试"
+                      placement="top"
+                    >
+                      <span>
+                        <el-button
+                          :icon="Link"
+                          :loading="testing"
+                          :disabled="!canTest"
+                          @click="handleTestConnection"
+                        >
+                          测试
+                        </el-button>
+                      </span>
+                    </el-tooltip>
+                  </div>
+                </div>
               </template>
 
               <!-- 横向布局 (row) -->
@@ -76,13 +117,19 @@
                       v-if="field.type !== 'hidden'"
                       :label="field.label"
                       :prop="field.name"
+                      class="compact-field"
                     >
+                      <template #label>
+                        <div class="label-inline">
+                          <span>{{ field.label }}</span>
+                          <span v-if="field.help" class="label-help">{{ field.help }}</span>
+                        </div>
+                      </template>
                       <!-- 路径字段 -->
                       <el-input
                         v-if="isPathField(field)"
                         v-model="dynamicModel[field.name]"
                         :placeholder="field.placeholder"
-                        clearable
                       >
                         <template #suffix>
                           <el-button link :icon="FolderOpened" @click="openPathDialog(field)" />
@@ -148,7 +195,6 @@
                         :placeholder="field.placeholder"
                         clearable
                       />
-                      <div v-if="field.help" class="field-hint">{{ field.help }}</div>
                     </el-form-item>
                   </el-col>
                 </el-row>
@@ -162,13 +208,19 @@
                   v-show="field.type !== 'hidden'"
                   :label="field.label"
                   :prop="field.name"
+                  class="compact-field"
                 >
+                  <template #label>
+                    <div class="label-inline">
+                      <span>{{ field.label }}</span>
+                      <span v-if="field.help" class="label-help">{{ field.help }}</span>
+                    </div>
+                  </template>
                   <!-- 路径字段 -->
                   <el-input
                     v-if="isPathField(field)"
                     v-model="dynamicModel[field.name]"
                     :placeholder="field.placeholder"
-                    clearable
                   >
                     <template #suffix>
                       <el-button link :icon="FolderOpened" @click="openPathDialog(field)" />
@@ -234,7 +286,6 @@
                     :placeholder="field.placeholder"
                     clearable
                   />
-                  <div v-if="field.help" class="field-hint">{{ field.help }}</div>
                 </el-form-item>
               </template>
             </el-card>
@@ -253,13 +304,45 @@
         <!-- 连接信息 -->
         <el-card class="section-card" shadow="never">
           <template #header>
-            <div class="section-title">连接信息</div>
+            <div class="section-header">
+              <div class="section-title">连接信息</div>
+              <div v-if="showTestButton" class="section-actions">
+                <div v-if="testStatus !== 'idle'" class="test-status" :class="`test-status--${testStatus}`">
+                  <el-icon v-if="testStatus === 'running'" class="is-loading">
+                    <Loading />
+                  </el-icon>
+                  <el-icon v-else-if="testStatus === 'success'">
+                    <CircleCheckFilled />
+                  </el-icon>
+                  <el-icon v-else-if="testStatus === 'error'">
+                    <CircleCloseFilled />
+                  </el-icon>
+                  <span>{{ testStatusText }}</span>
+                </div>
+                <el-tooltip
+                  :disabled="!!formData.id"
+                  content="未保存的服务器将进行临时测试"
+                  placement="top"
+                >
+                  <span>
+                    <el-button
+                      :icon="Link"
+                      :loading="testing"
+                      :disabled="!canTest"
+                      @click="handleTestConnection"
+                    >
+                      测试
+                    </el-button>
+                  </span>
+                </el-tooltip>
+              </div>
+            </div>
           </template>
 
           <div class="form-row">
             <el-row :gutter="12">
               <el-col :span="14">
-                <el-form-item label="主机地址" prop="host">
+                <el-form-item label="主机地址" prop="host" class="compact-field">
                   <el-input
                     v-model="formData.host"
                     :placeholder="hostPlaceholder"
@@ -268,7 +351,7 @@
                 </el-form-item>
               </el-col>
               <el-col :span="10">
-                <el-form-item label="端口号" prop="port">
+                <el-form-item label="端口号" prop="port" class="compact-field">
                   <el-input
                     v-model.number="formData.port"
                     type="number"
@@ -277,14 +360,19 @@
                     :step="1"
                     class="input-short"
                   />
-                  <div class="field-hint">{{ portHint }}</div>
                 </el-form-item>
               </el-col>
             </el-row>
           </div>
 
           <!-- API 密钥（如需要） -->
-          <el-form-item v-if="needsApiKey" :label="apiKeyLabel" prop="api_key">
+          <el-form-item v-if="needsApiKey" :label="apiKeyLabel" prop="api_key" class="compact-field">
+            <template #label>
+              <div class="label-inline">
+                <span>{{ apiKeyLabel }}</span>
+                <span v-if="serverTypeHint" class="label-help">{{ serverTypeHint }}</span>
+              </div>
+            </template>
             <el-input
               v-model="formData.api_key"
               type="password"
@@ -296,20 +384,6 @@
         </el-card>
       </template>
 
-      <!-- 启用状态（所有类型通用） -->
-      <el-card class="section-card" shadow="never">
-        <template #header>
-          <div class="section-title">状态配置</div>
-        </template>
-        <el-form-item label="启用状态" prop="enabled">
-          <el-switch
-            v-model="formData.enabled"
-            active-text="启用"
-            inactive-text="禁用"
-          />
-        </el-form-item>
-      </el-card>
-
       <!-- 高级选项（接口速率配置） -->
       <el-card v-if="showRate" class="section-card" shadow="never">
         <template #header>
@@ -319,7 +393,13 @@
           <el-collapse-item title="接口速率配置（可选）" name="rate">
             <el-row :gutter="12">
             <el-col :span="12">
-              <el-form-item label="下载队列每秒处理数量">
+              <el-form-item label="下载队列每秒处理数量" class="compact-field">
+                <template #label>
+                  <div class="label-inline">
+                    <span>下载队列每秒处理数量</span>
+                    <span class="label-help">0 表示使用系统设置</span>
+                  </div>
+                </template>
                 <el-input
                   v-model.number="formData.download_rate_per_sec"
                   type="number"
@@ -327,11 +407,16 @@
                   :max="1000"
                   class="input-short"
                 />
-                <div class="field-hint">0 表示使用系统设置</div>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="接口速率(每秒请求数)">
+              <el-form-item label="接口速率(每秒请求数)" class="compact-field">
+                <template #label>
+                  <div class="label-inline">
+                    <span>接口速率(每秒请求数)</span>
+                    <span class="label-help">0 表示使用系统设置</span>
+                  </div>
+                </template>
                 <el-input
                   v-model.number="formData.api_rate"
                   type="number"
@@ -339,11 +424,16 @@
                   :max="1000"
                   class="input-short"
                 />
-                <div class="field-hint">0 表示使用系统设置</div>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="接口重试次数">
+              <el-form-item label="接口重试次数" class="compact-field">
+                <template #label>
+                  <div class="label-inline">
+                    <span>接口重试次数</span>
+                    <span class="label-help">0 表示使用系统设置</span>
+                  </div>
+                </template>
                 <el-input
                   v-model.number="formData.api_retry_max"
                   type="number"
@@ -351,11 +441,16 @@
                   :max="10"
                   class="input-short"
                 />
-                <div class="field-hint">0 表示使用系统设置</div>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="接口重试间隔(秒)">
+              <el-form-item label="接口重试间隔(秒)" class="compact-field">
+                <template #label>
+                  <div class="label-inline">
+                    <span>接口重试间隔(秒)</span>
+                    <span class="label-help">0 表示使用系统设置</span>
+                  </div>
+                </template>
                 <el-input
                   v-model.number="formData.api_retry_interval_sec"
                   type="number"
@@ -363,7 +458,6 @@
                   :max="60"
                   class="input-short"
                 />
-                <div class="field-hint">0 表示使用系统设置</div>
               </el-form-item>
             </el-col>
             </el-row>
@@ -378,37 +472,6 @@
           <el-button @click="visible = false">取消</el-button>
         </div>
         <div class="dialog-footer-actions">
-          <!-- 测试状态图标 -->
-          <div v-if="testStatus !== 'idle'" class="test-status" :class="`test-status--${testStatus}`">
-            <el-icon v-if="testStatus === 'running'" class="is-loading">
-              <Loading />
-            </el-icon>
-            <el-icon v-else-if="testStatus === 'success'">
-              <CircleCheckFilled />
-            </el-icon>
-            <el-icon v-else-if="testStatus === 'error'">
-              <CircleCloseFilled />
-            </el-icon>
-            <span>{{ testStatusText }}</span>
-          </div>
-          <!-- 测试连接按钮 -->
-          <el-tooltip
-            v-if="canTest"
-            :disabled="!!formData.id"
-            content="未保存的服务器将进行临时测试"
-            placement="top"
-          >
-            <span>
-              <el-button
-                :icon="Link"
-                :loading="testing"
-                :disabled="!canTest"
-                @click="handleTestConnection"
-              >
-                测试连接
-              </el-button>
-            </span>
-          </el-tooltip>
           <!-- 创建/更新按钮 -->
           <el-button
             type="primary"
@@ -433,11 +496,13 @@
     :selected-name="pathDlg.selectedName.value"
     :selected-names="pathDlg.selectedNames.value"
     :at-root="pathDlg.atRoot.value"
+    :refresh-key="pathDlg.refreshKey.value"
     @up="pathDlg.goUp"
     @to-root="pathDlg.goRoot"
     @jump="pathDlg.jump"
     @enter="(name) => pathDlg.enterDirectory(name)"
     @select="handlePathSelect"
+    @refresh="() => pathDlg.load(pathDlg.path.value)"
     @load-more="pathDlg.loadMore"
     @confirm="handlePathConfirm"
   />
@@ -446,16 +511,13 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import {
-  CircleCheckFilled,
-  CircleCloseFilled,
-  Edit,
-  FolderOpened,
-  InfoFilled,
-  Link,
-  Loading,
-  Plus
-} from '@element-plus/icons-vue'
+import CircleCheckFilled from '~icons/ep/circle-check-filled'
+import CircleCloseFilled from '~icons/ep/circle-close-filled'
+import Edit from '~icons/ep/edit'
+import FolderOpened from '~icons/ep/folder-opened'
+import Link from '~icons/ep/link'
+import Loading from '~icons/ep/loading'
+import Plus from '~icons/ep/plus'
 import { createServer, listDirectories, testServer, testServerTemp, updateServer } from '@/api/servers'
 import { usePathDialog, normalizePath } from '@/composables/usePathDialog'
 import PathDialog from '@/components/common/PathDialog.vue'
@@ -606,14 +668,7 @@ const serverTypeHint = computed(() => {
 })
 
 // 主机地址占位符（媒体服务器使用）
-const hostPlaceholder = computed(() => '例如：127.0.0.1 或 example.com')
-
-// 端口号提示（媒体服务器使用）
-const portHint = computed(() => {
-  const config = currentTypeConfig.value
-  if (!config) return ''
-  return `${config.label} 默认端口：${config.defaultPort}`
-})
+const hostPlaceholder = computed(() => '127.0.0.1 或 example.com')
 
 // 是否需要 API 密钥（媒体服务器使用）
 const needsApiKey = computed(() => currentTypeConfig.value?.needsApiKey || false)
@@ -621,11 +676,13 @@ const needsApiKey = computed(() => currentTypeConfig.value?.needsApiKey || false
 // API 密钥标签（媒体服务器使用）
 const apiKeyLabel = computed(() => currentTypeConfig.value?.apiKeyLabel || 'API Key')
 
-// 是否可以测试连接（已选择类型且非 Local 类型）
+// 是否可以测试连接（已选择类型）
 const canTest = computed(() => {
   if (!formData.type) return false
-  return formData.type !== 'local'
+  return true
 })
+
+const showTestButton = computed(() => !!formData.type && formData.type !== 'local')
 
 // 是否显示接口速率配置（仅数据服务器的 cd2 和 openlist 类型）
 const showRate = computed(() =>
@@ -1117,8 +1174,11 @@ const openPathDialog = async (field) => {
   pathDialogField.value = field
   const currentValue = dynamicModel[field.name] || '/'
   await pathDlg.open({ mode: 'single', root: '/', path: currentValue })
-  if (currentValue) {
-    pathDlg.selectedName.value = normalizePath(currentValue)
+  const normalized = normalizePath(currentValue)
+  if (normalized !== '/') {
+    pathDlg.selectedName.value = normalized
+  } else {
+    pathDlg.clearSelection()
   }
 }
 
@@ -1155,7 +1215,7 @@ watch(() => props.dataTypeDefs, (defs) => {
 <style scoped lang="scss">
 .task-config-dialog {
   .section-card {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     border-color: var(--el-border-color-lighter);
   }
 
@@ -1172,24 +1232,84 @@ watch(() => props.dataTypeDefs, (defs) => {
     margin-left: 15px;
   }
 
-  // 表单提示样式
-  .type-hint {
-    margin-top: 4px;
+  .section-row {
+    align-items: flex-start;
+  }
+
+  .base-info-row {
+    --base-label-height: 22px;
+    align-items: flex-start;
+  }
+
+  .label-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .label-help {
+    margin-left: auto;
     font-size: 12px;
-    color: var(--el-color-info);
+    color: var(--el-text-color-secondary);
+    line-height: 1.4;
+    max-width: 320px;
+    white-space: normal;
+    text-align: right;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .test-inline {
     display: flex;
     align-items: center;
     gap: 4px;
-
-    .el-icon {
-      font-size: 14px;
-    }
+    flex-wrap: wrap;
   }
 
-  .field-hint {
-    margin-top: 4px;
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
+  .type-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    flex-wrap: nowrap;
+  }
+
+  .type-select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .type-switch {
+    flex-shrink: 0;
+  }
+
+  .label-switch {
+    margin-left: auto;
+  }
+
+  .base-info-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .section-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .base-status-row {
+    margin-top: 8px;
   }
 
   // 动态表单横向布局
@@ -1245,10 +1365,60 @@ watch(() => props.dataTypeDefs, (defs) => {
     font-size: 14px;
     color: var(--el-text-color-regular);
     font-weight: 500;
+    display: flex;
+    align-items: center;
+  }
+
+  :deep(.el-form-item__label::before) {
+    margin-right: 4px;
   }
 
   :deep(.el-form-item) {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
+  }
+
+  :deep(.compact-field .el-form-item__content) {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: nowrap;
+  }
+
+  :deep(.compact-field .el-input),
+  :deep(.compact-field .el-select),
+  :deep(.compact-field .el-input-number) {
+    flex: 1;
+    min-width: 0;
+  }
+
+  :deep(.compact-form .el-form-item) {
+    position: relative;
+  }
+
+  :deep(.compact-form .el-form-item__error) {
+    position: absolute;
+    right: 0;
+    top: 0;
+    margin-top: 0;
+    padding-top: 0;
+    line-height: 1.2;
+    font-size: 12px;
+    text-align: right;
+    max-width: 260px;
+  }
+
+  :deep(.no-label .el-form-item__label) {
+    display: none;
+  }
+
+  :deep(.base-info-row .el-form-item__label) {
+    height: var(--base-label-height);
+    line-height: var(--base-label-height);
+  }
+
+  :deep(.base-info-row .el-form-item__content) {
+    min-height: 32px;
+    align-items: center;
   }
 }
 

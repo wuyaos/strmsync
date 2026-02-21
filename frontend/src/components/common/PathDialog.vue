@@ -18,6 +18,7 @@
       </div>
 
       <el-table
+        :key="refreshKey"
         :data="rows"
         stripe
         highlight-current-row
@@ -60,6 +61,9 @@
           <el-button :icon="HomeFilled" :disabled="atRoot" @click="emit('to-root')">
             根目录
           </el-button>
+          <el-button :icon="Refresh" :loading="loading" @click="emit('refresh')">
+            刷新
+          </el-button>
         </div>
         <el-button v-if="hasMore" :loading="loading" @click="emit('load-more')">
           加载更多
@@ -72,7 +76,11 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { ArrowLeft, FolderOpened, HomeFilled, Right } from '@element-plus/icons-vue'
+import ArrowLeft from '~icons/ep/arrow-left'
+import FolderOpened from '~icons/ep/folder-opened'
+import HomeFilled from '~icons/ep/home-filled'
+import Refresh from '~icons/ep/refresh'
+import Right from '~icons/ep/right'
 import { joinPath, normalizePath } from '@/composables/usePathDialog'
 
 const props = defineProps({
@@ -85,7 +93,8 @@ const props = defineProps({
   hasMore: { type: Boolean, default: false },
   selectedName: { type: String, default: '' },
   selectedNames: { type: Array, default: () => [] },
-  atRoot: { type: Boolean, default: false }
+  atRoot: { type: Boolean, default: false },
+  refreshKey: { type: Number, default: 0 }
 })
 
 const emit = defineEmits([
@@ -97,6 +106,7 @@ const emit = defineEmits([
   'enter',
   'jump',
   'load-more',
+  'refresh',
   'confirm'
 ])
 

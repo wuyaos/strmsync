@@ -93,7 +93,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { getLogList, cleanupLogs } from '@/api/log'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Loading } from '@element-plus/icons-vue'
+import Loading from '~icons/ep/loading'
 import dayjs from 'dayjs'
 
 const searchText = ref('')

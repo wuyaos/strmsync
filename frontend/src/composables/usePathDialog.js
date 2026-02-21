@@ -34,6 +34,7 @@ export const usePathDialog = (options = {}) => {
   const extra = ref({})
   const selectedName = ref('')
   const selectedNames = ref([])
+  const refreshKey = ref(0) // 用于强制刷新表格
 
   const atRoot = computed(() => normalizePath(path.value) === normalizePath(root.value))
 
@@ -71,6 +72,7 @@ export const usePathDialog = (options = {}) => {
         rows.value = rows.value.concat(nextRows)
       } else {
         rows.value = nextRows
+        refreshKey.value++ // 刷新时递增 key，强制表格重新渲染
       }
       path.value = nextPathValue
       hasMore.value = Boolean(response?.truncated)
@@ -165,6 +167,7 @@ export const usePathDialog = (options = {}) => {
     selectedName,
     selectedNames,
     atRoot,
+    refreshKey,
     open,
     close,
     load,

@@ -48,6 +48,10 @@ request.interceptors.response.use(
   error => {
     console.error('响应错误:', error)
 
+    if (error?.config?.silent) {
+      return Promise.reject(error)
+    }
+
     let message = '请求失败'
     if (error.response) {
       const data = error.response.data

@@ -58,7 +58,9 @@
 
 <script setup>
 import { ElMessage } from 'element-plus'
-import { EditPen, Picture, More } from '@element-plus/icons-vue'
+import EditPen from '~icons/ep/edit-pen'
+import Picture from '~icons/ep/picture'
+import More from '~icons/ep/more'
 
 const handleToolClick = (tool) => {
   ElMessage.info(`${tool === 'rename' ? '批量改名' : '海报裁剪'}功能开发中...`)
