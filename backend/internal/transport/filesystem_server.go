@@ -33,12 +33,11 @@ type dataServerRequest struct {
 	APIKey  string `json:"api_key"`
 	Enabled *bool  `json:"enabled"`
 	Options string `json:"options"`
-	// QoS 字段（独立列，可覆盖全局默认值）
-	RequestTimeoutMs *int `json:"request_timeout_ms,omitempty"`
-	ConnectTimeoutMs *int `json:"connect_timeout_ms,omitempty"`
-	RetryMax         *int `json:"retry_max,omitempty"`
-	RetryBackoffMs   *int `json:"retry_backoff_ms,omitempty"`
-	MaxConcurrent    *int `json:"max_concurrent,omitempty"`
+	// 高级配置（独立列，可覆盖全局默认值，0 表示使用全局）
+	DownloadRatePerSec  *int `json:"download_rate_per_sec,omitempty"`
+	APIRate             *int `json:"api_rate,omitempty"`
+	APIRetryMax         *int `json:"api_retry_max,omitempty"`
+	APIRetryIntervalSec *int `json:"api_retry_interval_sec,omitempty"`
 }
 
 // NewDataServerHandler 创建数据服务器处理器
@@ -86,42 +85,37 @@ func (h *DataServerHandler) CreateDataServer(c *gin.Context) {
 		enabled = *req.Enabled
 	}
 
-	// QoS 默认值（允许前端不传，使用数据库默认值）
-	requestTimeoutMs := 30000
-	if req.RequestTimeoutMs != nil {
-		requestTimeoutMs = *req.RequestTimeoutMs
+	// 高级配置默认值（允许前端不传，使用数据库默认值）
+	downloadRatePerSec := 0
+	if req.DownloadRatePerSec != nil {
+		downloadRatePerSec = *req.DownloadRatePerSec
 	}
-	connectTimeoutMs := 10000
-	if req.ConnectTimeoutMs != nil {
-		connectTimeoutMs = *req.ConnectTimeoutMs
+	apiRate := 0
+	if req.APIRate != nil {
+		apiRate = *req.APIRate
 	}
-	retryMax := 3
-	if req.RetryMax != nil {
-		retryMax = *req.RetryMax
+	apiRetryMax := 0
+	if req.APIRetryMax != nil {
+		apiRetryMax = *req.APIRetryMax
 	}
-	retryBackoffMs := 1000
-	if req.RetryBackoffMs != nil {
-		retryBackoffMs = *req.RetryBackoffMs
-	}
-	maxConcurrent := 10
-	if req.MaxConcurrent != nil {
-		maxConcurrent = *req.MaxConcurrent
+	apiRetryIntervalSec := 0
+	if req.APIRetryIntervalSec != nil {
+		apiRetryIntervalSec = *req.APIRetryIntervalSec
 	}
 
 	// 创建数据服务器
 	server := model.DataServer{
-		Name:             strings.TrimSpace(req.Name),
-		Type:             strings.TrimSpace(req.Type),
-		Host:             strings.TrimSpace(req.Host),
-		Port:             req.Port,
-		APIKey:           strings.TrimSpace(req.APIKey),
-		Enabled:          enabled,
-		Options:          strings.TrimSpace(req.Options),
-		RequestTimeoutMs: requestTimeoutMs,
-		ConnectTimeoutMs: connectTimeoutMs,
-		RetryMax:         retryMax,
-		RetryBackoffMs:   retryBackoffMs,
-		MaxConcurrent:    maxConcurrent,
+		Name:                strings.TrimSpace(req.Name),
+		Type:                strings.TrimSpace(req.Type),
+		Host:                strings.TrimSpace(req.Host),
+		Port:                req.Port,
+		APIKey:              strings.TrimSpace(req.APIKey),
+		Enabled:             enabled,
+		Options:             strings.TrimSpace(req.Options),
+		DownloadRatePerSec:  downloadRatePerSec,
+		APIRate:             apiRate,
+		APIRetryMax:         apiRetryMax,
+		APIRetryIntervalSec: apiRetryIntervalSec,
 	}
 
 	// Local 类型特殊处理：强制设置 host 和 port
@@ -132,17 +126,16 @@ func (h *DataServerHandler) CreateDataServer(c *gin.Context) {
 
 	h.logger.Debug(fmt.Sprintf("创建数据服务器请求：%s", server.Name),
 		zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
-			"name":               server.Name,
-			"type":               server.Type,
-			"host":               server.Host,
-			"port":               server.Port,
-			"enabled":            server.Enabled,
-			"options":            buildOptionsLog(server.Options),
-			"request_timeout_ms": server.RequestTimeoutMs,
-			"connect_timeout_ms": server.ConnectTimeoutMs,
-			"retry_max":          server.RetryMax,
-			"retry_backoff_ms":   server.RetryBackoffMs,
-			"max_concurrent":     server.MaxConcurrent,
+			"name":                   server.Name,
+			"type":                   server.Type,
+			"host":                   server.Host,
+			"port":                   server.Port,
+			"enabled":                server.Enabled,
+			"options":                buildOptionsLog(server.Options),
+			"download_rate_per_sec":  server.DownloadRatePerSec,
+			"api_rate":               server.APIRate,
+			"api_retry_max":          server.APIRetryMax,
+			"api_retry_interval_sec": server.APIRetryIntervalSec,
 		})))
 
 	if err := h.db.Create(&server).Error; err != nil {
@@ -317,21 +310,18 @@ func (h *DataServerHandler) UpdateDataServer(c *gin.Context) {
 		server.Enabled = *req.Enabled
 	}
 
-	// 更新 QoS 字段（如果前端提供）
-	if req.RequestTimeoutMs != nil {
-		server.RequestTimeoutMs = *req.RequestTimeoutMs
+	// 更新高级配置（如果前端提供）
+	if req.DownloadRatePerSec != nil {
+		server.DownloadRatePerSec = *req.DownloadRatePerSec
 	}
-	if req.ConnectTimeoutMs != nil {
-		server.ConnectTimeoutMs = *req.ConnectTimeoutMs
+	if req.APIRate != nil {
+		server.APIRate = *req.APIRate
 	}
-	if req.RetryMax != nil {
-		server.RetryMax = *req.RetryMax
+	if req.APIRetryMax != nil {
+		server.APIRetryMax = *req.APIRetryMax
 	}
-	if req.RetryBackoffMs != nil {
-		server.RetryBackoffMs = *req.RetryBackoffMs
-	}
-	if req.MaxConcurrent != nil {
-		server.MaxConcurrent = *req.MaxConcurrent
+	if req.APIRetryIntervalSec != nil {
+		server.APIRetryIntervalSec = *req.APIRetryIntervalSec
 	}
 
 	// Local 类型特殊处理：强制设置 host 和 port
@@ -343,17 +333,16 @@ func (h *DataServerHandler) UpdateDataServer(c *gin.Context) {
 	h.logger.Debug(fmt.Sprintf("更新数据服务器请求：%s", server.Name),
 		zap.Uint("id", server.ID),
 		zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
-			"name":               server.Name,
-			"type":               server.Type,
-			"host":               server.Host,
-			"port":               server.Port,
-			"enabled":            server.Enabled,
-			"options":            buildOptionsLog(server.Options),
-			"request_timeout_ms": server.RequestTimeoutMs,
-			"connect_timeout_ms": server.ConnectTimeoutMs,
-			"retry_max":          server.RetryMax,
-			"retry_backoff_ms":   server.RetryBackoffMs,
-			"max_concurrent":     server.MaxConcurrent,
+			"name":                   server.Name,
+			"type":                   server.Type,
+			"host":                   server.Host,
+			"port":                   server.Port,
+			"enabled":                server.Enabled,
+			"options":                buildOptionsLog(server.Options),
+			"download_rate_per_sec":  server.DownloadRatePerSec,
+			"api_rate":               server.APIRate,
+			"api_retry_max":          server.APIRetryMax,
+			"api_retry_interval_sec": server.APIRetryIntervalSec,
 		})))
 
 	if err := h.db.Save(&server).Error; err != nil {

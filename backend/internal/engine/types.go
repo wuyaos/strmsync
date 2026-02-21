@@ -392,6 +392,10 @@ type EngineOptions struct {
 
 	// EventSink STRM 事件回调（可选）
 	EventSink StrmEventSink
+
+	// ListOverride 远端扫描自定义实现（可选）
+	// 返回的 RemoteEntry.Path 必须使用远端虚拟路径格式（以 "/" 开头）
+	ListOverride func(ctx context.Context, remotePath string, opt ListOptions) ([]RemoteEntry, error)
 }
 
 // SyncStats 同步统计信息

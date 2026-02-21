@@ -119,8 +119,11 @@
       :current-server-has-api="currentServerHasApi"
       :current-server-supports-url="currentServerSupportsUrl"
       :show-media-dir-warning="showMediaDirWarning"
+      :force-remote-only="currentServerRemoteOnly"
+      :media-dir-disabled="mediaDirDisabled"
       :data-server-access-path="currentServer?.accessPath || ''"
       :data-server-mount-path="currentServer?.mountPath || ''"
+      :data-server-remote-root="currentServer?.remoteRoot || ''"
       @update:exclude-dirs-text="excludeDirsText = $event"
       @submit="handleSave"
       @server-change="handleServerChange"
@@ -133,6 +136,7 @@
       :path="pathDlg.path.value"
       :rows="pathDlg.rows.value"
       :loading="pathDlg.loading.value"
+      :has-more="pathDlg.hasMore.value"
       :selected-name="pathDlg.selectedName.value"
       :selected-names="pathDlg.selectedNames.value"
       :at-root="pathDlg.atRoot.value"
@@ -142,6 +146,7 @@
       @enter="(name) => pathDlg.enterDirectory(name)"
       @select="handlePathSelect"
       @toggle="handlePathToggle"
+      @load-more="pathDlg.loadMore"
       @confirm="handlePathConfirm"
     />
   </div>
@@ -164,7 +169,7 @@ import {
   triggerJob,
   updateJob
 } from '@/api/jobs'
-import { getServerList, listDirectories } from '@/api/servers'
+import { getServer, getServerList, listDirectories } from '@/api/servers'
 import { normalizeListResponse } from '@/api/normalize'
 import ListPagination from '@/components/common/ListPagination.vue'
 import FilterToolbar from '@/components/common/FilterToolbar.vue'
@@ -221,6 +226,7 @@ const createDefaultFormData = () => ({
   data_server_id: null,
   media_server_id: null,
   media_dir: '',
+  remote_root: '',
   local_dir: '',
   exclude_dirs: [],
   schedule_enabled: false,
@@ -230,6 +236,7 @@ const createDefaultFormData = () => ({
   thread_count: 4,
   cleanup_opts: defaultCleanupOptions.slice(),
   strm_mode: 'local',
+  prefer_remote_list: false,
   min_file_size: 10,
   strm_replace_rules: [],
   media_exts: DEFAULT_MEDIA_EXTS.slice(),
@@ -253,10 +260,23 @@ const validateCron = (rule, value, callback) => {
   callback()
 }
 
+const validateRemoteRoot = (rule, value, callback) => {
+  if (!currentServerHasApi.value) {
+    callback()
+    return
+  }
+  if (!value || !String(value).trim()) {
+    callback(new Error('请输入远程根目录'))
+    return
+  }
+  callback()
+}
+
 const formRules = {
   name: [{ required: true, message: '请输入任务名称', trigger: 'blur' }],
   data_server_id: [{ required: true, message: '请选择数据服务器', trigger: 'change' }],
   media_dir: [{ required: true, message: '请输入媒体目录', trigger: 'blur' }],
+  remote_root: [{ validator: validateRemoteRoot, trigger: 'blur' }],
   local_dir: [{ required: true, message: '请输入本地输出', trigger: 'blur' }],
   cron: [{ validator: validateCron, trigger: 'blur' }]
 }
@@ -290,7 +310,8 @@ const dataServerOptions = computed(() => {
       hasApi: capabilities.hasApi,
       supportsUrl: capabilities.supportsUrl,
       accessPath: options.access_path || '',
-      mountPath: options.mount_path || ''
+      mountPath: options.mount_path || '',
+      remoteRoot: options.remote_root || ''
     }
   })
 })
@@ -310,9 +331,18 @@ const currentServerHasApi = computed(() => {
   return currentServer.value?.hasApi || false
 })
 
+const mediaDirDisabled = computed(() => !currentServer.value)
+
 const currentServerSupportsUrl = computed(() => {
   return currentServer.value?.supportsUrl || false
 })
+
+const currentServerRemoteOnly = computed(() => {
+  const server = currentServer.value
+  if (!server || server.type !== 'openlist') return false
+  return !String(server.accessPath || '').trim()
+})
+
 
 const showMediaDirWarning = computed(() => currentServer.value?.type === 'openlist')
 
@@ -397,6 +427,9 @@ const applyOptionsToForm = (options) => {
   if (options.strm_mode) {
     formData.strm_mode = options.strm_mode
   }
+  if (options.prefer_remote_list !== undefined) {
+    formData.prefer_remote_list = Boolean(options.prefer_remote_list)
+  }
   if (options.min_file_size !== undefined) {
     formData.min_file_size = options.min_file_size
   }
@@ -417,7 +450,7 @@ const applyOptionsToForm = (options) => {
 }
 
 const normalizeMetadataMode = (mode) => {
-  if (mode === 'copy' || mode === 'download') return mode
+  if (mode === 'copy' || mode === 'download' || mode === 'none') return mode
   if (mode === 'api') return 'download'
   return 'copy'
 }
@@ -474,6 +507,7 @@ const buildOptionsPayload = () => ({
   thread_count: normalizeNumber(formData.thread_count, 1),
   cleanup_opts: formData.cleanup_opts,
   strm_mode: formData.strm_mode,
+  prefer_remote_list: formData.prefer_remote_list,
   min_file_size: normalizeNumber(formData.min_file_size, 0),
   strm_replace_rules: formData.strm_replace_rules.filter(rule => rule.from || rule.to),
   media_exts: formData.media_exts,
@@ -488,6 +522,7 @@ const buildJobPayload = () => {
     media_server_id: toNumberOrNull(formData.media_server_id),
     watch_mode: watchMode,
     source_path: formData.media_dir,
+    remote_root: formData.remote_root,
     target_path: formData.local_dir,
     strm_path: resolveStrmPath(),
     options: JSON.stringify(buildOptionsPayload()),
@@ -565,6 +600,7 @@ const applyJobDetail = (job) => {
   formData.data_server_id = job.data_server_id ?? job.data_server?.id ?? null
   formData.media_server_id = job.media_server_id ?? job.media_server?.id ?? null
   formData.media_dir = job.source_path || ''
+  formData.remote_root = job.remote_root || ''
   formData.local_dir = job.target_path || ''
   formData.cron = job.cron || ''
   formData.schedule_enabled = Boolean(job.cron)
@@ -585,10 +621,32 @@ const handleEdit = async (row) => {
 }
 
 // 方法：服务器变更时的处理
-const handleServerChange = () => {
+const handleServerChange = async () => {
+  if (currentServer.value) {
+    try {
+      const response = await getServer(currentServer.value.id, currentServer.value.type)
+      const server = response?.server || response?.data || response
+      if (server?.id) {
+        const index = dataServers.value.findIndex(item => Number(item.id) === Number(server.id))
+        if (index >= 0) {
+          dataServers.value.splice(index, 1, server)
+        }
+      }
+    } catch (error) {
+      console.error('读取服务器配置失败:', error)
+    }
+  }
   // 如果切换到不支持 URL 的服务器，自动切换到 local 模式
   if (!currentServerSupportsUrl.value) {
     formData.strm_mode = 'local'
+  }
+  if (currentServerRemoteOnly.value) {
+    formData.strm_mode = 'url'
+    formData.metadata_mode = 'download'
+    formData.prefer_remote_list = true
+  }
+  if (currentServerHasApi.value && !String(formData.remote_root || '').trim()) {
+    formData.remote_root = currentServer.value?.remoteRoot || '/'
   }
 
   applyDefaultMediaDir()
@@ -609,9 +667,6 @@ const resolveAccessRoot = () => {
   const server = currentServer.value
   if (!server) return '/'
   const accessPath = normalizePath(server.accessPath || '')
-  if (server.type !== 'local' && isLocalLikePath(accessPath)) {
-    return '/'
-  }
   if (server.type === 'openlist' && !String(server.accessPath || '').trim()) {
     return '/'
   }
@@ -626,13 +681,22 @@ const applyDefaultMediaDir = () => {
   autoMediaDir.value = root
 }
 
-const buildDirectoryParams = (path) => {
+const buildDirectoryParams = (input) => {
+  const path = typeof input === 'string' ? input : input?.path
+  const limit = typeof input === 'object' ? input?.limit : undefined
+  const offset = typeof input === 'object' ? input?.offset : undefined
+  const forceApi = typeof input === 'object' ? input?.forceApi : false
   const server = currentServer.value
-  if (!server || server.type === 'local' || isLocalLikePath(path)) {
-    return { path, mode: 'local' }
+  if (!server) {
+    return { path, mode: 'local', limit, offset }
+  }
+  if (!forceApi && (server.type === 'local' || isLocalLikePath(path) || String(server.accessPath || '').trim())) {
+    return { path, mode: 'local', limit, offset }
   }
   return {
     path,
+    limit,
+    offset,
     mode: 'api',
     type: server.type,
     host: server.host,
@@ -642,7 +706,7 @@ const buildDirectoryParams = (path) => {
 }
 
 const pathDlg = usePathDialog({
-  loader: (path) => listDirectories(buildDirectoryParams(path)),
+  loader: (payload) => listDirectories(buildDirectoryParams(payload)),
   onError: () => ElMessage.error('加载目录失败')
 })
 
@@ -656,6 +720,9 @@ const resolveDialogRoot = (field) => {
   if (field === 'media_dir') {
     return resolveAccessRoot()
   }
+  if (field === 'remote_root') {
+    return '/'
+  }
   if (field === 'exclude_dirs' && formData.media_dir) {
     return normalizePath(formData.media_dir)
   }
@@ -666,6 +733,10 @@ const resolveDialogRoot = (field) => {
 }
 
 const openPathDialog = async (field, options = {}) => {
+  if (field === 'media_dir' && !currentServer.value) {
+    ElMessage.warning('请先选择数据服务器')
+    return
+  }
   pathDialogField.value = field
   const dialogRoot = resolveDialogRoot(field)
   const initialPath = field === 'exclude_dirs' || field === 'media_dir'
@@ -674,7 +745,8 @@ const openPathDialog = async (field, options = {}) => {
   await pathDlg.open({
     mode: options.multiple ? 'multi' : 'single',
     root: dialogRoot,
-    path: initialPath || dialogRoot
+    path: initialPath || dialogRoot,
+    extra: { forceApi: options.forceApi }
   })
 
   if (options.multiple) {
@@ -698,10 +770,6 @@ const handlePathConfirm = () => {
   if (pathDlg.mode.value === 'multi') {
     const root = pathDlg.root.value || formData.media_dir || '/'
     const selected = pathDlg.getSelectedMulti()
-    if (selected.length === 0) {
-      ElMessage.warning('请至少选择一个目录')
-      return
-    }
     formData.exclude_dirs = selected
       .map(item => toRelativePath(item, root))
       .filter(Boolean)

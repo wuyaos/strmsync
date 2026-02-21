@@ -21,6 +21,7 @@ export const usePathDialog = (options = {}) => {
   }
 
   const onError = options.onError || (() => {})
+  const pageSize = Number.isFinite(options.pageSize) && options.pageSize > 0 ? options.pageSize : 200
 
   const visible = ref(false)
   const mode = ref(options.initialMode || 'single')
@@ -28,6 +29,9 @@ export const usePathDialog = (options = {}) => {
   const path = ref(options.initialPath || root.value)
   const rows = ref([])
   const loading = ref(false)
+  const hasMore = ref(false)
+  const offset = ref(0)
+  const extra = ref({})
   const selectedName = ref('')
   const selectedNames = ref([])
 
@@ -51,12 +55,26 @@ export const usePathDialog = (options = {}) => {
     return norm.startsWith(rootNorm) ? norm : rootNorm
   }
 
-  const load = async (nextPath) => {
+  const load = async (nextPath, append = false) => {
     loading.value = true
     try {
-      const response = await options.loader(nextPath)
-      path.value = response?.path || nextPath
-      rows.value = (response?.directories || []).map(name => ({ name }))
+      const safePath = clampToRoot(nextPath || root.value)
+      const response = await options.loader({
+        path: safePath,
+        limit: pageSize,
+        offset: append ? offset.value : 0,
+        ...extra.value
+      })
+      const nextPathValue = clampToRoot(response?.path || safePath)
+      const nextRows = (response?.directories || []).map(name => ({ name }))
+      if (append) {
+        rows.value = rows.value.concat(nextRows)
+      } else {
+        rows.value = nextRows
+      }
+      path.value = nextPathValue
+      hasMore.value = Boolean(response?.truncated)
+      offset.value = append ? offset.value + nextRows.length : nextRows.length
     } catch (error) {
       onError(error)
     } finally {
@@ -67,9 +85,14 @@ export const usePathDialog = (options = {}) => {
   const open = async (params = {}) => {
     mode.value = params.mode || mode.value
     root.value = params.root || root.value
+    extra.value = params.extra || {}
     const initialPath = clampToRoot(params.path || root.value)
     path.value = initialPath
-    clearSelection()
+    offset.value = 0
+    hasMore.value = false
+    if (mode.value !== 'multi') {
+      clearSelection()
+    }
     visible.value = true
     await load(path.value)
   }
@@ -98,7 +121,14 @@ export const usePathDialog = (options = {}) => {
 
   const enterDirectory = async (name) => {
     if (!name) return
+    offset.value = 0
+    hasMore.value = false
     await load(joinPath(path.value, name))
+  }
+
+  const loadMore = async () => {
+    if (loading.value || !hasMore.value) return
+    await load(path.value, true)
   }
 
   const selectRow = (name) => {
@@ -131,12 +161,14 @@ export const usePathDialog = (options = {}) => {
     path,
     rows,
     loading,
+    hasMore,
     selectedName,
     selectedNames,
     atRoot,
     open,
     close,
     load,
+    loadMore,
     goUp,
     goRoot,
     jump,

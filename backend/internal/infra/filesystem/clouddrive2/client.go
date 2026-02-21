@@ -278,7 +278,7 @@ func (p *cloudDrive2Provider) BuildStrmInfo(ctx context.Context, req syncengine.
 	rawURL := fmt.Sprintf("%s://%s%s", scheme, host, cleanPath)
 
 	p.logger.Debug("CloudDrive2 BuildStrmInfo",
-		zap.String("remote_path", cleanPath),
+		zap.String("remote_file_path", cleanPath),
 		zap.String("scheme", scheme),
 		zap.String("raw_url", rawURL))
 

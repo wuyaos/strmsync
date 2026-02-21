@@ -3,22 +3,21 @@
 
 root = "."
 testdata_dir = "testdata"
-tmp_dir = "tests/.cache"
+tmp_dir = "build/air"
 
 [build]
   args_bin = []
   bin = "tests/.cache/strmsync"
-  cmd = "go -C backend build -o ../tests/.cache/strmsync ./cmd/server"
-  delay = 1000
+  cmd = "bash -c 'mkdir -p tests/.cache && go -C backend build -p $(nproc) -gcflags=\"all=-N -l\" -o ../tests/.cache/strmsync ./cmd/server'"
+  delay = 500
   exclude_dir = ["frontend", "tests/data", "tests/logs", "docs", "scripts", ".git"]
   exclude_file = []
   exclude_regex = ["_test.go"]
   exclude_unchanged = false
   follow_symlink = false
-  full_bin = "bash -c 'set -a && source /mnt/c/Users/wff19/Desktop/strm/tests/.env.test && set +a && exec /mnt/c/Users/wff19/Desktop/strm/tests/.cache/strmsync'"
   include_dir = ["backend"]
   include_ext = ["go", "tpl", "tmpl", "html"]
-  include_file = ["tests/.env.test"]
+  include_file = [".env", ".env.test"]
   kill_delay = "0s"
   log = "tests/logs/air.log"
   poll = false

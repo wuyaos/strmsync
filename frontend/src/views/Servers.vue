@@ -313,12 +313,14 @@ const handleTabChange = () => {
   loadServers()
 }
 
-const handleAdd = () => {
+const handleAdd = async () => {
+  await loadDataServerTypes(true)
   editingServer.value = null
   dialogVisible.value = true
 }
 
-const handleEdit = (row) => {
+const handleEdit = async (row) => {
+  await loadDataServerTypes(true)
   editingServer.value = row
   dialogVisible.value = true
 }
@@ -360,8 +362,8 @@ const handleTest = async (row) => {
 }
 
 // 加载数据服务器类型定义
-const loadDataServerTypes = async () => {
-  if (dataServerTypeDefs.value.length > 0) return
+const loadDataServerTypes = async (force = false) => {
+  if (!force && dataServerTypeDefs.value.length > 0) return
   try {
     const response = await getServerTypes({ category: 'data' })
     dataServerTypeDefs.value = response?.types || []

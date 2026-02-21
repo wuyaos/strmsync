@@ -139,7 +139,7 @@ func (e *Engine) RunOnce(ctx context.Context, remotePath string) (SyncStats, err
 	}
 
 	e.logger.Info("开始同步任务",
-		zap.String("remote_path", remotePath),
+		zap.String("remote_root", remotePath),
 		zap.String("output_root", e.opts.OutputRoot),
 		zap.Int("max_concurrency", e.opts.MaxConcurrency),
 		zap.Bool("dry_run", e.opts.DryRun))
@@ -442,10 +442,14 @@ func (e *Engine) RunIncremental(ctx context.Context, events []EngineEvent) (Sync
 
 // scanRemoteFiles 扫描远程文件列表
 func (e *Engine) scanRemoteFiles(ctx context.Context, remotePath string) ([]RemoteEntry, error) {
-	entries, err := e.driver.List(ctx, remotePath, ListOptions{
+	opt := ListOptions{
 		Recursive: true,
 		MaxDepth:  100, // 默认最大深度100层，避免无限递归
-	})
+	}
+	if e.opts.ListOverride != nil {
+		return e.opts.ListOverride(ctx, remotePath, opt)
+	}
+	entries, err := e.driver.List(ctx, remotePath, opt)
 	if err != nil {
 		return nil, err
 	}
@@ -729,7 +733,7 @@ func (e *Engine) processFile(ctx context.Context, entry RemoteEntry, stats *Sync
 	// 步骤3: Dry Run 模式 - 只统计，不实际写入
 	if e.opts.DryRun {
 		e.logger.Debug("Dry Run: 跳过写入",
-			zap.String("remote_path", entry.Path),
+			zap.String("remote_file_path", entry.Path),
 			zap.String("output_path", outputPath))
 		atomic.AddInt64(&stats.SkippedFiles, 1)
 		e.emitStrmEvent(ctx, StrmEvent{
@@ -798,6 +802,17 @@ func (e *Engine) processFile(ctx context.Context, entry RemoteEntry, stats *Sync
 					e.logger.Debug("内容不同，需要更新",
 						zap.String("path", outputPath),
 						zap.String("reason", "raw_diff"))
+				}
+			} else if strmInfo.BaseURL == nil && strings.TrimSpace(strmInfo.RawURL) != "" {
+				if strings.TrimSpace(existingContent) == strings.TrimSpace(strmInfo.RawURL) {
+					contentEqual = true
+					e.logger.Debug("内容相同",
+						zap.String("path", outputPath),
+						zap.String("reason", "raw_equal_local"))
+				} else {
+					e.logger.Debug("内容不同，需要更新",
+						zap.String("path", outputPath),
+						zap.String("reason", "raw_diff_local"))
 				}
 			} else {
 				// 比对内容
@@ -982,7 +997,7 @@ func (e *Engine) buildRemoteIndex(entries []RemoteEntry) (map[string]struct{}, e
 				firstErr = wrapped
 			}
 			e.logger.Warn("构建远端索引失败",
-				zap.String("remote_path", entry.Path),
+				zap.String("remote_file_path", entry.Path),
 				zap.Error(wrapped))
 			continue
 		}

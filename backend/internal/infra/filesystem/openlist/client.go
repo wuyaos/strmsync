@@ -178,7 +178,7 @@ func (p *openListProvider) BuildStrmInfo(ctx context.Context, req syncengine.Bui
 	rawURL := fmt.Sprintf("%s://%s%s", scheme, host, cleanPath)
 
 	p.logger.Debug("OpenList BuildStrmInfo",
-		zap.String("remote_path", cleanPath),
+		zap.String("remote_file_path", cleanPath),
 		zap.String("scheme", scheme),
 		zap.String("raw_url", rawURL))
 

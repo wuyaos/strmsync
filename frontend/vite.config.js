@@ -5,6 +5,9 @@ import { readFileSync } from 'fs'
 
 const versionFile = new URL('../VERSION', import.meta.url)
 const appVersion = readFileSync(versionFile, 'utf-8').trim() || 'unknown'
+const buildRoot = resolve(__dirname, '../build/vue')
+const frontendPort = Number(process.env.FRONTEND_PORT) || 7786
+const backendPort = process.env.VITE_BACKEND_PORT || '6786'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -26,9 +29,10 @@ export default defineConfig({
       }
     }
   },
+  cacheDir: resolve(buildRoot, '.vite'),
   build: {
-    // 输出到 dist/web_statics（与后端可执行文件同级）
-    outDir: '../dist/web_statics',
+    // 统一产物到 build/vue/dist
+    outDir: resolve(buildRoot, 'dist'),
     emptyOutDir: true,
     // 资源路径使用相对路径
     assetsDir: 'assets',
@@ -36,14 +40,14 @@ export default defineConfig({
     manifest: false
   },
   server: {
-    port: 5678,
+    port: frontendPort,
     proxy: {
       '/api': {
         // 支持环境变量配置后端端口（用于开发/测试环境切换）
-        target: process.env.VITE_BACKEND_PORT
-          ? `http://localhost:${process.env.VITE_BACKEND_PORT}`
-          : 'http://localhost:5677',
-        changeOrigin: true
+        target: `http://localhost:${backendPort}`,
+        changeOrigin: true,
+        timeout: 60000,
+        proxyTimeout: 60000
       }
     }
   }

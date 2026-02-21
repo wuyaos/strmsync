@@ -5,230 +5,239 @@
     width="680px"
     destroy-on-close
     :close-on-click-modal="false"
+    class="task-config-dialog"
   >
     <el-form
       ref="formRef"
       :model="formModel"
       :rules="formRules"
+      label-position="top"
       label-width="var(--form-label-width)"
     >
       <!-- 基础信息 -->
-      <el-divider content-position="left">基础信息</el-divider>
+      <el-card class="section-card" shadow="never">
+        <template #header>
+          <div class="section-title">基础信息</div>
+        </template>
+        <el-form-item label="服务器名称" prop="name">
+          <el-input
+            v-model="formData.name"
+            placeholder="例如：Emby"
+            clearable
+            @input="handleNameInput"
+          />
+        </el-form-item>
 
-      <el-form-item label="服务器名称" prop="name">
-        <el-input
-          v-model="formData.name"
-          placeholder="例如：Emby"
-          clearable
-          @input="handleNameInput"
-        />
-      </el-form-item>
-
-      <el-form-item label="服务器类型" prop="type">
-        <el-select
-          v-model="formData.type"
-          filterable
-          placeholder="选择服务器类型"
-          class="w-full"
-          @change="handleTypeChange"
-        >
-          <el-option
-            v-for="option in serverTypeOptions"
-            :key="option.value"
-            :label="option.label"
-            :value="option.value"
+        <el-form-item label="服务器类型" prop="type">
+          <el-select
+            v-model="formData.type"
+            filterable
+            placeholder="选择服务器类型"
+            class="w-full"
+            @change="handleTypeChange"
           >
-            <span>{{ option.label }}</span>
-            <span class="option-desc">
-              {{ option.description }}
-            </span>
-          </el-option>
-        </el-select>
-        <div v-if="serverTypeHint" class="type-hint">
-          <el-icon><InfoFilled /></el-icon>
-          {{ serverTypeHint }}
-        </div>
-      </el-form-item>
+            <el-option
+              v-for="option in serverTypeOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            >
+              <span>{{ option.label }}</span>
+              <span class="option-desc">
+                {{ option.description }}
+              </span>
+            </el-option>
+          </el-select>
+          <div v-if="serverTypeHint" class="type-hint">
+            <el-icon><InfoFilled /></el-icon>
+            {{ serverTypeHint }}
+          </div>
+        </el-form-item>
+      </el-card>
 
       <!-- 数据服务器：动态表单 -->
       <template v-if="isDataMode">
         <template v-if="activeTypeDef">
           <template v-for="section in activeTypeDef.sections" :key="section.id">
-            <el-divider content-position="left">{{ section.label }}</el-divider>
+            <el-card class="section-card" shadow="never">
+              <template #header>
+                <div class="section-title">{{ section.label }}</div>
+              </template>
 
-            <!-- 横向布局 (row) -->
-            <div v-if="section.layout === 'row'" class="form-row">
-              <el-row :gutter="12">
-                <el-col
+              <!-- 横向布局 (row) -->
+              <div v-if="section.layout === 'row'" class="form-row">
+                <el-row :gutter="12">
+                  <el-col
+                    v-for="field in getVisibleFields(section.fields)"
+                    :key="field.name"
+                    :span="field.col_span || 12"
+                  >
+                    <el-form-item
+                      v-if="field.type !== 'hidden'"
+                      :label="field.label"
+                      :prop="field.name"
+                    >
+                      <!-- 路径字段 -->
+                      <el-input
+                        v-if="isPathField(field)"
+                        v-model="dynamicModel[field.name]"
+                        :placeholder="field.placeholder"
+                        clearable
+                      >
+                        <template #suffix>
+                          <el-button link :icon="FolderOpened" @click="openPathDialog(field)" />
+                        </template>
+                      </el-input>
+                      <!-- 文本字段 -->
+                      <el-input
+                        v-else-if="isTextField(field)"
+                        v-model="dynamicModel[field.name]"
+                        :placeholder="field.placeholder"
+                        clearable
+                      />
+                      <!-- 密码字段 -->
+                      <el-input
+                        v-else-if="field.type === 'password'"
+                        v-model="dynamicModel[field.name]"
+                        type="password"
+                        show-password
+                        :placeholder="field.placeholder"
+                        clearable
+                      />
+                      <!-- 数字字段 -->
+                      <el-input
+                        v-else-if="field.type === 'number'"
+                        v-model.number="dynamicModel[field.name]"
+                        :placeholder="field.placeholder"
+                        type="number"
+                        :min="field.min ?? 1"
+                        :max="field.max ?? 65535"
+                        class="input-short"
+                      />
+                      <!-- 下拉选择 -->
+                      <el-select
+                        v-else-if="field.type === 'select'"
+                        v-model="dynamicModel[field.name]"
+                        placeholder="请选择"
+                        class="w-full"
+                      >
+                        <el-option
+                          v-for="option in field.options || []"
+                          :key="option.value"
+                          :label="option.label"
+                          :value="option.value"
+                        />
+                      </el-select>
+                      <!-- 单选按钮 -->
+                      <el-radio-group
+                        v-else-if="field.type === 'radio'"
+                        v-model="dynamicModel[field.name]"
+                      >
+                        <el-radio
+                          v-for="option in field.options || []"
+                          :key="option.value"
+                          :value="option.value"
+                        >
+                          {{ option.label }}
+                        </el-radio>
+                      </el-radio-group>
+                      <!-- 其他类型 -->
+                      <el-input
+                        v-else
+                        v-model="dynamicModel[field.name]"
+                        :placeholder="field.placeholder"
+                        clearable
+                      />
+                      <div v-if="field.help" class="field-hint">{{ field.help }}</div>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </div>
+
+              <!-- 纵向布局（默认） -->
+              <template v-else>
+                <el-form-item
                   v-for="field in getVisibleFields(section.fields)"
                   :key="field.name"
-                  :span="field.col_span || 12"
+                  v-show="field.type !== 'hidden'"
+                  :label="field.label"
+                  :prop="field.name"
                 >
-                  <el-form-item
-                    v-if="field.type !== 'hidden'"
-                    :label="field.label"
-                    :prop="field.name"
+                  <!-- 路径字段 -->
+                  <el-input
+                    v-if="isPathField(field)"
+                    v-model="dynamicModel[field.name]"
+                    :placeholder="field.placeholder"
+                    clearable
                   >
-                    <!-- 路径字段 -->
-                    <el-input
-                      v-if="isPathField(field)"
-                      v-model="dynamicModel[field.name]"
-                      :placeholder="field.placeholder"
-                      clearable
-                    >
-                      <template #suffix>
-                        <el-button link :icon="FolderOpened" @click="openPathDialog(field)" />
-                      </template>
-                    </el-input>
-                    <!-- 文本字段 -->
-                    <el-input
-                      v-else-if="isTextField(field)"
-                      v-model="dynamicModel[field.name]"
-                      :placeholder="field.placeholder"
-                      clearable
-                    />
-                    <!-- 密码字段 -->
-                    <el-input
-                      v-else-if="field.type === 'password'"
-                      v-model="dynamicModel[field.name]"
-                      type="password"
-                      show-password
-                      :placeholder="field.placeholder"
-                      clearable
-                    />
-                    <!-- 数字字段 -->
-                    <el-input
-                      v-else-if="field.type === 'number'"
-                      v-model.number="dynamicModel[field.name]"
-                      :placeholder="field.placeholder"
-                      type="number"
-                      :min="field.min ?? 1"
-                      :max="field.max ?? 65535"
-                      class="input-short"
-                    />
-                    <!-- 下拉选择 -->
-                    <el-select
-                      v-else-if="field.type === 'select'"
-                      v-model="dynamicModel[field.name]"
-                      placeholder="请选择"
-                      class="w-full"
-                    >
-                      <el-option
-                        v-for="option in field.options || []"
-                        :key="option.value"
-                        :label="option.label"
-                        :value="option.value"
-                      />
-                    </el-select>
-                    <!-- 单选按钮 -->
-                    <el-radio-group
-                      v-else-if="field.type === 'radio'"
-                      v-model="dynamicModel[field.name]"
-                    >
-                      <el-radio
-                        v-for="option in field.options || []"
-                        :key="option.value"
-                        :value="option.value"
-                      >
-                        {{ option.label }}
-                      </el-radio>
-                    </el-radio-group>
-                    <!-- 其他类型 -->
-                    <el-input
-                      v-else
-                      v-model="dynamicModel[field.name]"
-                      :placeholder="field.placeholder"
-                      clearable
-                    />
-                    <div v-if="field.help" class="field-hint">{{ field.help }}</div>
-                  </el-form-item>
-                </el-col>
-              </el-row>
-            </div>
-
-            <!-- 纵向布局（默认） -->
-            <template v-else>
-              <el-form-item
-                v-for="field in getVisibleFields(section.fields)"
-                :key="field.name"
-                v-show="field.type !== 'hidden'"
-                :label="field.label"
-                :prop="field.name"
-              >
-                <!-- 路径字段 -->
-                <el-input
-                  v-if="isPathField(field)"
-                  v-model="dynamicModel[field.name]"
-                  :placeholder="field.placeholder"
-                  clearable
-                >
-                  <template #suffix>
-                    <el-button link :icon="FolderOpened" @click="openPathDialog(field)" />
-                  </template>
-                </el-input>
-                <!-- 文本字段 -->
-                <el-input
-                  v-else-if="isTextField(field)"
-                  v-model="dynamicModel[field.name]"
-                  :placeholder="field.placeholder"
-                  clearable
-                />
-                <!-- 密码字段 -->
-                <el-input
-                  v-else-if="field.type === 'password'"
-                  v-model="dynamicModel[field.name]"
-                  type="password"
-                  show-password
-                  :placeholder="field.placeholder"
-                  clearable
-                />
-                <!-- 数字字段 -->
-                <el-input
-                  v-else-if="field.type === 'number'"
-                  v-model.number="dynamicModel[field.name]"
-                  :placeholder="field.placeholder"
-                  type="number"
-                  :min="field.min ?? 1"
-                  :max="field.max ?? 65535"
-                  class="input-short"
-                />
-                <!-- 下拉选择 -->
-                <el-select
-                  v-else-if="field.type === 'select'"
-                  v-model="dynamicModel[field.name]"
-                  placeholder="请选择"
-                  class="w-full"
-                >
-                  <el-option
-                    v-for="option in field.options || []"
-                    :key="option.value"
-                    :label="option.label"
-                    :value="option.value"
+                    <template #suffix>
+                      <el-button link :icon="FolderOpened" @click="openPathDialog(field)" />
+                    </template>
+                  </el-input>
+                  <!-- 文本字段 -->
+                  <el-input
+                    v-else-if="isTextField(field)"
+                    v-model="dynamicModel[field.name]"
+                    :placeholder="field.placeholder"
+                    clearable
                   />
-                </el-select>
-                <!-- 单选按钮 -->
-                <el-radio-group
-                  v-else-if="field.type === 'radio'"
-                  v-model="dynamicModel[field.name]"
-                >
-                  <el-radio
-                    v-for="option in field.options || []"
-                    :key="option.value"
-                    :value="option.value"
+                  <!-- 密码字段 -->
+                  <el-input
+                    v-else-if="field.type === 'password'"
+                    v-model="dynamicModel[field.name]"
+                    type="password"
+                    show-password
+                    :placeholder="field.placeholder"
+                    clearable
+                  />
+                  <!-- 数字字段 -->
+                  <el-input
+                    v-else-if="field.type === 'number'"
+                    v-model.number="dynamicModel[field.name]"
+                    :placeholder="field.placeholder"
+                    type="number"
+                    :min="field.min ?? 1"
+                    :max="field.max ?? 65535"
+                    class="input-short"
+                  />
+                  <!-- 下拉选择 -->
+                  <el-select
+                    v-else-if="field.type === 'select'"
+                    v-model="dynamicModel[field.name]"
+                    placeholder="请选择"
+                    class="w-full"
                   >
-                    {{ option.label }}
-                  </el-radio>
-                </el-radio-group>
-                <!-- 其他类型 -->
-                <el-input
-                  v-else
-                  v-model="dynamicModel[field.name]"
-                  :placeholder="field.placeholder"
-                  clearable
-                />
-                <div v-if="field.help" class="field-hint">{{ field.help }}</div>
-              </el-form-item>
-            </template>
+                    <el-option
+                      v-for="option in field.options || []"
+                      :key="option.value"
+                      :label="option.label"
+                      :value="option.value"
+                    />
+                  </el-select>
+                  <!-- 单选按钮 -->
+                  <el-radio-group
+                    v-else-if="field.type === 'radio'"
+                    v-model="dynamicModel[field.name]"
+                  >
+                    <el-radio
+                      v-for="option in field.options || []"
+                      :key="option.value"
+                      :value="option.value"
+                    >
+                      {{ option.label }}
+                    </el-radio>
+                  </el-radio-group>
+                  <!-- 其他类型 -->
+                  <el-input
+                    v-else
+                    v-model="dynamicModel[field.name]"
+                    :placeholder="field.placeholder"
+                    clearable
+                  />
+                  <div v-if="field.help" class="field-hint">{{ field.help }}</div>
+                </el-form-item>
+              </template>
+            </el-card>
           </template>
         </template>
         <el-alert
@@ -242,119 +251,125 @@
       <!-- 媒体服务器：静态表单 -->
       <template v-else>
         <!-- 连接信息 -->
-        <el-divider content-position="left">连接信息</el-divider>
+        <el-card class="section-card" shadow="never">
+          <template #header>
+            <div class="section-title">连接信息</div>
+          </template>
 
-        <div class="form-row">
-          <el-row :gutter="12">
-            <el-col :span="14">
-              <el-form-item label="主机地址" prop="host">
-                <el-input
-                  v-model="formData.host"
-                  :placeholder="hostPlaceholder"
-                  clearable
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="10">
-              <el-form-item label="端口号" prop="port">
-                <el-input
-                  v-model.number="formData.port"
-                  type="number"
-                  :min="1"
-                  :max="65535"
-                  :step="1"
-                  class="input-short"
-                />
-                <div class="field-hint">{{ portHint }}</div>
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </div>
+          <div class="form-row">
+            <el-row :gutter="12">
+              <el-col :span="14">
+                <el-form-item label="主机地址" prop="host">
+                  <el-input
+                    v-model="formData.host"
+                    :placeholder="hostPlaceholder"
+                    clearable
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="10">
+                <el-form-item label="端口号" prop="port">
+                  <el-input
+                    v-model.number="formData.port"
+                    type="number"
+                    :min="1"
+                    :max="65535"
+                    :step="1"
+                    class="input-short"
+                  />
+                  <div class="field-hint">{{ portHint }}</div>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
 
-        <!-- API 密钥（如需要） -->
-        <el-form-item v-if="needsApiKey" :label="apiKeyLabel" prop="api_key">
-          <el-input
-            v-model="formData.api_key"
-            type="password"
-            show-password
-            :placeholder="`请输入${apiKeyLabel}`"
-            clearable
-          />
-        </el-form-item>
+          <!-- API 密钥（如需要） -->
+          <el-form-item v-if="needsApiKey" :label="apiKeyLabel" prop="api_key">
+            <el-input
+              v-model="formData.api_key"
+              type="password"
+              show-password
+              :placeholder="`请输入${apiKeyLabel}`"
+              clearable
+            />
+          </el-form-item>
+        </el-card>
       </template>
 
       <!-- 启用状态（所有类型通用） -->
-      <el-form-item label="启用状态" prop="enabled">
-        <el-switch
-          v-model="formData.enabled"
-          active-text="启用"
-          inactive-text="禁用"
-        />
-      </el-form-item>
+      <el-card class="section-card" shadow="never">
+        <template #header>
+          <div class="section-title">状态配置</div>
+        </template>
+        <el-form-item label="启用状态" prop="enabled">
+          <el-switch
+            v-model="formData.enabled"
+            active-text="启用"
+            inactive-text="禁用"
+          />
+        </el-form-item>
+      </el-card>
 
-      <!-- 高级选项（QoS配置） -->
-      <el-divider v-if="showQoS" content-position="left">高级选项</el-divider>
-      <el-collapse v-if="showQoS">
-        <el-collapse-item title="QoS 配置（可选）" name="qos">
-          <el-row :gutter="12">
+      <!-- 高级选项（接口速率配置） -->
+      <el-card v-if="showRate" class="section-card" shadow="never">
+        <template #header>
+          <div class="section-title">高级选项</div>
+        </template>
+        <el-collapse>
+          <el-collapse-item title="接口速率配置（可选）" name="rate">
+            <el-row :gutter="12">
             <el-col :span="12">
-              <el-form-item label="请求超时(毫秒)">
+              <el-form-item label="下载队列每秒处理数量">
                 <el-input
-                  v-model.number="formData.request_timeout_ms"
+                  v-model.number="formData.download_rate_per_sec"
                   type="number"
-                  :min="1000"
-                  :max="120000"
+                  :min="0"
+                  :max="1000"
                   class="input-short"
                 />
+                <div class="field-hint">0 表示使用系统设置</div>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="连接超时(毫秒)">
+              <el-form-item label="接口速率(每秒请求数)">
                 <el-input
-                  v-model.number="formData.connect_timeout_ms"
+                  v-model.number="formData.api_rate"
                   type="number"
-                  :min="500"
-                  :max="60000"
+                  :min="0"
+                  :max="1000"
                   class="input-short"
                 />
+                <div class="field-hint">0 表示使用系统设置</div>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="重试次数">
+              <el-form-item label="接口重试次数">
                 <el-input
-                  v-model.number="formData.retry_max"
+                  v-model.number="formData.api_retry_max"
                   type="number"
                   :min="0"
                   :max="10"
                   class="input-short"
                 />
+                <div class="field-hint">0 表示使用系统设置</div>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="退避时间(毫秒)">
+              <el-form-item label="接口重试间隔(秒)">
                 <el-input
-                  v-model.number="formData.retry_backoff_ms"
+                  v-model.number="formData.api_retry_interval_sec"
                   type="number"
                   :min="0"
-                  :max="10000"
+                  :max="60"
                   class="input-short"
                 />
+                <div class="field-hint">0 表示使用系统设置</div>
               </el-form-item>
             </el-col>
-            <el-col :span="12">
-              <el-form-item label="最大并发">
-                <el-input
-                  v-model.number="formData.max_concurrent"
-                  type="number"
-                  :min="1"
-                  :max="1000"
-                  class="input-short"
-                />
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </el-collapse-item>
-      </el-collapse>
+            </el-row>
+          </el-collapse-item>
+        </el-collapse>
+      </el-card>
     </el-form>
 
     <template #footer>
@@ -414,6 +429,7 @@
     :loading="pathDlg.loading.value"
     :path="pathDlg.path.value"
     :rows="pathDlg.rows.value"
+    :has-more="pathDlg.hasMore.value"
     :selected-name="pathDlg.selectedName.value"
     :selected-names="pathDlg.selectedNames.value"
     :at-root="pathDlg.atRoot.value"
@@ -422,6 +438,7 @@
     @jump="pathDlg.jump"
     @enter="(name) => pathDlg.enterDirectory(name)"
     @select="handlePathSelect"
+    @load-more="pathDlg.loadMore"
     @confirm="handlePathConfirm"
   />
 </template>
@@ -472,12 +489,11 @@ const formData = reactive({
   api_key: '',
   options: '{}',
   enabled: true,
-  // QoS 配置（默认值）
-  request_timeout_ms: 30000,
-  connect_timeout_ms: 10000,
-  retry_max: 3,
-  retry_backoff_ms: 1000,
-  max_concurrent: 10
+  // 高级配置（默认值，0 表示使用系统设置）
+  download_rate_per_sec: 0,
+  api_rate: 0,
+  api_retry_max: 0,
+  api_retry_interval_sec: 0
 })
 
 // 动态表单字段模型
@@ -514,10 +530,64 @@ const serverTypeOptions = computed(() =>
 
 const dialogTitle = computed(() => (isEdit.value ? '编辑服务器' : '新增服务器'))
 
+const buildRemoteRootField = () => ({
+  name: 'remote_root',
+  type: 'path',
+  label: '远程根目录',
+  placeholder: '/',
+  help: '远程 API 的根路径（用于获取文件列表/信息）',
+  required: false,
+  default: '/'
+})
+
+const ensureRemoteRootField = (typeDef) => {
+  if (!typeDef) return typeDef
+  const type = String(typeDef.type || '').toLowerCase()
+  if (type !== 'clouddrive2' && type !== 'openlist') return typeDef
+  const sections = Array.isArray(typeDef.sections) ? typeDef.sections : []
+  let hasField = false
+  for (const section of sections) {
+    for (const field of section.fields || []) {
+      if (field?.name === 'remote_root') {
+        hasField = true
+        break
+      }
+    }
+    if (hasField) break
+  }
+  if (hasField) return typeDef
+
+  const nextSections = sections.map((section) => {
+    if (section.id !== 'paths') return section
+    return {
+      ...section,
+      fields: [...(section.fields || []), buildRemoteRootField()]
+    }
+  })
+  const hasPaths = sections.some((section) => section.id === 'paths')
+  if (!hasPaths) {
+    nextSections.push({
+      id: 'paths',
+      label: '路径配置',
+      fields: [buildRemoteRootField()]
+    })
+  }
+
+  return {
+    ...typeDef,
+    sections: nextSections,
+    storage: {
+      ...(typeDef.storage || {}),
+      remote_root: 'options'
+    }
+  }
+}
+
 // 当前选择的数据服务器类型定义（用于动态表单）
 const activeTypeDef = computed(() => {
   if (props.mode !== 'data' || !formData.type) return null
-  return props.dataTypeDefs.find((def) => def.type === formData.type) || null
+  const def = props.dataTypeDefs.find((item) => item.type === formData.type) || null
+  return ensureRemoteRootField(def)
 })
 
 // 当前选择的服务器类型配置（媒体服务器使用）
@@ -557,8 +627,8 @@ const canTest = computed(() => {
   return formData.type !== 'local'
 })
 
-// 是否显示 QoS 配置（仅数据服务器的 cd2 和 openlist 类型）
-const showQoS = computed(() =>
+// 是否显示接口速率配置（仅数据服务器的 cd2 和 openlist 类型）
+const showRate = computed(() =>
   props.mode === 'data' && ['clouddrive2', 'openlist'].includes(formData.type)
 )
 
@@ -647,12 +717,11 @@ const resetForm = () => {
   formData.api_key = ''
   formData.options = '{}'
   formData.enabled = true
-  // QoS 默认值
-  formData.request_timeout_ms = 30000
-  formData.connect_timeout_ms = 10000
-  formData.retry_max = 3
-  formData.retry_backoff_ms = 1000
-  formData.max_concurrent = 10
+  // 高级配置默认值
+  formData.download_rate_per_sec = 0
+  formData.api_rate = 0
+  formData.api_retry_max = 0
+  formData.api_retry_interval_sec = 0
   autoNameActive.value = true
   testStatus.value = 'idle'
   resetDynamicModel()
@@ -791,12 +860,11 @@ const buildPayload = () => {
     name: formData.name,
     type: formData.type,
     enabled: formData.enabled,
-    // QoS 字段
-    request_timeout_ms: formData.request_timeout_ms,
-    connect_timeout_ms: formData.connect_timeout_ms,
-    retry_max: formData.retry_max,
-    retry_backoff_ms: formData.retry_backoff_ms,
-    max_concurrent: formData.max_concurrent
+    // 高级配置字段
+    download_rate_per_sec: formData.download_rate_per_sec,
+    api_rate: formData.api_rate,
+    api_retry_max: formData.api_retry_max,
+    api_retry_interval_sec: formData.api_retry_interval_sec
   }
 
   const typeDef = activeTypeDef.value
@@ -840,12 +908,11 @@ const buildMediaPayload = () => ({
   api_key: formData.api_key,
   options: formData.options,
   enabled: formData.enabled,
-  // QoS 字段
-  request_timeout_ms: formData.request_timeout_ms,
-  connect_timeout_ms: formData.connect_timeout_ms,
-  retry_max: formData.retry_max,
-  retry_backoff_ms: formData.retry_backoff_ms,
-  max_concurrent: formData.max_concurrent
+  // 高级配置字段
+  download_rate_per_sec: formData.download_rate_per_sec,
+  api_rate: formData.api_rate,
+  api_retry_max: formData.api_retry_max,
+  api_retry_interval_sec: formData.api_retry_interval_sec
 })
 
 // 构建动态验证规则
@@ -932,12 +999,11 @@ const prepareEdit = (row) => {
       ? JSON.stringify(row.options, null, 2)
       : row.options || '{}'
   formData.enabled = row.enabled !== false
-  // QoS 字段加载（使用 ?? 提供默认值）
-  formData.request_timeout_ms = row.request_timeout_ms ?? 30000
-  formData.connect_timeout_ms = row.connect_timeout_ms ?? 10000
-  formData.retry_max = row.retry_max ?? 3
-  formData.retry_backoff_ms = row.retry_backoff_ms ?? 1000
-  formData.max_concurrent = row.max_concurrent ?? 10
+  // 高级配置字段加载（使用 ?? 提供默认值）
+  formData.download_rate_per_sec = row.download_rate_per_sec ?? 0
+  formData.api_rate = row.api_rate ?? 0
+  formData.api_retry_max = row.api_retry_max ?? 0
+  formData.api_retry_interval_sec = row.api_retry_interval_sec ?? 0
   // 数据服务器：确保类型定义已加载，然后回填动态字段
   if (props.mode === 'data' && props.dataTypeDefs.length > 0) {
     hydrateDynamicModel(row)
@@ -1036,7 +1102,12 @@ const handleSave = async () => {
 }
 
 const pathDlg = usePathDialog({
-  loader: (path) => listDirectories({ path, mode: 'local' }),
+  loader: (payload) => listDirectories({
+    path: payload?.path,
+    limit: payload?.limit,
+    offset: payload?.offset,
+    mode: 'local'
+  }),
   onError: () => ElMessage.error('加载目录失败')
 })
 const pathDialogField = ref(null)
@@ -1082,79 +1153,102 @@ watch(() => props.dataTypeDefs, (defs) => {
 </script>
 
 <style scoped lang="scss">
-.option-desc {
-  float: right;
-  color: var(--el-text-color-secondary);
-  font-size: 13px;
-  margin-left: 15px;
-}
-
-// 表单提示样式
-.type-hint {
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--el-color-info);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-
-  .el-icon {
-    font-size: 14px;
-  }
-}
-
-.field-hint {
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-// 动态表单横向布局
-.form-row {
-  width: 100%;
-}
-
-// 对话框底部按钮组
-.dialog-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  .dialog-footer-left {
-    flex: 0 0 auto;
+.task-config-dialog {
+  .section-card {
+    margin-bottom: 16px;
+    border-color: var(--el-border-color-lighter);
   }
 
-  .dialog-footer-actions {
-    flex: 1;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 12px;
-  }
-}
-
-// 测试状态显示
-.test-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  padding: 0 8px;
-
-  .el-icon {
+  .section-title {
     font-size: 16px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
   }
 
-  &.test-status--running {
-    color: var(--el-color-primary);
+  .option-desc {
+    float: right;
+    color: var(--el-text-color-secondary);
+    font-size: 13px;
+    margin-left: 15px;
   }
 
-  &.test-status--success {
-    color: var(--el-color-success);
+  // 表单提示样式
+  .type-hint {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--el-color-info);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .el-icon {
+      font-size: 14px;
+    }
   }
 
-  &.test-status--error {
-    color: var(--el-color-danger);
+  .field-hint {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+
+  // 动态表单横向布局
+  .form-row {
+    width: 100%;
+  }
+
+  // 对话框底部按钮组
+  .dialog-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .dialog-footer-left {
+      flex: 0 0 auto;
+    }
+
+    .dialog-footer-actions {
+      flex: 1;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 12px;
+    }
+  }
+
+  // 测试状态显示
+  .test-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    padding: 0 8px;
+
+    .el-icon {
+      font-size: 16px;
+    }
+
+    &.test-status--running {
+      color: var(--el-color-primary);
+    }
+
+    &.test-status--success {
+      color: var(--el-color-success);
+    }
+
+    &.test-status--error {
+      color: var(--el-color-danger);
+    }
+  }
+
+  :deep(.el-form-item__label) {
+    font-size: 14px;
+    color: var(--el-text-color-regular);
+    font-weight: 500;
+  }
+
+  :deep(.el-form-item) {
+    margin-bottom: 16px;
   }
 }
 

@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -36,11 +37,25 @@ func NewFileHandler(db *gorm.DB, logger *zap.Logger) *FileHandler {
 // ListDirectories 列出指定路径下的目录
 func (h *FileHandler) ListDirectories(c *gin.Context) {
 	path := c.Query("path")
-	mode := c.Query("mode")       // local/api
-	apiType := c.Query("type")    // clouddrive2/openlist
+	mode := c.Query("mode")    // local/api
+	apiType := c.Query("type") // clouddrive2/openlist
 	host := c.Query("host")
 	port := c.Query("port")
 	apiKey := c.Query("apiKey")
+	limitStr := c.Query("limit")
+	offsetStr := c.Query("offset")
+	limit := 0
+	offset := 0
+	if strings.TrimSpace(limitStr) != "" {
+		if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 {
+			limit = parsed
+		}
+	}
+	if strings.TrimSpace(offsetStr) != "" {
+		if parsed, err := strconv.Atoi(offsetStr); err == nil && parsed > 0 {
+			offset = parsed
+		}
+	}
 
 	if path == "" {
 		path = "/"
@@ -58,36 +73,68 @@ func (h *FileHandler) ListDirectories(c *gin.Context) {
 	}
 
 	// 默认使用本地文件系统
-	h.listLocalDirectories(c, path)
+	h.listLocalDirectories(c, path, limit, offset)
 }
 
 // listLocalDirectories 列出本地文件系统的目录
-func (h *FileHandler) listLocalDirectories(c *gin.Context, path string) {
-	// 读取目录内容
-	entries, err := os.ReadDir(path)
+func (h *FileHandler) listLocalDirectories(c *gin.Context, path string, limit int, offset int) {
+	dir, err := os.Open(path)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "无法读取目录: " + err.Error()})
 		return
 	}
+	defer dir.Close()
 
-	// 筛选出目录
 	var directories []string
-	for _, entry := range entries {
-		if entry.IsDir() {
-			// 跳过隐藏目录
+	batch := 256
+	seen := 0
+	truncated := false
+
+	for {
+		entries, readErr := dir.ReadDir(batch)
+		if readErr != nil && !errors.Is(readErr, io.EOF) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "无法读取目录: " + readErr.Error()})
+			return
+		}
+
+		for _, entry := range entries {
+			isDir := entry.Type().IsDir()
+			if !isDir && entry.Type() == 0 {
+				isDir = entry.IsDir()
+			}
+			if !isDir {
+				continue
+			}
 			if len(entry.Name()) > 0 && entry.Name()[0] == '.' {
 				continue
 			}
+			if seen < offset {
+				seen++
+				continue
+			}
+			seen++
 			directories = append(directories, entry.Name())
+			if limit > 0 && len(directories) >= limit {
+				truncated = true
+				break
+			}
+		}
+
+		if truncated || errors.Is(readErr, io.EOF) || len(entries) == 0 {
+			break
 		}
 	}
 
-	// 排序
-	sort.Strings(directories)
+	if limit == 0 && offset == 0 {
+		sort.Strings(directories)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"path":        path,
 		"directories": directories,
+		"truncated":   truncated,
+		"offset":      offset,
+		"limit":       limit,
 	})
 }
 

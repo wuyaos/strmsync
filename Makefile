@@ -18,7 +18,18 @@ FRONTEND_DIR := frontend
 BACKEND_DIR := backend
 DIST_DIR := dist
 WEB_STATICS_DIR := $(DIST_DIR)/web_statics
+BUILD_DIR := build
+GO_BUILD_DIR := $(BUILD_DIR)/go
+GO_BIN_DIR := $(GO_BUILD_DIR)/bin
+GO_CACHE_DIR := $(GO_BUILD_DIR)/cache
+GO_MOD_CACHE_DIR := $(GO_BUILD_DIR)/mod
+GO_TMP_DIR := $(GO_BUILD_DIR)/tmp
+VUE_BUILD_DIR := $(BUILD_DIR)/vue
+VUE_CACHE_DIR := $(VUE_BUILD_DIR)/.vite
+NPM_CACHE_DIR := $(VUE_BUILD_DIR)/npm-cache
+AIR_TMP_DIR := $(BUILD_DIR)/air
 ENV_FILE := .env
+ENV_TEST_FILE := .env.test
 ENV_TEMPLATE_FILE := .env.example
 START_SCRIPT := scripts/prod-start.sh
 DIST_ENV_FILE := $(DIST_DIR)/.env
@@ -26,7 +37,8 @@ DIST_ENV_TEMPLATE_FILE := $(DIST_DIR)/.env.example
 DIST_START_SCRIPT := $(DIST_DIR)/prod-start.sh
 
 # Go 构建参数
-GO_BUILD_FLAGS := -ldflags "-s -w -X 'main.appVersion=$(VERSION)' -X 'main.buildTime=$(BUILD_TIME)' -X 'main.gitCommit=$(GIT_COMMIT)'"
+# 生产环境：去除调试信息、符号表，启用所有优化
+GO_BUILD_FLAGS := -ldflags "-s -w -X 'main.appVersion=$(VERSION)' -X 'main.buildTime=$(BUILD_TIME)' -X 'main.gitCommit=$(GIT_COMMIT)'" -trimpath
 GO_BUILD_OUTPUT := $(DIST_DIR)/$(APP_NAME)
 RUN_DIR := $(dir $(GO_BUILD_OUTPUT))
 RUN_BIN := $(notdir $(GO_BUILD_OUTPUT))
@@ -35,9 +47,16 @@ RUN_BIN := $(notdir $(GO_BUILD_OUTPUT))
 PLATFORMS := linux windows darwin
 ARCHS := amd64 arm64
 
-# 端口配置
-BACKEND_PORT := 5677
-FRONTEND_PORT := 5678
+# 读取环境变量（支持 .env 与 .env.test）
+-include $(ENV_FILE)
+-include $(ENV_TEST_FILE)
+export
+
+# 兼容变量映射（不写死端口）
+VITE_BACKEND_PORT ?= $(PORT)
+FRONTEND_PORT ?= 7786
+GO_ENV := GOMODCACHE="$(GO_MOD_CACHE_DIR)" GOCACHE="$(GO_CACHE_DIR)" GOTMPDIR="$(GO_TMP_DIR)"
+NPM_ENV := NPM_CONFIG_CACHE="$(NPM_CACHE_DIR)"
 
 # ==================== 帮助信息 ====================
 
@@ -48,14 +67,12 @@ help:
 	@echo "使用方法: make [target]"
 	@echo ""
 	@echo "开发目标:"
-	@echo "  dev              启动开发环境（前后端同时运行）"
-	@echo "  dev-frontend     仅启动前端开发服务器"
-	@echo "  dev-backend      仅启动后端开发服务器"
+	@echo "  dev              一键启动开发环境（前后端，保留缓存）"
 	@echo ""
 	@echo "构建目标:"
 	@echo "  build            完整构建（前端+后端）到 dist/"
 	@echo "  frontend         仅构建前端到 dist/web_statics/"
-	@echo "  backend          仅构建后端到 dist/"
+	@echo "  backend          仅构建后端到 dist/ (优化体积)"
 	@echo "  install-deps     安装所有依赖"
 	@echo ""
 	@echo "发布目标:"
@@ -63,6 +80,8 @@ help:
 	@echo ""
 	@echo "维护目标:"
 	@echo "  clean            清理构建产物"
+	@echo "  clean-all        清理构建产物和开发缓存"
+	@echo "  free-ports       释放开发端口"
 	@echo "  test             运行测试"
 	@echo "  run              运行构建后的程序"
 	@echo ""
@@ -73,9 +92,9 @@ help:
 ## install-deps: 安装前后端依赖
 install-deps:
 	@echo "==> 安装前端依赖..."
-	cd $(FRONTEND_DIR) && npm install
+	cd $(FRONTEND_DIR) && $(NPM_ENV) npm install
 	@echo "==> 安装后端依赖..."
-	cd $(BACKEND_DIR) && go mod download
+	cd $(BACKEND_DIR) && $(GO_ENV) go mod download
 	@echo "✓ 依赖安装完成"
 
 # ==================== 前端构建 ====================
@@ -85,10 +104,12 @@ frontend:
 	@echo "==> 构建前端 ($(VERSION))..."
 	@if [ ! -d "$(FRONTEND_DIR)/node_modules" ]; then \
 		echo "前端依赖未安装，正在安装..."; \
-		cd $(FRONTEND_DIR) && npm install; \
+		cd $(FRONTEND_DIR) && $(NPM_ENV) npm install; \
 	fi
 	@rm -rf $(WEB_STATICS_DIR)
-	cd $(FRONTEND_DIR) && npm run build
+	cd $(FRONTEND_DIR) && $(NPM_ENV) npm run build
+	@mkdir -p "$(WEB_STATICS_DIR)"
+	@cp -r "$(VUE_BUILD_DIR)/dist/." "$(WEB_STATICS_DIR)/"
 	@echo "✓ 前端构建完成: $(WEB_STATICS_DIR)/"
 
 # ==================== 后端构建 ====================
@@ -97,8 +118,9 @@ frontend:
 backend:
 	@echo "==> 构建后端 ($(VERSION))..."
 	@mkdir -p $(DIST_DIR)
-	cd $(BACKEND_DIR) && go build $(GO_BUILD_FLAGS) -o ../$(GO_BUILD_OUTPUT) ./cmd/server
+	cd $(BACKEND_DIR) && $(GO_ENV) CGO_ENABLED=1 go build -p $(shell nproc) $(GO_BUILD_FLAGS) -o ../$(GO_BUILD_OUTPUT) ./cmd/server
 	@echo "✓ 后端构建完成: $(GO_BUILD_OUTPUT)"
+	@ls -lh $(GO_BUILD_OUTPUT)
 
 # ==================== 完整构建 ====================
 
@@ -140,33 +162,17 @@ prepare-dist:
 
 # ==================== 开发环境 ====================
 
-## dev-frontend: 启动前端开发服务器
-dev-frontend:
-	@echo "==> 启动前端开发服务器 (http://localhost:$(FRONTEND_PORT))..."
-	cd $(FRONTEND_DIR) && VITE_BACKEND_PORT=$(BACKEND_PORT) npm run dev
-
-## dev-backend: 启动后端开发服务器
-dev-backend:
-	@echo "==> 启动后端开发服务器 (http://localhost:$(BACKEND_PORT))..."
-	@if command -v air > /dev/null; then \
-		air -c .air.toml; \
-	else \
-		echo "Air 未安装，使用 go run..."; \
-		@bash -lc "set -a; if [ -f \"tests/.env.test\" ]; then . \"tests/.env.test\"; fi; set +a; exec go -C \"$(BACKEND_DIR)\" run ./cmd/server"; \
-	fi
-
-## dev: 启动完整开发环境
+## dev: 一键启动开发环境（缓存集中到 build/）
 dev:
-	@echo "==> 启动开发环境（前后端并行）"
-	@echo "提示: 使用 Ctrl+C 停止两个进程"
-	@$(MAKE) -j 2 dev-backend dev-frontend
+	@echo "==> 一键启动开发环境..."
+	@bash "./scripts/dev.sh"
 
 # ==================== 测试 ====================
 
 ## test: 运行测试
 test:
 	@echo "==> 运行后端测试..."
-	cd $(BACKEND_DIR) && go test -v -race -coverprofile=coverage.out ./...
+	cd $(BACKEND_DIR) && $(GO_ENV) go test -v -race -coverprofile=coverage.out ./...
 	@echo "==> 运行前端测试..."
 	@if [ -f "$(FRONTEND_DIR)/package.json" ] && grep -q '"test"' $(FRONTEND_DIR)/package.json; then \
 		cd $(FRONTEND_DIR) && npm run test; \
@@ -188,11 +194,11 @@ clean:
 ## clean-all: 清理开发缓存并释放端口（不清理依赖）
 clean-all: clean
 	@echo "==> 清理开发缓存..."
-	rm -rf tests/.cache
-	rm -rf $(BACKEND_DIR)/tmp
+	rm -rf "$(BUILD_DIR)"
+	rm -rf "$(BACKEND_DIR)/tmp"
 	@echo "==> 释放开发端口..."
 	@-if command -v lsof > /dev/null; then \
-		lsof -nP -t -iTCP:$(BACKEND_PORT) -sTCP:LISTEN | xargs -r kill -9; \
+		lsof -nP -t -iTCP:$(PORT) -sTCP:LISTEN | xargs -r kill -9; \
 		lsof -nP -t -iTCP:$(FRONTEND_PORT) -sTCP:LISTEN | xargs -r kill -9; \
 	fi
 	@echo "✓ 清理完成"
@@ -201,7 +207,7 @@ clean-all: clean
 free-ports:
 	@echo "==> 释放开发端口..."
 	@-if command -v lsof > /dev/null; then \
-		lsof -nP -t -iTCP:$(BACKEND_PORT) -sTCP:LISTEN | xargs -r kill -9; \
+		lsof -nP -t -iTCP:$(PORT) -sTCP:LISTEN | xargs -r kill -9; \
 		lsof -nP -t -iTCP:$(FRONTEND_PORT) -sTCP:LISTEN | xargs -r kill -9; \
 	fi
 	@echo "✓ 端口释放完成"
@@ -221,6 +227,7 @@ release: clean
 	# 构建各平台后端
 	@echo ""
 	@echo "[2/3] 构建多平台后端..."
+	@echo "⚠️  注意：跨平台编译禁用 CGO，sqlite3 将使用纯 Go 实现（性能略低）"
 	@for platform in $(PLATFORMS); do \
 		for arch in $(ARCHS); do \
 			echo ""; \
@@ -234,7 +241,7 @@ release: clean
 			mkdir -p "$$release_dir"; \
 			\
 			GOOS=$$platform GOARCH=$$arch CGO_ENABLED=0 \
-				cd $(BACKEND_DIR) && go build $(GO_BUILD_FLAGS) \
+				cd $(BACKEND_DIR) && go build -p $(shell nproc) $(GO_BUILD_FLAGS) \
 				-o "../$$release_dir/$${output_name}" \
 				./cmd/server; \
 			\
@@ -242,7 +249,8 @@ release: clean
 			cp VERSION "$$release_dir/" 2>/dev/null || true; \
 			cp README.md "$$release_dir/" 2>/dev/null || true; \
 			\
-			echo "✓ $$platform/$$arch 构建完成"; \
+			size=$$(ls -lh "$$release_dir/$${output_name}" | awk '{print $$5}'); \
+			echo "✓ $$platform/$$arch 构建完成 ($$size)"; \
 		done; \
 	done
 

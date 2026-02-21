@@ -496,34 +496,45 @@ func setupRouter(db *gorm.DB, logDir string, scheduler httphandlers.JobScheduler
 	return router
 }
 
-// loadDotEnv 尝试加载 .env 文件（按优先级查找）
+// loadDotEnv 尝试加载 .env 与 .env.test（测试覆盖开发）
 func loadDotEnv() {
-	// 查找候选路径（优先级从高到低）
-	candidates := []string{
-		".env",               // 当前工作目录
-		"../.env",            // 父目录（开发环境）
-		"../../.env",         // 祖父目录
-		"/app/.env",          // Docker 容器标准路径
-		"/etc/strmsync/.env", // 系统级配置路径
+	baseCandidates := []string{
+		".env",
+		"../.env",
+		"../../.env",
+		"/app/.env",
+		"/etc/strmsync/.env",
+	}
+	testCandidates := []string{
+		".env.test",
+		"../.env.test",
+		"../../.env.test",
+		"/app/.env.test",
+		"/etc/strmsync/.env.test",
 	}
 
 	// 如果可执行文件路径可获取，添加可执行文件同级目录
 	if execPath, err := os.Executable(); err == nil {
 		execDir := filepath.Dir(execPath)
-		candidates = append([]string{filepath.Join(execDir, ".env")}, candidates...)
+		baseCandidates = append([]string{filepath.Join(execDir, ".env")}, baseCandidates...)
+		testCandidates = append([]string{filepath.Join(execDir, ".env.test")}, testCandidates...)
 	}
 
-	// 尝试加载第一个存在的 .env 文件
-	for _, path := range candidates {
+	// 加载第一个存在的 .env
+	for _, path := range baseCandidates {
 		if _, err := os.Stat(path); err == nil {
-			if err := godotenv.Load(path); err == nil {
-				// 成功加载，静默返回（避免日志污染）
-				return
-			}
+			_ = godotenv.Load(path)
+			break
 		}
 	}
 
-	// 未找到 .env 文件，静默继续（使用系统环境变量）
+	// 加载第一个存在的 .env.test（覆盖 .env）
+	for _, path := range testCandidates {
+		if _, err := os.Stat(path); err == nil {
+			_ = godotenv.Overload(path)
+			break
+		}
+	}
 }
 
 const (

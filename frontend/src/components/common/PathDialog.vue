@@ -61,6 +61,9 @@
             根目录
           </el-button>
         </div>
+        <el-button v-if="hasMore" :loading="loading" @click="emit('load-more')">
+          加载更多
+        </el-button>
         <el-button type="primary" @click="emit('confirm')">确认</el-button>
       </div>
     </div>
@@ -79,6 +82,7 @@ const props = defineProps({
   path: { type: String, default: '/' },
   rows: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
+  hasMore: { type: Boolean, default: false },
   selectedName: { type: String, default: '' },
   selectedNames: { type: Array, default: () => [] },
   atRoot: { type: Boolean, default: false }
@@ -92,6 +96,7 @@ const emit = defineEmits([
   'toggle',
   'enter',
   'jump',
+  'load-more',
   'confirm'
 ])
 

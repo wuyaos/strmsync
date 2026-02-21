@@ -81,19 +81,34 @@
             <span class="path-summary-label">挂载目录：</span>
             <span class="path-summary-value">{{ mountPathText }}</span>
           </div>
+          <div>
+            <span class="path-summary-label">远程根目录：</span>
+            <span class="path-summary-value">{{ remoteRootText }}</span>
+          </div>
         </div>
         <el-row :gutter="20" class="section-row">
           <el-col :xs="24" :md="12">
             <el-form-item label="媒体目录" prop="media_dir">
-              <el-input v-model="mediaDirProxy" placeholder="movies">
+              <el-input v-model="mediaDirProxy" placeholder="movies" :disabled="mediaDirDisabled">
                 <template #suffix>
-                  <el-button link :icon="FolderOpened" @click="openPath('media_dir')" />
+                  <el-button link :icon="FolderOpened" :disabled="mediaDirDisabled" @click="openPath('media_dir')" />
                 </template>
               </el-input>
               <div class="help-text">
+                <span v-if="mediaDirDisabled">请先选择数据服务器。</span>
                 <el-icon v-if="showMediaDirWarning" class="warning-icon"><WarningFilled /></el-icon>
                 默认为数据服务器的访问目录的根目录，当 OpenList 访问目录不存在时，将使用远程目录
               </div>
+            </el-form-item>
+          </el-col>
+          <el-col v-if="currentServerHasApi" :xs="24" :md="12">
+            <el-form-item label="远程根目录" prop="remote_root">
+              <el-input v-model="formData.remote_root" placeholder="/">
+                <template #suffix>
+                  <el-button link :icon="FolderOpened" @click="openPath('remote_root', { forceApi: true })" />
+                </template>
+              </el-input>
+              <div class="help-text">用于 CD2/OpenList 的远程 API 根路径</div>
             </el-form-item>
           </el-col>
           <el-col :xs="24" :md="12">
@@ -159,6 +174,15 @@
             <div class="help-text">{{ item.help }}</div>
           </div>
         </div>
+        <el-form-item v-if="currentServerHasApi" label="远程列表优先">
+          <div class="switch-row">
+            <el-switch v-model="formData.prefer_remote_list" :disabled="forceRemoteOnly" />
+            <span class="help-text">
+              优先使用远程 API 获取文件列表（更快），本地默认关闭
+              <span v-if="forceRemoteOnly">（OpenList 未配置访问目录时强制开启）</span>
+            </span>
+          </div>
+        </el-form-item>
 
         <div class="subsection-title">元数据选项</div>
         <div class="help-text">三选一：更新时会比对，相同跳过，不同/缺失则更新</div>
@@ -173,8 +197,9 @@
           <el-col :xs="24" :md="12">
             <el-form-item label="元数据模式" class="inline-field">
               <el-radio-group v-model="formData.metadata_mode">
-                <el-radio label="copy">复制文件</el-radio>
+                <el-radio label="copy" :disabled="forceRemoteOnly">复制文件</el-radio>
                 <el-radio label="download">下载文件</el-radio>
+                <el-radio label="none" :disabled="forceRemoteOnly">不处理</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
@@ -193,15 +218,18 @@
         </template>
         <el-form-item label="STRM 模式">
           <el-radio-group v-model="formData.strm_mode" :disabled="!currentServerSupportsUrl">
-            <el-radio label="local">本地路径</el-radio>
+            <el-radio label="local" :disabled="forceRemoteOnly">本地路径</el-radio>
             <el-radio label="url">远程 URL</el-radio>
           </el-radio-group>
           <div v-if="!currentServerSupportsUrl" class="warning-text">
             <el-icon class="warning-icon"><WarningFilled /></el-icon>
             当前数据服务器不支持 URL 访问模式
           </div>
+          <div v-else-if="forceRemoteOnly" class="warning-text">
+            <el-icon class="warning-icon"><WarningFilled /></el-icon>
+            OpenList 未配置访问目录时仅支持远程 URL
+          </div>
         </el-form-item>
-
         <el-row :gutter="20" class="section-row">
           <el-col :xs="24" :md="12">
             <el-form-item>
@@ -314,8 +342,11 @@ const props = defineProps({
   currentServerHasApi: { type: Boolean, default: false },
   currentServerSupportsUrl: { type: Boolean, default: false },
   showMediaDirWarning: { type: Boolean, default: false },
+  forceRemoteOnly: { type: Boolean, default: false },
+  mediaDirDisabled: { type: Boolean, default: false },
   dataServerAccessPath: { type: String, default: '' },
-  dataServerMountPath: { type: String, default: '' }
+  dataServerMountPath: { type: String, default: '' },
+  dataServerRemoteRoot: { type: String, default: '' }
 })
 
 const emit = defineEmits([
@@ -361,12 +392,18 @@ const accessPathRoot = computed(() => {
 
 const accessPathText = computed(() => {
   const raw = String(props.dataServerAccessPath || '').trim()
-  if (!raw) return 'REMOTE_ROOT'
+  if (!raw) return '未设置'
   return normalizePath(raw)
 })
 
 const mountPathText = computed(() => {
   const raw = String(props.dataServerMountPath || '').trim()
+  if (!raw) return '未设置'
+  return normalizePath(raw)
+})
+
+const remoteRootText = computed(() => {
+  const raw = String(props.formData.remote_root || props.dataServerRemoteRoot || '').trim()
   if (!raw) return '未设置'
   return normalizePath(raw)
 })
@@ -467,7 +504,7 @@ const cleanupOptions = [
 
 const syncOptionGroups = {
   general: [
-    { value: 'full_resync', label: '全量同步', help: '不管之前是否同步过，重新扫描并同步全部内容' },
+    { value: 'full_resync', label: '全量同步', help: '不管之前是否同步过，重新扫描并同步全部内容（会覆盖 STRM）' },
     { value: 'full_update', label: '更新同步', help: '仅对新增条目执行同步/更新' }
   ],
   meta: [

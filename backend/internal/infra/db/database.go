@@ -93,11 +93,85 @@ func InitWithConfig(dbPath string, logCfg *LogConfig) error {
 		// 迁移失败时给出友好提示，可能是数据重复导致
 		return fmt.Errorf("自动迁移失败: %w（如遇到唯一约束错误，请检查jobs表是否有重复的name字段）", err)
 	}
+	if err := backfillJobRemoteRoot(conn); err != nil {
+		return fmt.Errorf("回填远程根目录失败: %w", err)
+	}
+	if err := dropJobRemotePathColumn(conn); err != nil {
+		return fmt.Errorf("清理旧远程路径列失败: %w", err)
+	}
 
 	mu.Lock()
 	dbInst = conn
 	mu.Unlock()
 
+	return nil
+}
+
+func backfillJobRemoteRoot(db *gorm.DB) error {
+	if db == nil {
+		return errors.New("db is nil")
+	}
+
+	type tableColumn struct {
+		Name string `gorm:"column:name"`
+	}
+	var columns []tableColumn
+	if err := db.Raw("PRAGMA table_info(jobs)").Scan(&columns).Error; err != nil {
+		return fmt.Errorf("query jobs table info: %w", err)
+	}
+
+	hasRemotePath := false
+	hasRemoteRoot := false
+	for _, col := range columns {
+		switch strings.ToLower(strings.TrimSpace(col.Name)) {
+		case "remote_path":
+			hasRemotePath = true
+		case "remote_root":
+			hasRemoteRoot = true
+		}
+	}
+	if !hasRemotePath || !hasRemoteRoot {
+		return nil
+	}
+
+	res := db.Exec(`UPDATE jobs
+SET remote_root = remote_path
+WHERE (remote_root IS NULL OR remote_root = '')
+  AND remote_path IS NOT NULL
+  AND remote_path <> ''`)
+	if res.Error != nil {
+		return fmt.Errorf("update jobs remote_root: %w", res.Error)
+	}
+	return nil
+}
+
+func dropJobRemotePathColumn(db *gorm.DB) error {
+	if db == nil {
+		return errors.New("db is nil")
+	}
+
+	type tableColumn struct {
+		Name string `gorm:"column:name"`
+	}
+	var columns []tableColumn
+	if err := db.Raw("PRAGMA table_info(jobs)").Scan(&columns).Error; err != nil {
+		return fmt.Errorf("query jobs table info: %w", err)
+	}
+
+	hasRemotePath := false
+	for _, col := range columns {
+		if strings.EqualFold(strings.TrimSpace(col.Name), "remote_path") {
+			hasRemotePath = true
+			break
+		}
+	}
+	if !hasRemotePath {
+		return nil
+	}
+
+	if err := db.Exec("ALTER TABLE jobs DROP COLUMN remote_path").Error; err != nil {
+		return fmt.Errorf("drop jobs.remote_path: %w", err)
+	}
 	return nil
 }
 

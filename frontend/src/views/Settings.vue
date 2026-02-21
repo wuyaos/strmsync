@@ -90,6 +90,55 @@
         </div>
       </el-tab-pane>
 
+      <!-- 接口速率 -->
+      <el-tab-pane label="接口速率" name="rate">
+        <el-form :model="settings.rate" label-width="160px">
+          <el-form-item label="下载队列每秒处理数量">
+            <el-input
+              v-model.number="settings.rate.download_rate_per_sec"
+              type="number"
+              :min="1"
+              :max="1000"
+              class="input-short"
+            />
+            <span class="form-help">控制下载队列的处理速度，过高可能影响稳定性</span>
+          </el-form-item>
+
+          <el-form-item label="接口速率(每秒请求数)">
+            <el-input
+              v-model.number="settings.rate.api_rate"
+              type="number"
+              :min="1"
+              :max="1000"
+              class="input-short"
+            />
+            <span class="form-help">限制接口请求频率，避免触发服务端限流</span>
+          </el-form-item>
+
+          <el-form-item label="接口重试次数">
+            <el-input
+              v-model.number="settings.rate.api_retry_max"
+              type="number"
+              :min="0"
+              :max="10"
+              class="input-short"
+            />
+            <span class="form-help">接口调用失败时的最大重试次数</span>
+          </el-form-item>
+
+          <el-form-item label="接口重试间隔秒数">
+            <el-input
+              v-model.number="settings.rate.api_retry_interval_sec"
+              type="number"
+              :min="1"
+              :max="60"
+              class="input-short"
+            />
+            <span class="form-help">重试之间的等待时间（秒）</span>
+          </el-form-item>
+        </el-form>
+      </el-tab-pane>
+
       <!-- 通知样式 -->
       <el-tab-pane label="通知样式" name="notification">
         <div class="notification-section">
@@ -192,6 +241,12 @@ const defaultSettings = {
     primaryColor: '#409EFF',
     compact: false
   },
+  rate: {
+    download_rate_per_sec: 10,
+    api_rate: 10,
+    api_retry_max: 3,
+    api_retry_interval_sec: 60
+  },
   notification: {
     position: 'top-right',
     duration: 3,
@@ -206,13 +261,15 @@ const { frontendVersion, loadSystemInfo } = useSystemInfo()
 const loadSettings = async () => {
   try {
     const data = await getSettings()
-    if (data) {
+    const resolved = data?.settings || data
+    if (resolved) {
       // 深度合并分组，避免嵌套配置被整体覆盖
       settings.value = {
-        scanner: { ...defaultSettings.scanner, ...(data.scanner || {}) },
-        log: { ...defaultSettings.log, ...(data.log || {}) },
-        theme: { ...defaultSettings.theme, ...(data.theme || {}) },
-        notification: { ...defaultSettings.notification, ...(data.notification || {}) }
+        scanner: { ...defaultSettings.scanner, ...(resolved.scanner || {}) },
+        log: { ...defaultSettings.log, ...(resolved.log || {}) },
+        theme: { ...defaultSettings.theme, ...(resolved.theme || {}) },
+        rate: { ...defaultSettings.rate, ...(resolved.rate || {}) },
+        notification: { ...defaultSettings.notification, ...(resolved.notification || {}) }
       }
     } else {
       settings.value = { ...defaultSettings }

@@ -280,6 +280,7 @@ const getJobConfigRows = (row) => {
     { label: '媒体服务器ID', value: job.media_server_id ?? '-' },
     { label: '媒体服务器类型', value: mediaServerType || '-' },
     { label: '访问目录', value: job.source_path || '-' },
+    { label: '远程根目录', value: job.remote_root || '-' },
     { label: '输出目录', value: job.target_path || '-' },
     { label: 'STRM路径', value: job.strm_path || '-' },
     {

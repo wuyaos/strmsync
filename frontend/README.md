@@ -26,7 +26,7 @@ npm install
 npm run dev
 ```
 
-访问 http://localhost:5678
+访问 http://localhost:7786
 
 > 推荐在项目根目录使用 `make dev` 一键启动后端与前端。
 
@@ -36,7 +36,7 @@ npm run dev
 npm run build
 ```
 
-构建产物默认输出到项目根目录的 `dist/web/`。
+构建产物默认输出到项目根目录的 `build/vue/dist/`。
 
 ### 预览生产构建
 
@@ -83,7 +83,7 @@ frontend/
 
 ## API 代理
 
-开发模式下，所有 `/api` 请求会被代理到 `http://localhost:5677`。
+开发模式下，所有 `/api` 请求会被代理到 `http://localhost:6786`。
 
 如需修改后端地址，请编辑 `vite.config.js` 中的 proxy 配置。
 

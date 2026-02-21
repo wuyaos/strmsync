@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -163,6 +164,8 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 		zap.Int64("min_file_size", extra.MinFileSize),
 		zap.String("metadata_mode", extra.MetadataMode),
 		zap.String("strm_mode", extra.STRMMode),
+		zap.Bool("force_update", extra.ForceUpdate),
+		zap.Bool("full_resync", extra.SyncOpts.FullResync),
 		zap.Int("media_exts", len(extra.MediaExts)),
 		zap.Int("meta_exts", len(extra.MetaExts)),
 		zap.Int("strm_replace_rules", len(extra.StrmReplaceRules)),
@@ -174,7 +177,22 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 	}
 
 	// 3. 构建 Driver 和 Writer
-	driver, err := e.cfg.DriverFactory.Build(ctx, serverForDriver)
+	driverServer := serverForDriver
+	useLocalStrm := shouldUseLocalStrmDriver(serverForDriver, extra)
+	if useLocalStrm {
+		localServer, err := buildLocalDriverServer(job, serverForDriver)
+		if err != nil {
+			return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("build local driver server: %w", err))
+		}
+		driverServer = localServer
+		execLog.Info("STRM 使用本地路径驱动",
+			zap.String("server_type", serverForDriver.Type),
+			zap.String("source_path", job.SourcePath),
+			zap.String("access_path", strings.TrimSpace(getAccessPathFromServer(serverForDriver))),
+			zap.String("mount_path", strings.TrimSpace(getMountPathFromServer(serverForDriver))))
+	}
+
+	driver, err := e.cfg.DriverFactory.Build(ctx, driverServer)
 	if err != nil {
 		return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("build driver for job %s: %w", job.Name, err))
 	}
@@ -190,6 +208,58 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 	engineOpts, err := buildEngineOptions(job, extra)
 	if err != nil {
 		return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("build engine options: %w", err))
+	}
+	if useLocalStrm {
+		accessPath := filepath.Clean(strings.TrimSpace(getAccessPathFromServer(serverForDriver)))
+		mountPath := filepath.Clean(strings.TrimSpace(getMountPathFromServer(serverForDriver)))
+		if accessPath != "" && mountPath != "" && accessPath != mountPath {
+			needRule := true
+			for _, rule := range engineOpts.StrmReplaceRules {
+				if filepath.Clean(strings.TrimSpace(rule.From)) == accessPath {
+					needRule = false
+					break
+				}
+			}
+			if needRule {
+				engineOpts.StrmReplaceRules = append(engineOpts.StrmReplaceRules, syncengine.StrmReplaceRule{
+					From: accessPath,
+					To:   mountPath,
+				})
+			}
+		}
+	}
+	if extra.PreferRemoteList && useLocalStrm && isRemoteServerType(serverForDriver.Type) {
+		remoteRoot, err := resolveRemoteListRoot(job, serverForDriver)
+		if err != nil {
+			if hasAccessPath(serverForDriver) {
+				execLog.Warn("远程列表不可用，回退本地遍历",
+					zap.String("source_path", job.SourcePath),
+					zap.Error(err))
+			} else {
+				return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("resolve remote list root: %w", err))
+			}
+		} else {
+			remoteDriver, err := e.cfg.DriverFactory.Build(ctx, serverForDriver)
+			if err != nil {
+				return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("build remote list driver: %w", err))
+			}
+			var fallbackDriver syncengine.Driver
+			if hasAccessPath(serverForDriver) {
+				localServer, err := buildLocalDriverServer(job, serverForDriver)
+				if err != nil {
+					return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("build local fallback driver: %w", err))
+				}
+				fallbackDriver, err = e.cfg.DriverFactory.Build(ctx, localServer)
+				if err != nil {
+					return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("build local fallback driver: %w", err))
+				}
+			}
+			engineOpts.ListOverride = buildRemoteListOverride(remoteDriver, remoteRoot, fallbackDriver)
+			execLog.Info("远程列表 + 本地 STRM",
+				zap.String("remote_root", remoteRoot),
+				zap.String("source_path", job.SourcePath),
+				zap.Bool("prefer_remote_list", extra.PreferRemoteList))
+		}
 	}
 	var eventSink *taskRunEventSink
 	if e.cfg.TaskRunEvents != nil {
@@ -215,7 +285,7 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 		return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("resolve engine remote path: %w", err))
 	}
 	execLog.Info("开始执行同步任务",
-		zap.String("remote_path", remotePath))
+		zap.String("remote_root", remotePath))
 	stats, runErr := engine.RunOnce(ctx, remotePath)
 
 	metaStats := metadataStats{}
@@ -306,6 +376,9 @@ func buildEngineOptions(job model.Job, extra jobOptions) (syncengine.EngineOptio
 func resolveEngineRemotePath(job model.Job, server model.DataServer) (string, error) {
 	remotePath := strings.TrimSpace(job.SourcePath)
 	if strings.TrimSpace(server.Type) != filesystem.TypeLocal.String() {
+		if strings.TrimSpace(job.RemoteRoot) != "" {
+			return strings.TrimSpace(job.RemoteRoot), nil
+		}
 		return remotePath, nil
 	}
 
@@ -345,6 +418,210 @@ func resolveEngineRemotePath(job model.Job, server model.DataServer) (string, er
 	return "", fmt.Errorf("source_path %s must be under access_path %s", remotePath, accessPath)
 }
 
+func shouldUseLocalStrmDriver(server model.DataServer, extra jobOptions) bool {
+	if !isRemoteServerType(server.Type) {
+		return false
+	}
+	if strings.ToLower(strings.TrimSpace(server.Type)) == filesystem.TypeOpenList.String() {
+		if strings.TrimSpace(getAccessPathFromServer(server)) == "" {
+			return false
+		}
+	}
+	mode := strings.ToLower(strings.TrimSpace(extra.STRMMode))
+	return mode != "url"
+}
+
+func isRemoteServerType(serverType string) bool {
+	switch strings.ToLower(strings.TrimSpace(serverType)) {
+	case filesystem.TypeCloudDrive2.String(), filesystem.TypeOpenList.String():
+		return true
+	default:
+		return false
+	}
+}
+
+func buildLocalDriverServer(job model.Job, server model.DataServer) (model.DataServer, error) {
+	sourcePath := strings.TrimSpace(job.SourcePath)
+	if sourcePath == "" {
+		return model.DataServer{}, fmt.Errorf("source_path is required for local driver")
+	}
+
+	accessPath := strings.TrimSpace(getAccessPathFromServer(server))
+	if accessPath == "" {
+		accessPath = sourcePath
+	}
+	mountPath := strings.TrimSpace(getMountPathFromServer(server))
+	if mountPath == "" {
+		mountPath = accessPath
+	}
+
+	opts := dataServerOptions{
+		AccessPath: accessPath,
+		MountPath:  mountPath,
+		STRMMode:   filesystem.STRMModeMount.String(),
+	}
+	encoded, err := json.Marshal(opts)
+	if err != nil {
+		return model.DataServer{}, fmt.Errorf("encode local driver options: %w", err)
+	}
+	return model.DataServer{
+		Type:    filesystem.TypeLocal.String(),
+		Options: string(encoded),
+	}, nil
+}
+
+func resolveRemoteListRoot(job model.Job, server model.DataServer) (string, error) {
+	if strings.TrimSpace(job.RemoteRoot) != "" {
+		return normalizeRemoteRoot(job.RemoteRoot), nil
+	}
+	opts := dataServerOptions{}
+	if strings.TrimSpace(server.Options) != "" {
+		if err := json.Unmarshal([]byte(server.Options), &opts); err != nil {
+			return "", fmt.Errorf("parse data server options: %w", err)
+		}
+	}
+	accessPath := strings.TrimSpace(opts.AccessPath)
+	sourcePath := strings.TrimSpace(job.SourcePath)
+	if sourcePath == "" {
+		return "", fmt.Errorf("source_path is required for remote listing")
+	}
+	mountPath := strings.TrimSpace(opts.MountPath)
+
+	if accessPath == "" {
+		return normalizeRemoteRoot(sourcePath), nil
+	}
+
+	if mountPath != "" && (filepath.IsAbs(sourcePath) || filepath.VolumeName(sourcePath) != "") {
+		cleanMount := filepath.Clean(mountPath)
+		cleanSource := filepath.Clean(sourcePath)
+		if cleanSource == cleanMount {
+			return normalizeRemoteRoot(accessPath), nil
+		}
+		prefix := cleanMount + string(filepath.Separator)
+		if strings.HasPrefix(cleanSource, prefix) {
+			rel := strings.TrimPrefix(cleanSource, prefix)
+			rel = filepath.ToSlash(rel)
+			rel = strings.TrimLeft(rel, "/")
+			if rel == "" {
+				return normalizeRemoteRoot(accessPath), nil
+			}
+			return normalizeRemoteRoot(path.Join(accessPath, rel)), nil
+		}
+		return "", fmt.Errorf("source_path %s must be under mount_path %s", sourcePath, mountPath)
+	}
+
+	if !filepath.IsAbs(sourcePath) && filepath.VolumeName(sourcePath) == "" {
+		return normalizeRemoteRoot(path.Join(accessPath, filepath.ToSlash(strings.TrimLeft(sourcePath, "/")))), nil
+	}
+
+	return "", fmt.Errorf("source_path %s must be under mount_path %s", sourcePath, mountPath)
+}
+
+func getAccessPathFromServer(server model.DataServer) string {
+	if strings.TrimSpace(server.Options) == "" {
+		return ""
+	}
+	opts := dataServerOptions{}
+	if err := json.Unmarshal([]byte(server.Options), &opts); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(opts.AccessPath)
+}
+
+func getMountPathFromServer(server model.DataServer) string {
+	if strings.TrimSpace(server.Options) == "" {
+		return ""
+	}
+	opts := dataServerOptions{}
+	if err := json.Unmarshal([]byte(server.Options), &opts); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(opts.MountPath)
+}
+
+func hasAccessPath(server model.DataServer) bool {
+	return strings.TrimSpace(getAccessPathFromServer(server)) != ""
+}
+
+func resolveLocalListPath(job model.Job) string {
+	sourcePath := strings.TrimSpace(job.SourcePath)
+	if sourcePath == "" {
+		return "/"
+	}
+	if filepath.IsAbs(sourcePath) || filepath.VolumeName(sourcePath) != "" {
+		return "/"
+	}
+	cleaned := filepath.ToSlash(strings.TrimLeft(sourcePath, "/"))
+	if cleaned == "" {
+		return "/"
+	}
+	return cleaned
+}
+
+func buildLocalMetadataListDriver(ctx context.Context, job model.Job, server model.DataServer, factory DriverFactory) (syncengine.Driver, string, error) {
+	localServer, err := buildLocalDriverServer(job, server)
+	if err != nil {
+		return nil, "", err
+	}
+	localDriver, err := factory.Build(ctx, localServer)
+	if err != nil {
+		return nil, "", err
+	}
+	return localDriver, resolveLocalListPath(job), nil
+}
+
+func normalizeRemoteRoot(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return "/"
+	}
+	cleaned := strings.ReplaceAll(trimmed, "\\", "/")
+	return path.Clean("/" + cleaned)
+}
+
+func buildRemoteListOverride(remoteDriver syncengine.Driver, remoteRoot string, fallbackDriver syncengine.Driver) func(ctx context.Context, remotePath string, opt syncengine.ListOptions) ([]syncengine.RemoteEntry, error) {
+	root := normalizeRemoteRoot(remoteRoot)
+	return func(ctx context.Context, remotePath string, opt syncengine.ListOptions) ([]syncengine.RemoteEntry, error) {
+		entries, err := remoteDriver.List(ctx, root, opt)
+		if err != nil {
+			if fallbackDriver != nil {
+				return fallbackDriver.List(ctx, remotePath, opt)
+			}
+			return nil, fmt.Errorf("remote list %s failed: %w", root, err)
+		}
+		return mapRemoteEntriesToLocal(root, entries), nil
+	}
+}
+
+func mapRemoteEntriesToLocal(root string, entries []syncengine.RemoteEntry) []syncengine.RemoteEntry {
+	if len(entries) == 0 {
+		return nil
+	}
+	cleanRoot := normalizeRemoteRoot(root)
+	cleanRoot = strings.TrimRight(cleanRoot, "/")
+	if cleanRoot == "" {
+		cleanRoot = "/"
+	}
+	mapped := make([]syncengine.RemoteEntry, 0, len(entries))
+	for _, entry := range entries {
+		entryPath := normalizeRemoteRoot(entry.Path)
+		rel := ""
+		if cleanRoot == "/" {
+			rel = strings.TrimPrefix(entryPath, "/")
+		} else if entryPath == cleanRoot {
+			rel = ""
+		} else if strings.HasPrefix(entryPath, cleanRoot+"/") {
+			rel = strings.TrimPrefix(entryPath, cleanRoot+"/")
+		} else {
+			continue
+		}
+		localPath := path.Clean("/" + rel)
+		entry.Path = localPath
+		mapped = append(mapped, entry)
+	}
+	return mapped
+}
+
 // jobOptions 表示从 Job.Options 解析的引擎参数
 type jobOptions struct {
 	MaxConcurrency        int               `json:"max_concurrency"`
@@ -352,6 +629,7 @@ type jobOptions struct {
 	MetaExts              []string          `json:"meta_exts"`
 	ExcludeDirs           []string          `json:"exclude_dirs"`
 	MinFileSize           int64             `json:"min_file_size"`
+	PreferRemoteList      bool              `json:"prefer_remote_list"`
 	DryRun                bool              `json:"dry_run"`
 	ForceUpdate           bool              `json:"force_update"`
 	SkipExisting          bool              `json:"skip_existing"`
@@ -365,6 +643,7 @@ type jobOptions struct {
 }
 
 type syncOpts struct {
+	FullResync    bool `json:"full_resync"`
 	UpdateMeta    bool `json:"update_meta"`
 	OverwriteMeta bool `json:"overwrite_meta"`
 	SkipMeta      bool `json:"skip_meta"`
@@ -411,6 +690,10 @@ func parseJobOptions(raw string) (jobOptions, error) {
 	}
 	if err := json.Unmarshal([]byte(raw), &opts); err != nil {
 		return jobOptions{}, err
+	}
+	if opts.SyncOpts.FullResync {
+		opts.ForceUpdate = true
+		opts.SkipExisting = false
 	}
 	return opts, nil
 }
@@ -579,6 +862,21 @@ func buildMetadataClient(server model.DataServer, log *zap.Logger) (filesystem.C
 	return filesystem.NewClient(cfg, filesystem.WithLogger(log))
 }
 
+func buildLocalMetadataClient(job model.Job, log *zap.Logger) (filesystem.Client, error) {
+	sourcePath := strings.TrimSpace(job.SourcePath)
+	if sourcePath == "" {
+		return nil, fmt.Errorf("source_path is required for local metadata client")
+	}
+	cfg := filesystem.Config{
+		Type:          filesystem.TypeLocal,
+		MountPath:     sourcePath,
+		StrmMountPath: sourcePath,
+		STRMMode:      filesystem.STRMModeMount,
+		Timeout:       10 * time.Second,
+	}
+	return filesystem.NewClient(cfg, filesystem.WithLogger(log))
+}
+
 func (e *Executor) syncMetadata(ctx context.Context, job model.Job, server model.DataServer, driver syncengine.Driver, extra jobOptions, remotePath string, eventSink *taskRunEventSink) (metadataStats, error) {
 	metaExts := normalizeExtensions(extra.MetaExts, appconfig.DefaultMetaExtensions())
 	if len(metaExts) == 0 {
@@ -592,7 +890,49 @@ func (e *Executor) syncMetadata(ctx context.Context, job model.Job, server model
 
 	excludeDirs := syncengine.NormalizeExcludeDirs(extra.ExcludeDirs)
 
-	entries, err := driver.List(ctx, remotePath, syncengine.ListOptions{
+	mode := strings.ToLower(strings.TrimSpace(extra.MetadataMode))
+	if mode == "api" {
+		mode = "download"
+	}
+	if mode == "none" {
+		return metadataStats{}, nil
+	}
+	if mode != "download" && isRemoteServerType(server.Type) && strings.TrimSpace(getAccessPathFromServer(server)) == "" {
+		return metadataStats{}, fmt.Errorf("metadata_mode %s requires access_path", mode)
+	}
+
+	listDriver := driver
+	listPath := remotePath
+	var err error
+	if mode == "download" && isRemoteServerType(server.Type) {
+		if extra.PreferRemoteList || !hasAccessPath(server) {
+			remoteRoot, err := resolveRemoteListRoot(job, server)
+			if err != nil {
+				if hasAccessPath(server) {
+					listDriver, listPath, err = buildLocalMetadataListDriver(ctx, job, server, e.cfg.DriverFactory)
+					if err != nil {
+						return metadataStats{}, fmt.Errorf("build local metadata driver: %w", err)
+					}
+				} else {
+					return metadataStats{}, fmt.Errorf("resolve remote metadata root: %w", err)
+				}
+			} else {
+				remoteDriver, err := e.cfg.DriverFactory.Build(ctx, server)
+				if err != nil {
+					return metadataStats{}, fmt.Errorf("build remote metadata driver: %w", err)
+				}
+				listDriver = remoteDriver
+				listPath = remoteRoot
+			}
+		} else {
+			listDriver, listPath, err = buildLocalMetadataListDriver(ctx, job, server, e.cfg.DriverFactory)
+			if err != nil {
+				return metadataStats{}, fmt.Errorf("build local metadata driver: %w", err)
+			}
+		}
+	}
+
+	entries, err := listDriver.List(ctx, listPath, syncengine.ListOptions{
 		Recursive: true,
 		MaxDepth:  100,
 	})
@@ -601,15 +941,18 @@ func (e *Executor) syncMetadata(ctx context.Context, job model.Job, server model
 	}
 
 	metaLogger := e.log.With(zap.String("component", "metadata"))
-	client, err := buildMetadataClient(server, metaLogger)
+	var client filesystem.Client
+	if mode == "download" {
+		client, err = buildMetadataClient(server, metaLogger)
+	} else if isRemoteServerType(server.Type) {
+		client, err = buildLocalMetadataClient(job, metaLogger)
+	} else {
+		client, err = buildMetadataClient(server, metaLogger)
+	}
 	if err != nil {
 		return metadataStats{}, fmt.Errorf("build metadata client: %w", err)
 	}
 
-	mode := strings.ToLower(strings.TrimSpace(extra.MetadataMode))
-	if mode == "api" {
-		mode = "download"
-	}
 	preferMount := mode != "download"
 	options := []appsync.MetadataReplicatorOption{
 		appsync.WithPreferMount(preferMount),
@@ -621,7 +964,7 @@ func (e *Executor) syncMetadata(ctx context.Context, job model.Job, server model
 
 	strategy := resolveMetaStrategy(extra.SyncOpts)
 	metaLogger.Info("开始同步元数据",
-		zap.String("remote_path", remotePath),
+		zap.String("remote_root", remotePath),
 		zap.Int("meta_exts", len(metaExts)),
 		zap.String("mode", mode),
 		zap.String("strategy", strategy.String()))

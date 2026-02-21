@@ -71,7 +71,7 @@ type BuildRequest struct {
 //   - error: 验证失败时返回错误，成功返回 nil
 func (r BuildRequest) Validate() error {
 	if strings.TrimSpace(r.RemotePath) == "" {
-		return fmt.Errorf("strmwriter: remote_path不能为空")
+		return fmt.Errorf("strmwriter: remote_file_path不能为空")
 	}
 	// 注意：ServerID 对于某些场景（如纯本地生成）可能为0
 	// 调用方应根据具体场景判断是否需要 ServerID

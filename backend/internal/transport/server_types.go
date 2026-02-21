@@ -231,6 +231,15 @@ func cloudDrive2ServerTypeDef() ServerTypeDef {
 						Help:        "云盘挂载到本地的目录路径（可选，默认使用访问目录）",
 						Required:    false,
 					},
+					{
+						Name:        "remote_root",
+						Type:        FieldTypePath,
+						Label:       "远程根目录",
+						Placeholder: "/",
+						Help:        "远程 API 的根路径（用于获取文件列表/信息）",
+						Default:     "/",
+						Required:    false,
+					},
 				},
 			},
 		},
@@ -240,6 +249,7 @@ func cloudDrive2ServerTypeDef() ServerTypeDef {
 			"api_token":   "api_key",
 			"access_path": "options",
 			"mount_path":  "options",
+			"remote_root": "options",
 		},
 	}
 }
@@ -318,6 +328,15 @@ func openListServerTypeDef() ServerTypeDef {
 						Help:        "挂载目录可选，默认使用访问目录",
 						Required:    false,
 					},
+					{
+						Name:        "remote_root",
+						Type:        FieldTypePath,
+						Label:       "远程根目录",
+						Placeholder: "/",
+						Help:        "远程 API 的根路径（用于获取文件列表/信息）",
+						Default:     "/",
+						Required:    false,
+					},
 				},
 			},
 		},
@@ -328,6 +347,7 @@ func openListServerTypeDef() ServerTypeDef {
 			"password":    "options",
 			"access_path": "options",
 			"mount_path":  "options",
+			"remote_root": "options",
 		},
 	}
 }

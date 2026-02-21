@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
 	"github.com/strmsync/strmsync/internal/domain/model"
+	"github.com/strmsync/strmsync/internal/infra/filesystem"
 	"github.com/strmsync/strmsync/internal/queue"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -104,6 +105,7 @@ type jobRequest struct {
 	Cron          string `json:"cron"`
 	WatchMode     string `json:"watch_mode"`
 	SourcePath    string `json:"source_path"`
+	RemoteRoot    string `json:"remote_root"`
 	TargetPath    string `json:"target_path"`
 	STRMPath      string `json:"strm_path"`
 	DataServerID  *uint  `json:"data_server_id"`
@@ -118,6 +120,7 @@ func buildJobLogPayload(req jobRequest) map[string]interface{} {
 		"cron":            strings.TrimSpace(req.Cron),
 		"watch_mode":      strings.TrimSpace(req.WatchMode),
 		"source_path":     strings.TrimSpace(req.SourcePath),
+		"remote_root":     strings.TrimSpace(req.RemoteRoot),
 		"target_path":     strings.TrimSpace(req.TargetPath),
 		"strm_path":       strings.TrimSpace(req.STRMPath),
 		"data_server_id":  req.DataServerID,
@@ -243,6 +246,39 @@ func (h *JobHandler) validateRelatedServers(req *jobRequest) []FieldError {
 	return fieldErrors
 }
 
+func requiresRemoteRoot(serverType string) bool {
+	switch strings.ToLower(strings.TrimSpace(serverType)) {
+	case filesystem.TypeCloudDrive2.String(), filesystem.TypeOpenList.String():
+		return true
+	default:
+		return false
+	}
+}
+
+func (h *JobHandler) validateRemoteRootForServer(req *jobRequest) []FieldError {
+	if req == nil {
+		return nil
+	}
+	if strings.TrimSpace(req.WatchMode) != string(JobWatchModeAPI) {
+		return nil
+	}
+	if req.DataServerID == nil || *req.DataServerID == 0 {
+		return nil
+	}
+	var server model.DataServer
+	if err := h.db.First(&server, *req.DataServerID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return []FieldError{{Field: "data_server_id", Message: "数据服务器不存在"}}
+		}
+		h.logger.Error("查询数据服务器失败", zap.Error(err), zap.Uint("data_server_id", *req.DataServerID))
+		return []FieldError{{Field: "data_server_id", Message: "服务器验证失败"}}
+	}
+	if requiresRemoteRoot(server.Type) && strings.TrimSpace(req.RemoteRoot) == "" {
+		return []FieldError{{Field: "remote_root", Message: "远程根目录不能为空"}}
+	}
+	return nil
+}
+
 // CreateJob 创建任务
 // POST /api/jobs
 func (h *JobHandler) CreateJob(c *gin.Context) {
@@ -265,6 +301,10 @@ func (h *JobHandler) CreateJob(c *gin.Context) {
 		} else {
 			respondValidationError(c, fieldErrors)
 		}
+		return
+	}
+	if fieldErrors := h.validateRemoteRootForServer(&req); len(fieldErrors) > 0 {
+		respondValidationError(c, fieldErrors)
 		return
 	}
 
@@ -298,6 +338,7 @@ func (h *JobHandler) CreateJob(c *gin.Context) {
 		Cron:          strings.TrimSpace(req.Cron),
 		WatchMode:     string(JobWatchMode(strings.TrimSpace(req.WatchMode))),
 		SourcePath:    strings.TrimSpace(req.SourcePath),
+		RemoteRoot:    strings.TrimSpace(req.RemoteRoot),
 		TargetPath:    strings.TrimSpace(req.TargetPath),
 		STRMPath:      strings.TrimSpace(req.STRMPath),
 		DataServerID:  req.DataServerID,
@@ -329,6 +370,7 @@ func (h *JobHandler) CreateJob(c *gin.Context) {
 		zap.String("name", job.Name),
 		zap.String("watch_mode", job.WatchMode),
 		zap.String("source_path", job.SourcePath),
+		zap.String("remote_root", job.RemoteRoot),
 		zap.String("target_path", job.TargetPath),
 		zap.String("strm_path", job.STRMPath),
 		zap.Any("options", logPayload["options"]))
@@ -505,6 +547,10 @@ func (h *JobHandler) UpdateJob(c *gin.Context) {
 		}
 		return
 	}
+	if fieldErrors := h.validateRemoteRootForServer(&req); len(fieldErrors) > 0 {
+		respondValidationError(c, fieldErrors)
+		return
+	}
 
 	// 唯一性检查（名称变更时）
 	newName := strings.TrimSpace(req.Name)
@@ -536,6 +582,7 @@ func (h *JobHandler) UpdateJob(c *gin.Context) {
 	job.Cron = strings.TrimSpace(req.Cron)
 	job.WatchMode = string(JobWatchMode(strings.TrimSpace(req.WatchMode)))
 	job.SourcePath = strings.TrimSpace(req.SourcePath)
+	job.RemoteRoot = strings.TrimSpace(req.RemoteRoot)
 	job.TargetPath = strings.TrimSpace(req.TargetPath)
 	job.STRMPath = strings.TrimSpace(req.STRMPath)
 	job.DataServerID = req.DataServerID
@@ -564,6 +611,7 @@ func (h *JobHandler) UpdateJob(c *gin.Context) {
 		zap.String("name", job.Name),
 		zap.String("watch_mode", job.WatchMode),
 		zap.String("source_path", job.SourcePath),
+		zap.String("remote_root", job.RemoteRoot),
 		zap.String("target_path", job.TargetPath),
 		zap.String("strm_path", job.STRMPath),
 		zap.Any("options", logPayload["options"]))

@@ -227,18 +227,17 @@ func sortedKeys(m map[string]any) []string {
 	return keys
 }
 
-// stripQoSFields 从 options JSON 中移除 QoS 字段
+// stripQoSFields 从 options JSON 中移除接口速率字段
 //
-// 目的：确保 QoS 配置变更不会影响服务器 UID，因为 QoS 现已独立为数据库列。
-// 此函数同时兼容历史数据（可能将 QoS 存入 options 的情况）。
+// 目的：确保接口速率配置变更不会影响服务器 UID，因为已独立为数据库列。
+// 此函数同时兼容历史数据（可能将速率配置存入 options 的情况）。
 //
 // 移除的字段：
-// - request_timeout_ms
-// - connect_timeout_ms
-// - retry_max
-// - retry_backoff_ms
-// - max_concurrent
-// - qos (整个嵌套对象)
+// - download_rate_per_sec
+// - api_rate
+// - api_retry_max
+// - api_retry_interval_sec
+// - qos (整个嵌套对象，历史字段)
 func stripQoSFields(optionsJSON string) string {
 	optionsJSON = strings.TrimSpace(optionsJSON)
 	if optionsJSON == "" {
@@ -251,12 +250,11 @@ func stripQoSFields(optionsJSON string) string {
 		return optionsJSON
 	}
 
-	// 移除根级 QoS 字段
-	delete(obj, "request_timeout_ms")
-	delete(obj, "connect_timeout_ms")
-	delete(obj, "retry_max")
-	delete(obj, "retry_backoff_ms")
-	delete(obj, "max_concurrent")
+	// 移除根级高级配置字段
+	delete(obj, "download_rate_per_sec")
+	delete(obj, "api_rate")
+	delete(obj, "api_retry_max")
+	delete(obj, "api_retry_interval_sec")
 
 	// 移除嵌套 qos 对象（如果存在）
 	delete(obj, "qos")
@@ -267,4 +265,3 @@ func stripQoSFields(optionsJSON string) string {
 	}
 	return string(out)
 }
-
