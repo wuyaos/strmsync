@@ -500,6 +500,20 @@ func (e *Engine) filterFiles(entries []RemoteEntry, stats *SyncStats, remoteRoot
 	return files
 }
 
+// applyMountPathMapping 应用挂载路径映射（系统级基线转换）
+// 在用户替换规则之前执行，确保路径统一
+func applyMountPathMapping(input string, mapping *MountPathMapping) string {
+	if mapping == nil || mapping.From == "" {
+		return input
+	}
+	if strings.HasPrefix(input, mapping.From) {
+		return mapping.To + strings.TrimPrefix(input, mapping.From)
+	}
+	return input
+}
+
+// applyStrmReplaceRules 应用用户自定义替换规则
+// 在挂载路径映射之后执行
 func applyStrmReplaceRules(input string, rules []StrmReplaceRule) string {
 	if len(rules) == 0 {
 		return input
@@ -722,7 +736,11 @@ func (e *Engine) processFile(ctx context.Context, entry RemoteEntry, stats *Sync
 		return fmt.Errorf("构建 STRM 信息失败: %w", err)
 	}
 
-	expectedContent := applyStrmReplaceRules(strmInfo.RawURL, e.opts.StrmReplaceRules)
+	// 步骤1.1: 应用挂载路径映射（系统级基线转换）
+	rawURL := applyMountPathMapping(strmInfo.RawURL, e.opts.MountPathMapping)
+
+	// 步骤1.2: 应用用户自定义替换规则
+	expectedContent := applyStrmReplaceRules(rawURL, e.opts.StrmReplaceRules)
 
 	// 步骤2: 计算输出文件路径
 	outputPath, err := e.calculateOutputPath(entry.Path)

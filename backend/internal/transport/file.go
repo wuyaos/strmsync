@@ -36,6 +36,11 @@ func NewFileHandler(db *gorm.DB, logger *zap.Logger) *FileHandler {
 
 // ListDirectories 列出指定路径下的目录
 func (h *FileHandler) ListDirectories(c *gin.Context) {
+	// 目录列表必须实时，避免浏览器/代理缓存
+	c.Header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+	c.Header("Pragma", "no-cache")
+	c.Header("Expires", "0")
+
 	path := c.Query("path")
 	mode := c.Query("mode")    // local/api
 	apiType := c.Query("type") // clouddrive2/openlist
@@ -87,8 +92,6 @@ func (h *FileHandler) listLocalDirectories(c *gin.Context, path string, limit in
 
 	var directories []string
 	batch := 256
-	seen := 0
-	truncated := false
 
 	for {
 		entries, readErr := dir.ReadDir(batch)
@@ -108,26 +111,30 @@ func (h *FileHandler) listLocalDirectories(c *gin.Context, path string, limit in
 			if len(entry.Name()) > 0 && entry.Name()[0] == '.' {
 				continue
 			}
-			if seen < offset {
-				seen++
-				continue
-			}
-			seen++
 			directories = append(directories, entry.Name())
-			if limit > 0 && len(directories) >= limit {
-				truncated = true
-				break
-			}
 		}
 
-		if truncated || errors.Is(readErr, io.EOF) || len(entries) == 0 {
+		if errors.Is(readErr, io.EOF) || len(entries) == 0 {
 			break
 		}
 	}
 
-	if limit == 0 && offset == 0 {
-		sort.Strings(directories)
+	// 始终对目录列表排序，确保分页与新建文件夹显示一致
+	sort.Strings(directories)
+
+	total := len(directories)
+	if offset < 0 {
+		offset = 0
 	}
+	if offset > total {
+		offset = total
+	}
+	end := total
+	if limit > 0 && offset+limit < total {
+		end = offset + limit
+	}
+	truncated := limit > 0 && end < total
+	directories = directories[offset:end]
 
 	c.JSON(http.StatusOK, gin.H{
 		"path":        path,

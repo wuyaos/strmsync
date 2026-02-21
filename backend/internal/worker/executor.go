@@ -209,22 +209,14 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 	if err != nil {
 		return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("build engine options: %w", err))
 	}
+	// 设置挂载路径映射（系统级基线转换，在用户替换规则之前执行）
 	if useLocalStrm {
 		accessPath := filepath.Clean(strings.TrimSpace(getAccessPathFromServer(serverForDriver)))
 		mountPath := filepath.Clean(strings.TrimSpace(getMountPathFromServer(serverForDriver)))
 		if accessPath != "" && mountPath != "" && accessPath != mountPath {
-			needRule := true
-			for _, rule := range engineOpts.StrmReplaceRules {
-				if filepath.Clean(strings.TrimSpace(rule.From)) == accessPath {
-					needRule = false
-					break
-				}
-			}
-			if needRule {
-				engineOpts.StrmReplaceRules = append(engineOpts.StrmReplaceRules, syncengine.StrmReplaceRule{
-					From: accessPath,
-					To:   mountPath,
-				})
+			engineOpts.MountPathMapping = &syncengine.MountPathMapping{
+				From: accessPath,
+				To:   mountPath,
 			}
 		}
 	}
@@ -896,6 +888,10 @@ func (e *Executor) syncMetadata(ctx context.Context, job model.Job, server model
 	}
 	if mode == "none" {
 		return metadataStats{}, nil
+	}
+	// Local 模式不支持下载
+	if mode == "download" && strings.ToLower(strings.TrimSpace(server.Type)) == "local" {
+		return metadataStats{}, fmt.Errorf("metadata_mode 'download' is not supported for local server type, use 'copy' instead")
 	}
 	if mode != "download" && isRemoteServerType(server.Type) && strings.TrimSpace(getAccessPathFromServer(server)) == "" {
 		return metadataStats{}, fmt.Errorf("metadata_mode %s requires access_path", mode)

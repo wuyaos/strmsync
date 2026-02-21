@@ -17,6 +17,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/strmsync/strmsync/internal/domain/model"
 	dbpkg "github.com/strmsync/strmsync/internal/infra/db"
 	"github.com/strmsync/strmsync/internal/infra/db/repository"
 	"github.com/strmsync/strmsync/internal/pkg/logger"
@@ -148,6 +149,11 @@ func main() {
 	if err != nil {
 		logger.LogError("Scheduler 初始化失败", zap.Error(err))
 		os.Exit(1)
+	}
+
+	// 清理程序异常退出时遗留的 running 状态任务
+	if err := cleanupInterruptedTasks(context.Background(), db, logger.With(zap.String("component", "cleanup"))); err != nil {
+		logger.LogWarn("清理中断任务失败", zap.Error(err))
 	}
 
 	// 初始化 Worker
@@ -784,4 +790,70 @@ func serveIndexHTML(c *gin.Context) {
 	}
 
 	c.File(filepath.Join(webStaticsPath, "index.html"))
+}
+
+// cleanupInterruptedTasks 清理程序异常退出时遗留的 running 状态任务
+func cleanupInterruptedTasks(ctx context.Context, db *gorm.DB, log *zap.Logger) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	// 查询所有 running 状态的任务
+	var tasks []model.TaskRun
+	if err := db.WithContext(ctx).
+		Where("status = ?", "running").
+		Find(&tasks).Error; err != nil {
+		return fmt.Errorf("query interrupted tasks: %w", err)
+	}
+
+	if len(tasks) == 0 {
+		return nil
+	}
+
+	log.Info("检测到中断任务，开始清理", zap.Int("count", len(tasks)))
+
+	now := time.Now()
+	for _, task := range tasks {
+		// 计算执行时长
+		duration := int64(0)
+		if !task.StartedAt.IsZero() {
+			duration = int64(now.Sub(task.StartedAt).Seconds())
+		}
+
+		// 更新任务状态为 failed
+		updates := map[string]any{
+			"status":        "failed",
+			"ended_at":      now,
+			"duration":      duration,
+			"failure_kind":  "interrupted",
+			"error_message": "程序异常退出，任务中断",
+		}
+
+		if err := db.WithContext(ctx).
+			Model(&model.TaskRun{}).
+			Where("id = ?", task.ID).
+			Updates(updates).Error; err != nil {
+			log.Warn("清理中断任务失败",
+				zap.Uint("task_id", task.ID),
+				zap.Uint("job_id", task.JobID),
+				zap.Error(err))
+			continue
+		}
+
+		// 回写 Job 状态为 error
+		if err := db.WithContext(ctx).
+			Model(&model.Job{}).
+			Where("id = ?", task.JobID).
+			Update("status", "error").Error; err != nil {
+			log.Warn("更新任务状态失败",
+				zap.Uint("job_id", task.JobID),
+				zap.Error(err))
+		}
+
+		log.Info("已清理中断任务",
+			zap.Uint("task_id", task.ID),
+			zap.Uint("job_id", task.JobID))
+	}
+
+	return nil
 }

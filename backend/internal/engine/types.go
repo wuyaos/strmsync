@@ -324,6 +324,14 @@ type StrmReplaceRule struct {
 	To   string
 }
 
+// MountPathMapping 挂载路径映射配置
+// 用于将访问路径（AccessPath）转换为挂载路径（MountPath）
+// 这是系统级的基线转换，在用户替换规则之前执行
+type MountPathMapping struct {
+	From string // 访问路径前缀
+	To   string // 挂载路径前缀
+}
+
 // StrmEvent 表示 STRM 文件处理事件
 type StrmEvent struct {
 	Op           string
@@ -384,7 +392,13 @@ type EngineOptions struct {
 	// 启用后只记录将要删除的文件，不实际删除
 	OrphanCleanupDryRun bool
 
+	// MountPathMapping 挂载路径映射（可选）
+	// 用于将访问路径转换为挂载路径，在用户替换规则之前执行
+	// 这是系统级的基线转换，确保路径统一
+	MountPathMapping *MountPathMapping
+
 	// StrmReplaceRules STRM 替换规则（按顺序执行）
+	// 在 MountPathMapping 之后执行，用于用户自定义路径转换
 	StrmReplaceRules []StrmReplaceRule
 
 	// ExcludeDirs 排除目录（相对远端根路径）

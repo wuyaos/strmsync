@@ -143,7 +143,7 @@ func localServerTypeDef() ServerTypeDef {
 						Name:        "access_path",
 						Type:        FieldTypePath,
 						Label:       "访问目录",
-						Placeholder: "例如：/mnt/data",
+						Placeholder: "/mnt/data",
 						Help:        "本软件可访问数据的本地目录路径",
 						Required:    true,
 					},
@@ -205,7 +205,6 @@ func cloudDrive2ServerTypeDef() ServerTypeDef {
 						Type:        FieldTypePassword,
 						Label:       "API 令牌",
 						Placeholder: "请输入 gRPC Token",
-						Help:        "CloudDrive2 的 gRPC 认证令牌",
 						Required:    true,
 						ColSpan:     24,
 					},
@@ -220,7 +219,7 @@ func cloudDrive2ServerTypeDef() ServerTypeDef {
 						Type:        FieldTypePath,
 						Label:       "访问目录",
 						Placeholder: "/CloudNAS",
-						Help:        "本软件可访问的目录路径（用于读取云盘内容）",
+						Help:        "本软件可访问数据的本地目录路径",
 						Required:    true,
 					},
 					{
@@ -228,7 +227,7 @@ func cloudDrive2ServerTypeDef() ServerTypeDef {
 						Type:        FieldTypePath,
 						Label:       "挂载目录",
 						Placeholder: "/mnt/clouddrive",
-						Help:        "云盘挂载到本地的目录路径（可选，默认使用访问目录）",
+						Help:        "云盘挂载的本地目录路径",
 						Required:    false,
 					},
 					{
@@ -317,7 +316,7 @@ func openListServerTypeDef() ServerTypeDef {
 						Type:        FieldTypePath,
 						Label:       "访问目录",
 						Placeholder: "/",
-						Help:        "本地方式可填写访问目录；挂载目录为空时默认使用访问目录",
+						Help:        "本软件可访问数据的本地目录路径",
 						Required:    false,
 					},
 					{
@@ -325,7 +324,7 @@ func openListServerTypeDef() ServerTypeDef {
 						Type:        FieldTypePath,
 						Label:       "挂载目录",
 						Placeholder: "/mnt/openlist",
-						Help:        "挂载目录可选，默认使用访问目录",
+						Help:        "云盘挂载的本地目录路径",
 						Required:    false,
 					},
 					{
