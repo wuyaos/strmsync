@@ -249,7 +249,7 @@ release: clean
 			\
 			cp -r $(WEB_STATICS_DIR) "$$release_dir/"; \
 			cp VERSION "$$release_dir/" 2>/dev/null || true; \
-			cp README.md "$$release_dir/" 2>/dev/null || true; \
+			cp DEVELOPMENT.md "$$release_dir/" 2>/dev/null || true; \
 			\
 			size=$$(ls -lh "$$release_dir/$${output_name}" | awk '{print $$5}'); \
 			echo "✓ $$platform/$$arch 构建完成 ($$size)"; \

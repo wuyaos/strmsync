@@ -130,7 +130,7 @@ strm/
 │   ├── dev-stop.sh            # 停止后端服务
 │   ├── dev-restart.sh         # 重启后端服务
 │   └── README.md              # 脚本使用说明
-└── README.md                   # 项目说明
+└── DEVELOPMENT.md              # 开发说明
 ```
 
 ## 模块导航
@@ -291,7 +291,7 @@ npm run test
 - [HTTP API 参考](docs/HTTP_API.md)
 - [部署指南](docs/DEPLOYMENT.md)
 - [开发脚本说明](scripts/README.md)
-- [项目 README](README.md)
+- [项目开发说明](DEVELOPMENT.md)
 
 ## 贡献指南
 

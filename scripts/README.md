@@ -148,4 +148,4 @@ make release
 - `gen_clouddrive2_proto.sh` - 生成 gRPC 代码
 - `update_clouddrive2_api.sh` - 更新 API 文档
 
-详见项目根目录 README.md 和 docs/DEPLOYMENT.md。
+详见项目根目录 DEVELOPMENT.md 和 docs/DEPLOYMENT.md。
