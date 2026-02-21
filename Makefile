@@ -14,6 +14,7 @@ BUILD_TIME := $(shell date '+%Y-%m-%d %H:%M:%S')
 GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 # 目录定义
+ROOT_DIR := $(shell pwd)
 FRONTEND_DIR := frontend
 BACKEND_DIR := backend
 DIST_DIR := dist
@@ -21,9 +22,9 @@ WEB_STATICS_DIR := $(DIST_DIR)/web_statics
 BUILD_DIR := build
 GO_BUILD_DIR := $(BUILD_DIR)/go
 GO_BIN_DIR := $(GO_BUILD_DIR)/bin
-GO_CACHE_DIR := $(GO_BUILD_DIR)/cache
-GO_MOD_CACHE_DIR := $(GO_BUILD_DIR)/mod
-GO_TMP_DIR := $(GO_BUILD_DIR)/tmp
+GO_CACHE_DIR := $(ROOT_DIR)/$(GO_BUILD_DIR)/cache
+GO_MOD_CACHE_DIR := $(ROOT_DIR)/$(GO_BUILD_DIR)/mod
+GO_TMP_DIR := $(ROOT_DIR)/$(GO_BUILD_DIR)/tmp
 VUE_BUILD_DIR := $(BUILD_DIR)/vue
 VUE_CACHE_DIR := $(VUE_BUILD_DIR)/.vite
 NPM_CACHE_DIR := $(VUE_BUILD_DIR)/npm-cache
@@ -118,6 +119,7 @@ frontend:
 backend:
 	@echo "==> 构建后端 ($(VERSION))..."
 	@mkdir -p $(DIST_DIR)
+	@mkdir -p $(GO_CACHE_DIR) $(GO_MOD_CACHE_DIR) $(GO_TMP_DIR)
 	cd $(BACKEND_DIR) && $(GO_ENV) CGO_ENABLED=1 go build -p $(shell nproc) $(GO_BUILD_FLAGS) -o ../$(GO_BUILD_OUTPUT) ./cmd/server
 	@echo "✓ 后端构建完成: $(GO_BUILD_OUTPUT)"
 	@ls -lh $(GO_BUILD_OUTPUT)

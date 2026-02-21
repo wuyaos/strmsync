@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="STRMSync_Smooth_S" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <style>
+      .cls-primary {
+          --color-primary: #2563eb; /* blue-600 */
+          @supports (color: oklch(0% 0 0)) {
+              --color-primary: oklch(54.61% 0.245 262.88);
+          }
+          fill: var(--color-primary);
+      }
+      .cls-secondary {
+          --color-secondary: #22d3ee; /* cyan-400 */
+          @supports (color: oklch(0% 0 0)) {
+              --color-secondary: oklch(82.83% 0.169 194.34);
+          }
+          fill: var(--color-secondary);
+      }
+    </style>
+  </defs>
+
+  <!-- 上半部分：由中心向右上流动的 S 曲线 -->
+  <!-- 起始于视觉中心左侧，绕过顶部，最终形成指向右侧的箭头 -->
+  <path class="cls-primary" d="M416,544 C416,400 528,288 672,288 L800,288 L800,192 L928,336 L800,480 L800,384 L672,384 C584,384 512,456 512,544 L416,544 Z" />
+  
+  <!-- 顶部流动装饰，增加层次感 -->
+  <path class="cls-primary" d="M288,288 C350,288 400,238 400,176 C400,114 350,64 288,64 L160,64 L160,160 L288,160 C297,160 304,167 304,176 C304,185 297,192 288,192 L128,192 L128,288 L288,288 Z" opacity="0.4" />
+
+  <!-- 下半部分：由中心向左下流动的 S 曲线 -->
+  <!-- 与上半部分呈 180 度镜像，起始于中心右侧，绕过底部，指向左侧 -->
+  <path class="cls-secondary" d="M608,480 C608,624 496,736 352,736 L224,736 L224,832 L96,688 L224,544 L224,640 L352,640 C440,640 512,568 512,480 L608,480 Z" />
+
+  <!-- 底部流动装饰，增加对称的流动感 -->
+  <path class="cls-secondary" d="M736,736 C674,736 624,786 624,848 C624,910 674,960 736,960 L864,960 L864,864 L736,864 C727,864 720,857 720,848 C720,839 727,832 736,832 L896,832 L896,736 L736,736 Z" opacity="0.4" />
+</svg>

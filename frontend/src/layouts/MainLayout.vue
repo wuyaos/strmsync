@@ -3,7 +3,7 @@
     <!-- 侧边栏 -->
     <el-aside :width="isCollapse ? '64px' : '200px'" class="sidebar">
       <div class="logo" :class="{ collapse: isCollapse }">
-        <el-icon v-if="!isCollapse" :size="24"><Files /></el-icon>
+        <img :src="logoSvg" alt="STRMSync Logo" class="logo-icon" />
         <span v-if="!isCollapse">STRMSync</span>
       </div>
 
@@ -79,6 +79,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSystemInfo } from '@/composables/useSystemInfo'
+import logoSvg from '@/assets/icons/logo.svg'
 
 const route = useRoute()
 const router = useRouter()
@@ -163,8 +164,19 @@ onMounted(() => {
     border-bottom: 1px solid var(--el-border-color);
     gap: 8px;
 
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+    }
+
     &.collapse {
       justify-content: center;
+
+      .logo-icon {
+        width: 28px;
+        height: 28px;
+      }
     }
   }
 

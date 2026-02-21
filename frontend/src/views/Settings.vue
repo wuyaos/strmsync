@@ -182,7 +182,10 @@
       <!-- 关于 -->
       <el-tab-pane label="关于" name="about">
         <div class="about-section">
-          <h2>STRMSync</h2>
+          <div class="about-header">
+            <img :src="logoSvg" alt="STRMSync Logo" class="about-logo" />
+            <h2>STRMSync</h2>
+          </div>
           <p>版本：{{ frontendVersion }}</p>
           <p>自动化STRM媒体文件管理系统</p>
           <el-divider />
@@ -206,6 +209,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getSettings, updateSettings } from '@/api/settings'
 import { useSystemInfo } from '@/composables/useSystemInfo'
+import logoSvg from '@/assets/icons/logo.svg'
 
 const activeTab = ref('scanner')
 
@@ -321,9 +325,22 @@ onMounted(() => {
   .about-section {
     padding: 20px;
 
-    h2 {
-      font-size: 28px;
-      margin-bottom: 12px;
+    .about-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+
+      .about-logo {
+        width: 64px;
+        height: 64px;
+        object-fit: contain;
+      }
+
+      h2 {
+        font-size: 28px;
+        margin: 0;
+      }
     }
 
     h3 {
