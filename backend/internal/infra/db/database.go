@@ -26,7 +26,7 @@ var (
 
 // InitWithConfig 打开SQLite数据库，配置连接池，并运行迁移
 // 允许传入已加载/验证的日志配置，避免重复读取环境变量
-// dbPath 是SQLite文件路径，例如："data/strmsync.db"
+// dbPath 是SQLite文件路径，例如："data.db"
 // logCfg 是必填的日志配置
 func InitWithConfig(dbPath string, logCfg *LogConfig) error {
 	if strings.TrimSpace(dbPath) == "" {

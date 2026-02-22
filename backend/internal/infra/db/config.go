@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -86,7 +87,7 @@ func LoadFromEnv() (*Config, error) {
 			Host: getEnv("HOST", appconfig.DefaultServerHost),
 		},
 		Database: DatabaseConfig{
-			Path: getEnv("DB_PATH", appconfig.DefaultDBPath),
+			Path: resolveDBPath(),
 		},
 		Log: LogConfig{
 			Level:     getEnv("LOG_LEVEL", appconfig.DefaultLogLevel),
@@ -134,6 +135,18 @@ func getEnv(key string, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func resolveDBPath() string {
+	raw := strings.TrimSpace(getEnv("DB_PATH", ""))
+	if raw != "" {
+		return raw
+	}
+	execPath, err := os.Executable()
+	if err != nil {
+		return appconfig.DefaultDBPath
+	}
+	return filepath.Join(filepath.Dir(execPath), appconfig.DefaultDBPath)
 }
 
 // getEnvInt 获取整数类型环境变量，如果不存在或无效则返回默认值
