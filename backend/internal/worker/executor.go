@@ -146,12 +146,18 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 		return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("load data server %d: %w", *job.DataServerID, err))
 	}
 
+	syncOperation := logger.FormatJobOperation("STRM同步任务", job.Name)
+	metaOperation := logger.FormatJobOperation("元数据同步", job.Name)
 	execLog := e.log.With(
+		zap.String("module", "worker"),
 		zap.Uint("job_id", job.ID),
 		zap.String("job_name", job.Name),
 		zap.Uint("task_id", task.ID),
+		zap.String("operation", syncOperation),
+		zap.String("source", "任务执行器.同步任务"),
 	)
 	execLog.Info("加载任务配置",
+		zap.String("result", "加载任务配置"),
 		zap.String("name", job.Name),
 		zap.String("watch_mode", job.WatchMode),
 		zap.String("source_path", job.SourcePath),
@@ -159,6 +165,7 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 		zap.String("strm_path", job.STRMPath),
 		zap.Bool("enabled", job.Enabled))
 	execLog.Info("加载数据服务器配置",
+		zap.String("result", "加载数据服务器配置"),
 		zap.Uint("server_id", server.ID),
 		zap.String("name", server.Name),
 		zap.String("type", server.Type),
@@ -172,6 +179,7 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 		extra.SkipExisting = false
 	}
 	execLog.Info("解析任务选项完成",
+		zap.String("result", "解析任务选项完成"),
 		zap.Int("max_concurrency", extra.MaxConcurrency),
 		zap.Int64("min_file_size", extra.MinFileSize),
 		zap.String("metadata_mode", extra.MetadataMode),
@@ -198,6 +206,7 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 		}
 		driverServer = localServer
 		execLog.Info("STRM 使用本地路径驱动",
+			zap.String("result", "STRM 使用本地路径驱动"),
 			zap.String("server_type", serverForDriver.Type),
 			zap.String("source_path", job.SourcePath),
 			zap.String("access_path", strings.TrimSpace(getAccessPathFromServer(serverForDriver))),
@@ -214,6 +223,7 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 		return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("build writer for job %s: %w", job.Name, err))
 	}
 	execLog.Info("构建同步组件完成",
+		zap.String("result", "构建同步组件完成"),
 		zap.String("driver_type", driver.Type().String()))
 
 	// 4. 构建 EngineOptions
@@ -267,18 +277,22 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 	}
 	var eventSink *taskRunEventSink
 	if e.cfg.TaskRunEvents != nil {
-		eventLogger := e.log.With(zap.String("component", "task-run-event"))
+		eventLogger := e.log.With(zap.String("module", "worker"), zap.String("component", "task-run-event"))
 		eventSink = newTaskRunEventSink(e.cfg.TaskRunEvents, task.ID, job.ID, job.Name, eventLogger)
 		engineOpts.EventSink = eventSink
 	}
 
 	// 5. 创建 Engine 实例
-	engine, err := syncengine.NewEngine(driver, writer, e.log.With(
+	engineLog := e.log.With(
+		zap.String("module", "engine"),
 		zap.Uint("job_id", job.ID),
 		zap.String("job_name", job.Name),
 		zap.Uint("task_id", task.ID),
 		zap.String("driver_type", driver.Type().String()),
-	), engineOpts)
+		zap.String("operation", syncOperation),
+		zap.String("source", "同步引擎.同步任务"),
+	)
+	engine, err := syncengine.NewEngine(driver, writer, engineLog, engineOpts)
 	if err != nil {
 		return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("new engine: %w", err))
 	}
@@ -289,6 +303,7 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 		return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("resolve engine remote path: %w", err))
 	}
 	execLog.Info("开始执行同步任务",
+		zap.String("result", "开始执行同步任务"),
 		zap.String("remote_root", remotePath))
 	stats, runErr := engine.RunOnce(ctx, remotePath)
 
@@ -298,7 +313,11 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 		metaStats, metaErr = e.syncMetadata(ctx, job, serverForDriver, driver, extra, remotePath, eventSink)
 	}
 	if metaErr != nil {
-		execLog.Warn("元数据同步失败", zap.Error(metaErr))
+		execLog.Warn("元数据同步失败",
+			zap.String("operation", metaOperation),
+			zap.String("result", "元数据同步失败"),
+			zap.String("source", "任务执行器.元数据同步"),
+			zap.Error(metaErr))
 	}
 
 	// 7. 更新 TaskRun 进度
@@ -316,6 +335,7 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 	}
 
 	execLog.Info("同步任务执行完成",
+		zap.String("result", "同步任务执行完成"),
 		zap.Int64("total_files", stats.TotalFiles),
 		zap.Int64("processed_files", stats.ProcessedFiles),
 		zap.Int64("created_files", stats.CreatedFiles),
@@ -847,7 +867,15 @@ func (e *Executor) syncMetadata(ctx context.Context, job model.Job, server model
 		return metadataStats{}, fmt.Errorf("list metadata entries: %w", err)
 	}
 
-	metaLogger := e.log.With(zap.String("component", "metadata"))
+	metaOperation := logger.FormatJobOperation("元数据同步", job.Name)
+	metaLogger := e.log.With(
+		zap.String("module", "worker"),
+		zap.String("component", "metadata"),
+		zap.Uint("job_id", job.ID),
+		zap.String("job_name", job.Name),
+		zap.String("operation", metaOperation),
+		zap.String("source", "任务执行器.元数据同步"),
+	)
 	var client filesystem.Client
 	apiLimiter, downloadLimiter := buildServerLimiters(ctx, server, e.cfg.Settings, e.qosManager, metaLogger)
 	if mode == "download" {
@@ -872,6 +900,7 @@ func (e *Executor) syncMetadata(ctx context.Context, job model.Job, server model
 
 	strategy := resolveMetaStrategy(extra.SyncOpts)
 	metaLogger.Info("开始同步元数据",
+		zap.String("result", "开始同步元数据"),
 		zap.String("remote_root", remotePath),
 		zap.Int("meta_exts", len(metaExts)),
 		zap.String("mode", mode),
@@ -977,6 +1006,7 @@ func (e *Executor) syncMetadata(ctx context.Context, job model.Job, server model
 	}
 
 	metaLogger.Info("元数据同步完成",
+		zap.String("result", "元数据同步完成"),
 		zap.Int64("total", stats.Total),
 		zap.Int64("created", stats.Created),
 		zap.Int64("updated", stats.Updated),

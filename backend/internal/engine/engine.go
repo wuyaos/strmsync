@@ -188,7 +188,9 @@ func (e *Engine) RunOnce(ctx context.Context, remotePath string) (SyncStats, err
 	stats.EndTime = time.Now()
 	stats.Duration = stats.EndTime.Sub(stats.StartTime)
 
-	e.logger.Info("同步任务完成",
+	e.logger.Debug("同步任务完成",
+		zap.String("result", "同步任务完成"),
+		zap.String("source", "同步引擎.任务完成"),
 		zap.Int64("processed", stats.ProcessedFiles),
 		zap.Int64("created", stats.CreatedFiles),
 		zap.Int64("updated", stats.UpdatedFiles),

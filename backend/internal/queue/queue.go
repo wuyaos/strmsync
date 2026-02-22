@@ -97,7 +97,7 @@ func NewSyncQueue(db *gorm.DB) (*SyncQueue, error) {
 
 	return &SyncQueue{
 		db:  db,
-		log: logger.With(zap.String("component", "syncqueue")),
+		log: logger.WithModule("queue").With(zap.String("component", "syncqueue")),
 	}, nil
 }
 
@@ -283,10 +283,14 @@ func (q *SyncQueue) Complete(ctx context.Context, taskID uint) error {
 	}
 
 	jobName := extractJobName(task.Payload)
-	q.log.Info("task completed",
+	operation := logger.FormatJobOperation("STRM同步任务", jobName)
+	q.log.Debug("队列任务完成",
 		zap.Uint("task_id", taskID),
 		zap.Uint("job_id", task.JobID),
 		zap.String("job_name", jobName),
+		zap.String("operation", operation),
+		zap.String("result", "队列任务完成"),
+		zap.String("source", "任务队列.任务完成"),
 		zap.Int64("duration", duration))
 
 	return nil

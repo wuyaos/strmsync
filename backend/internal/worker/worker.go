@@ -84,7 +84,7 @@ func NewWorker(cfg WorkerConfig) (*WorkerPool, error) {
 
 	// 设置默认值
 	if cfg.Logger == nil {
-		cfg.Logger = logger.With(zap.String("component", "worker"))
+		cfg.Logger = logger.WithModule("worker").With(zap.String("component", "worker"))
 	}
 	if cfg.Concurrency <= 0 {
 		cfg.Concurrency = defaultConcurrency
@@ -304,10 +304,13 @@ func (w *WorkerPool) executeTask(log *zap.Logger, task *model.TaskRun) error {
 	}
 
 	jobName := extractJobName(task.Payload)
+	operation := logger.FormatJobOperation("STRM同步任务", jobName)
 	taskLog := log.With(
 		zap.Uint("task_id", task.ID),
 		zap.Uint("job_id", task.JobID),
 		zap.String("job_name", jobName),
+		zap.String("operation", operation),
+		zap.String("source", "任务执行器.任务执行"),
 	)
 
 	execCtx := w.runCtx
@@ -339,7 +342,8 @@ func (w *WorkerPool) executeTask(log *zap.Logger, task *model.TaskRun) error {
 			taskLog.Warn("update job status to error failed",
 				zap.Error(statusErr))
 		}
-		taskLog.Error("task failed",
+		taskLog.Error("任务失败",
+			zap.String("result", "任务失败"),
 			zap.Error(err))
 		return err
 	}
@@ -361,7 +365,8 @@ func (w *WorkerPool) executeTask(log *zap.Logger, task *model.TaskRun) error {
 			zap.Error(lastRunErr))
 	}
 
-	taskLog.Info("task completed",
+	taskLog.Debug("任务完成",
+		zap.String("result", "任务完成"),
 		zap.Int64("processed_files", stats.ProcessedFiles),
 		zap.Int64("created_files", stats.CreatedFiles),
 		zap.Int64("updated_files", stats.UpdatedFiles),

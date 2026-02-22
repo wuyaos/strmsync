@@ -44,7 +44,7 @@ func WithLogger(logger *zap.Logger) Option {
 // NewMonitor 创建文件监控器
 func NewMonitor(opts ...Option) ports.FileMonitor {
 	m := &Monitor{
-		logger: logger.L(),
+		logger: logger.WithModule("engine").With(zap.String("component", "file-monitor")),
 		// 临时文件扩展名（小写）
 		tempExts: map[string]struct{}{
 			".tmp":        {},
@@ -73,7 +73,7 @@ func NewMonitor(opts ...Option) ports.FileMonitor {
 
 	// 确保 logger 非空
 	if m.logger == nil {
-		m.logger = logger.L()
+		m.logger = logger.WithModule("engine").With(zap.String("component", "file-monitor"))
 	}
 
 	return m

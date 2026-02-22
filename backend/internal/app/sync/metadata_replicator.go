@@ -87,7 +87,9 @@ func NewMetadataReplicator(fs filesystem.Client, targetRoot string, logger *zap.
 
 // Apply 执行元数据文件复制/下载（创建/更新/删除元数据文件）
 func (r *MetadataReplicator) Apply(ctx context.Context, items <-chan ports.SyncPlanItem) (succeeded int, failed int, err error) {
-	r.logger.Info("开始处理元数据计划项")
+	r.logger.Info("开始处理元数据计划项",
+		zap.String("result", "开始处理元数据计划项"),
+		zap.String("source", "同步引擎.元数据复制"))
 	startTime := time.Now()
 
 	for {
@@ -95,6 +97,8 @@ func (r *MetadataReplicator) Apply(ctx context.Context, items <-chan ports.SyncP
 		case <-ctx.Done():
 			elapsed := time.Since(startTime)
 			r.logger.Warn("元数据复制被取消",
+				zap.String("result", "元数据复制被取消"),
+				zap.String("source", "同步引擎.元数据复制"),
 				zap.Int("succeeded", succeeded),
 				zap.Int("failed", failed),
 				zap.Duration("elapsed", elapsed),
@@ -106,6 +110,8 @@ func (r *MetadataReplicator) Apply(ctx context.Context, items <-chan ports.SyncP
 				// 通道关闭，所有项目已处理完成
 				elapsed := time.Since(startTime)
 				r.logger.Info("元数据复制完成",
+					zap.String("result", "元数据复制完成"),
+					zap.String("source", "同步引擎.元数据复制"),
 					zap.Int("succeeded", succeeded),
 					zap.Int("failed", failed),
 					zap.Duration("elapsed", elapsed))
