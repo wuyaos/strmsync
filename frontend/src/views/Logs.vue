@@ -18,11 +18,12 @@
         <el-select
           v-model="levelFilter"
           placeholder="日志级别"
+          multiple
+          collapse-tags
+          collapse-tags-tooltip
           clearable
           class="toolbar-level"
         >
-          <el-option label="标准" value="standard" />
-          <el-option label="全部" value="" />
           <el-option label="DEBUG" value="debug" />
           <el-option label="INFO" value="info" />
           <el-option label="WARN" value="warn" />
@@ -89,7 +90,7 @@ import Loading from '~icons/ep/loading'
 import dayjs from 'dayjs'
 
 const searchText = ref('')
-const levelFilter = ref('standard')
+const levelFilter = ref(['info', 'warn', 'error'])
 const taskFilter = ref('')
 const logs = ref([])
 const loading = ref(false)
@@ -105,52 +106,42 @@ const getLogTime = (log) => {
 }
 
 const filteredLogs = computed(() => {
-  const list = logs.value.filter(log => {
-    const level = String(log.level || 'info').toLowerCase()
-    if (searchText.value && !(log.message || '').includes(searchText.value)) {
-      return false
-    }
-    if (levelFilter.value === 'standard') {
-      if (!['info', 'warn', 'error'].includes(level)) return false
-    } else if (levelFilter.value) {
-      if (level !== levelFilter.value) return false
-    }
-    if (taskFilter.value && log.job_id !== parseInt(taskFilter.value, 10)) {
-      return false
-    }
-    return true
-  })
-  return list.slice().sort((a, b) => getLogTime(b) - getLogTime(a))
+  return logs.value.slice().sort((a, b) => getLogTime(b) - getLogTime(a))
 })
 
+let loadTimeout = null
 const loadLogs = async () => {
-  if (isLoadingLogs.value) return
-  try {
-    isLoadingLogs.value = true
-    loading.value = true
-    const params = {
-      page: currentPage.value,
-      page_size: pageSize.value
-    }
-    if (levelFilter.value && levelFilter.value !== 'standard') params.level = levelFilter.value
-    if (taskFilter.value) params.job_id = taskFilter.value
-    if (searchText.value) params.search = searchText.value
-
-    const data = await getLogList(params)
-    logs.value = data.logs || []
-    total.value = data.total || 0
-
-    if (logs.value.length === 0 && total.value > 0 && currentPage.value > 1) {
-      currentPage.value = 1
-      await loadLogs()
-    }
-  } catch (error) {
-    console.error('加载日志失败:', error)
-    ElMessage.error('加载日志失败')
-  } finally {
-    loading.value = false
-    isLoadingLogs.value = false
+  if (loadTimeout) {
+    clearTimeout(loadTimeout)
   }
+  loadTimeout = setTimeout(async () => {
+    try {
+      loading.value = true
+      const params = {
+        page: currentPage.value,
+        page_size: pageSize.value
+      }
+      if (levelFilter.value && levelFilter.value.length > 0) {
+        params.level = Array.isArray(levelFilter.value) ? levelFilter.value.join(',') : levelFilter.value
+      }
+      if (taskFilter.value) params.job_id = taskFilter.value
+      if (searchText.value) params.search = searchText.value
+
+      const data = await getLogList(params)
+      logs.value = data.logs || []
+      total.value = data.total || 0
+
+      if (logs.value.length === 0 && total.value > 0 && currentPage.value > 1) {
+        currentPage.value = 1
+        await loadLogs()
+      }
+    } catch (error) {
+      console.error('加载日志失败:', error)
+      ElMessage.error('加载日志失败')
+    } finally {
+      loading.value = false
+    }
+  }, 100)
 }
 
 
@@ -162,6 +153,9 @@ const formatTime = (time) => {
 }
 
 onMounted(() => {
+  if (!Array.isArray(levelFilter.value)) {
+    levelFilter.value = ['info', 'warn', 'error']
+  }
   loadLogs()
 })
 
