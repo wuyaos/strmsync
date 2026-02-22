@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/strmsync/strmsync/internal/domain/model"
 	"go.uber.org/zap"
@@ -73,6 +74,7 @@ func (c *dbCore) Write(entry zapcore.Entry, fields []zapcore.Field) error {
 	if message == "" {
 		message = entry.Level.String()
 	}
+	message = formatMessageForDB(message, allFields)
 
 	WriteLogToDB(c.db, &model.LogEntry{
 		Level:      entry.Level.String(),
@@ -114,7 +116,7 @@ func AttachDBWriter(db *gorm.DB, level string) error {
 
 	current := L()
 	next := current.WithOptions(zap.WrapCore(func(core zapcore.Core) zapcore.Core {
-		return zapcore.NewTee(core, newDBCore(db, parsed))
+		return zapcore.NewTee(core, wrapDebugFilterCore(newDBCore(db, parsed)))
 	}))
 	globalLogger.Store(next)
 	globalSugar.Store(next.Sugar())
@@ -201,4 +203,68 @@ func readUintField(field zapcore.Field) (uint, bool) {
 		}
 	}
 	return 0, false
+}
+
+func formatMessageForDB(message string, fields []zapcore.Field) string {
+	pairs := collectFieldPairs(fields)
+	if len(pairs) == 0 {
+		return message
+	}
+	return message + " " + strings.Join(pairs, " ")
+}
+
+func collectFieldPairs(fields []zapcore.Field) []string {
+	skipped := map[string]struct{}{
+		"module":     {},
+		"component":  {},
+		"request_id": {},
+		"requestId":  {},
+		"user_action": {},
+		"job_id":     {},
+		"trace_id":   {},
+	}
+	seen := map[string]struct{}{}
+	pairs := make([]string, 0, len(fields))
+	for _, field := range fields {
+		key := strings.TrimSpace(field.Key)
+		if key == "" {
+			continue
+		}
+		if _, skip := skipped[key]; skip {
+			continue
+		}
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		value, ok := formatFieldValue(field)
+		if !ok || value == "" {
+			continue
+		}
+		seen[key] = struct{}{}
+		pairs = append(pairs, key+"="+value)
+	}
+	return pairs
+}
+
+func formatFieldValue(field zapcore.Field) (string, bool) {
+	switch field.Type {
+	case zapcore.StringType:
+		return strings.TrimSpace(field.String), true
+	case zapcore.ByteStringType:
+		if value, ok := field.Interface.([]byte); ok {
+			return strings.TrimSpace(string(value)), true
+		}
+	case zapcore.BoolType:
+		if field.Integer == 1 {
+			return "true", true
+		}
+		return "false", true
+	case zapcore.Int64Type, zapcore.Int32Type, zapcore.Int16Type, zapcore.Int8Type:
+		return strconv.FormatInt(field.Integer, 10), true
+	case zapcore.Uint64Type, zapcore.Uint32Type, zapcore.Uint16Type, zapcore.Uint8Type:
+		return strconv.FormatUint(uint64(field.Integer), 10), true
+	case zapcore.DurationType:
+		return time.Duration(field.Integer).String(), true
+	}
+	return "", false
 }

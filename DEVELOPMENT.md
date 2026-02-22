@@ -315,6 +315,13 @@ npm run build
 | `/api/settings` | GET | 获取系统设置 |
 | `/api/settings` | PUT | 更新系统设置 |
 
+**日志环境变量（摘录）**
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `LOG_DEBUG` | `false` | 是否强制开启 debug（覆盖 LOG_LEVEL） |
+| `LOG_DEBUG_MODULES` | `engine,worker,filesystem` | debug 模块白名单 |
+| `LOG_DEBUG_RPS` | `10` | debug 速率限制（每秒最大条数） |
+
 详细API文档请参考 [backend/README.md](backend/README.md)
 
 ---

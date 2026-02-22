@@ -96,6 +96,7 @@ func InitLogger(level string, dir string, rotate RotateConfig) error {
 			parsed,
 		),
 	)
+	core = wrapDebugFilterCore(core)
 
 	l := zap.New(
 		core,
@@ -224,6 +225,19 @@ func WithOperation(module, action string, jobID uint) *zap.Logger {
 		return L()
 	}
 	return L().With(fields...)
+}
+
+// FormatJobOperation 统一格式化任务操作名（如：STRM同步任务(任务名)）
+func FormatJobOperation(prefix string, jobName string) string {
+	prefix = strings.TrimSpace(prefix)
+	jobName = strings.TrimSpace(jobName)
+	if prefix == "" {
+		return ""
+	}
+	if jobName == "" {
+		return prefix
+	}
+	return fmt.Sprintf("%s(%s)", prefix, jobName)
 }
 
 // Debug 记录debug级别日志

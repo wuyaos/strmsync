@@ -70,17 +70,31 @@ func main() {
 	}
 	defer logger.SyncLogger()
 
+	debugEnabled := cfg.Log.Debug || strings.EqualFold(cfg.Log.Level, "debug")
+	logger.ApplyDebugPolicy(debugEnabled, cfg.Log.DebugMods, cfg.Log.DebugRPS)
+
 	envSnapshot := buildEnvSnapshot()
 	sysLogger := logger.With(zap.String("module", "system"))
 	if len(envSnapshot) > 0 {
-		message := formatEnvSnapshot(envSnapshot)
-		sysLogger.Info(message, zap.Any("env", envSnapshot))
+		result := formatEnvSnapshot(envSnapshot)
+		sysLogger.Info("环境变量加载 "+result,
+			zap.String("operation", "环境变量加载"),
+			zap.String("result", result),
+			zap.String("source", "系统.环境变量"),
+			zap.Any("env", envSnapshot))
 	} else {
-		sysLogger.Info("未检测到环境变量覆盖")
+		sysLogger.Info("未检测到环境变量覆盖",
+			zap.String("operation", "环境变量加载"),
+			zap.String("result", "未检测到环境变量覆盖"),
+			zap.String("source", "系统.环境变量"))
 	}
+	sysLogger.Info("日志调试策略",
+		zap.Bool("debug_enabled", debugEnabled),
+		zap.Strings("debug_modules", cfg.Log.DebugMods),
+		zap.Int("debug_rps", cfg.Log.DebugRPS))
 	logSystemInfo(cfg)
 
-	logger.LogInfo("STRMSync 启动中...",
+	sysLogger.Info("STRMSync 启动中...",
 		zap.String("app", "STRMSync"),
 		zap.String("version", appVersion),
 		zap.String("frontend_version", frontendVersion),
@@ -95,17 +109,17 @@ func main() {
 
 	// 初始化数据库
 	if err := dbpkg.InitWithConfig(cfg.Database.Path, &cfg.Log); err != nil {
-		logger.LogError("数据库初始化失败", zap.Error(err))
+		sysLogger.Error("数据库初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
 	defer dbpkg.Close()
 
-	logger.LogInfo("数据库初始化成功", zap.String("path", cfg.Database.Path))
+	sysLogger.Info("数据库初始化成功", zap.String("path", cfg.Database.Path))
 
 	// 获取数据库连接
 	db, err := dbpkg.GetDB()
 	if err != nil {
-		logger.LogError("获取数据库连接失败", zap.Error(err))
+		sysLogger.Error("获取数据库连接失败", zap.Error(err))
 		os.Exit(1)
 	}
 
@@ -119,34 +133,34 @@ func main() {
 	// 初始化 SyncQueue
 	queue, err := syncqueue.NewSyncQueue(db)
 	if err != nil {
-		logger.LogError("SyncQueue 初始化失败", zap.Error(err))
+		sysLogger.Error("SyncQueue 初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
 
 	// 初始化共享的 Repository（scheduler 和 worker 共享）
 	jobRepo, err := repository.NewGormJobRepository(db)
 	if err != nil {
-		logger.LogError("JobRepository 初始化失败", zap.Error(err))
+		sysLogger.Error("JobRepository 初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
 	dataServerRepo, err := repository.NewGormDataServerRepository(db)
 	if err != nil {
-		logger.LogError("DataServerRepository 初始化失败", zap.Error(err))
+		sysLogger.Error("DataServerRepository 初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
 	taskRunRepo, err := worker.NewGormTaskRunRepository(db)
 	if err != nil {
-		logger.LogError("TaskRunRepository 初始化失败", zap.Error(err))
+		sysLogger.Error("TaskRunRepository 初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
 	taskRunEventRepo, err := worker.NewGormTaskRunEventRepository(db)
 	if err != nil {
-		logger.LogError("TaskRunEventRepository 初始化失败", zap.Error(err))
+		sysLogger.Error("TaskRunEventRepository 初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
 	settingsRepo, err := worker.NewGormSettingsRepository(db)
 	if err != nil {
-		logger.LogError("SettingsRepository 初始化失败", zap.Error(err))
+		sysLogger.Error("SettingsRepository 初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
 
@@ -154,16 +168,16 @@ func main() {
 	cronScheduler, err := scheduler.NewScheduler(scheduler.SchedulerConfig{
 		Queue:  queue,
 		Jobs:   jobRepo, // 使用共享的 Repository
-		Logger: logger.With(zap.String("component", "scheduler")),
+		Logger: logger.WithModule("scheduler").With(zap.String("component", "scheduler")),
 	})
 	if err != nil {
-		logger.LogError("Scheduler 初始化失败", zap.Error(err))
+		sysLogger.Error("Scheduler 初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
 
 	// 清理程序异常退出时遗留的 running 状态任务
-	if err := cleanupInterruptedTasks(context.Background(), db, logger.With(zap.String("component", "cleanup"))); err != nil {
-		logger.LogWarn("清理中断任务失败", zap.Error(err))
+	if err := cleanupInterruptedTasks(context.Background(), db, logger.WithModule("cleanup").With(zap.String("component", "cleanup"))); err != nil {
+		sysLogger.Warn("清理中断任务失败", zap.Error(err))
 	}
 
 	// 初始化 Worker
@@ -174,22 +188,22 @@ func main() {
 		TaskRuns:      taskRunRepo,
 		TaskRunEvents: taskRunEventRepo,
 		Settings:      settingsRepo,
-		Logger:        logger.With(zap.String("component", "worker")),
+		Logger:        logger.WithModule("worker").With(zap.String("component", "worker")),
 		GracePeriod:   15 * time.Second,
 	})
 	if err != nil {
-		logger.LogError("Worker 初始化失败", zap.Error(err))
+		sysLogger.Error("Worker 初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
 
 	// 启动 Scheduler/Worker
 	startCtx := context.Background()
 	if err := cronScheduler.Start(startCtx); err != nil {
-		logger.LogError("Scheduler 启动失败", zap.Error(err))
+		sysLogger.Error("Scheduler 启动失败", zap.Error(err))
 		os.Exit(1)
 	}
 	if err := workerPool.Start(startCtx); err != nil {
-		logger.LogError("Worker 启动失败", zap.Error(err))
+		sysLogger.Error("Worker 启动失败", zap.Error(err))
 		os.Exit(1)
 	}
 
@@ -207,14 +221,14 @@ func main() {
 
 	// 启动服务器（goroutine）
 	go func() {
-		logger.LogInfo("HTTP服务器启动中", zap.String("addr", addr))
+		sysLogger.Info("HTTP服务器启动中", zap.String("addr", addr))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.LogError("HTTP服务器错误", zap.Error(err))
+			sysLogger.Error("HTTP服务器错误", zap.Error(err))
 			os.Exit(1)
 		}
 	}()
 
-	logger.LogInfo("STRMSync 启动成功",
+	sysLogger.Info("STRMSync 启动成功",
 		zap.String("app", "STRMSync"),
 		zap.String("version", appVersion),
 		zap.String("frontend_version", frontendVersion),
@@ -225,7 +239,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	logger.LogInfo("服务器关闭中...")
+	sysLogger.Info("服务器关闭中...")
 
 	// 关闭日志数据库写入worker
 	logger.ShutdownLogDBWriter()
@@ -235,24 +249,24 @@ func main() {
 	schedCtx, schedCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer schedCancel()
 	if err := cronScheduler.Stop(schedCtx); err != nil {
-		logger.LogError("Scheduler 关闭失败", zap.Error(err))
+		sysLogger.Error("Scheduler 关闭失败", zap.Error(err))
 	}
 
 	// 停止HTTP，不再接受新请求（包括手动 RunJob）
 	httpCtx, httpCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer httpCancel()
 	if err := srv.Shutdown(httpCtx); err != nil {
-		logger.LogError("服务器强制关闭", zap.Error(err))
+		sysLogger.Error("服务器强制关闭", zap.Error(err))
 	}
 
 	// 最后停止Worker，让已入队的任务尽可能处理完毕
 	workerCtx, workerCancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer workerCancel()
 	if err := workerPool.Stop(workerCtx); err != nil {
-		logger.LogError("Worker 关闭失败", zap.Error(err))
+		sysLogger.Error("Worker 关闭失败", zap.Error(err))
 	}
 
-	logger.LogInfo("服务器已退出")
+	sysLogger.Info("服务器已退出")
 }
 
 func loadVersionFromFile() string {
@@ -328,7 +342,7 @@ func formatEnvSnapshot(snapshot map[string]string) string {
 		parts = append(parts, fmt.Sprintf("%s=%s", key, snapshot[key]))
 	}
 
-	return "已加载环境变量：" + strings.Join(parts, ", ")
+	return strings.Join(parts, "; ")
 }
 
 func maskEnvValue(key, value string) string {
@@ -364,20 +378,17 @@ func logSystemInfo(cfg *dbpkg.Config) {
 	logDir, logFile := logger.ResolveLogFilePath(cfg.Log.Path)
 
 	sysLogger := logger.With(zap.String("module", "system"))
-	message := fmt.Sprintf("系统信息：后端版本=%s，前端版本=%s，Go=%s，系统=%s/%s，PID=%d，工作目录=%s，日志=%s，数据库=%s",
+	result := fmt.Sprintf("版本信息 v%s；工作目录=%s；日志=%s；数据库=%s",
 		appVersion,
-		frontendVersion,
-		runtime.Version(),
-		runtime.GOOS,
-		runtime.GOARCH,
-		os.Getpid(),
 		workDir,
 		logFile,
 		cfg.Database.Path)
 
-	sysLogger.Info(message,
+	sysLogger.Info("[LOGO] 软件启动 "+result,
+		zap.String("operation", "[LOGO] 软件启动"),
+		zap.String("result", result),
+		zap.String("source", "系统.软件启动"),
 		zap.String("version", appVersion),
-		zap.String("frontend_version", frontendVersion),
 		zap.String("go_version", runtime.Version()),
 		zap.String("os", runtime.GOOS),
 		zap.String("arch", runtime.GOARCH),
@@ -398,17 +409,17 @@ func setupRouter(db *gorm.DB, logDir string, scheduler httphandlers.JobScheduler
 	router.Use(ginLogger())
 
 	// 获取logger
-	logger := logger.With(zap.String("module", "api"))
+	apiLogger := logger.WithModule("api")
 
 	// 创建处理器
-	logHandler := httphandlers.NewLogHandler(logDir, logger)
-	settingHandler := httphandlers.NewSettingHandler(db, logger)
-	fileHandler := httphandlers.NewFileHandler(db, logger)
-	dataServerHandler := httphandlers.NewDataServerHandler(db, logger)
-	mediaServerHandler := httphandlers.NewMediaServerHandler(db, logger)
+	logHandler := httphandlers.NewLogHandler(logDir, apiLogger)
+	settingHandler := httphandlers.NewSettingHandler(db, apiLogger)
+	fileHandler := httphandlers.NewFileHandler(db, apiLogger)
+	dataServerHandler := httphandlers.NewDataServerHandler(db, apiLogger)
+	mediaServerHandler := httphandlers.NewMediaServerHandler(db, apiLogger)
 	serverTypeHandler := httphandlers.NewServerTypeHandler()
-	jobHandler := httphandlers.NewJobHandler(db, logger, scheduler, queue)
-	taskRunHandler := httphandlers.NewTaskRunHandler(db, logger, queue)
+	jobHandler := httphandlers.NewJobHandler(db, apiLogger, scheduler, queue)
+	taskRunHandler := httphandlers.NewTaskRunHandler(db, apiLogger, queue)
 
 	// API路由组
 	api := router.Group("/api")
@@ -640,7 +651,7 @@ func healthCheckHandler(c *gin.Context) {
 	dbStatus := "ok"
 	if err != nil {
 		dbStatus = "error"
-		logger.LogError("健康检查: 数据库错误", zap.Error(err))
+		logger.WithModule("api").Error("健康检查: 数据库错误", zap.Error(err))
 	} else {
 		sqlDB, err := db.DB()
 		if err != nil || sqlDB.Ping() != nil {
@@ -764,11 +775,11 @@ func setupStaticFiles(router *gin.Engine) {
 	// 查找 web_statics 目录（按优先级）
 	webStaticsPath := findWebStaticsDir()
 	if webStaticsPath == "" {
-		logger.LogWarn("前端静态文件目录未找到，前端功能将不可用")
+		logger.WithModule("system").Warn("前端静态文件目录未找到，前端功能将不可用")
 		return
 	}
 
-	logger.LogInfo("前端静态文件目录", zap.String("path", webStaticsPath))
+	logger.WithModule("system").Info("前端静态文件目录", zap.String("path", webStaticsPath))
 
 	// 托管静态资源（JS/CSS/图片等）
 	router.Static("/assets", filepath.Join(webStaticsPath, "assets"))

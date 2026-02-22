@@ -41,7 +41,9 @@ func (h *LogHandler) ListLogs(c *gin.Context) {
 		pageSize = 200
 	}
 
-	entries, err := h.readLogEntries()
+	format := strings.ToLower(strings.TrimSpace(c.Query("format")))
+	legacyMode := format == "legacy"
+	entries, err := h.readLogEntries(legacyMode)
 	if err != nil {
 		logger.LogError("读取日志文件失败", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "读取日志失败"})
@@ -180,6 +182,10 @@ type logEntry struct {
 	Level      string    `json:"level"`
 	Module     string    `json:"module,omitempty"`
 	Message    string    `json:"message"`
+	Operation  string    `json:"operation,omitempty"`
+	Result     string    `json:"result,omitempty"`
+	Details    string    `json:"details,omitempty"`
+	Source     string    `json:"source,omitempty"`
 	JobID      *uint     `json:"job_id,omitempty"`
 	RequestID  *string   `json:"request_id,omitempty"`
 	UserAction *string   `json:"user_action,omitempty"`
@@ -198,6 +204,10 @@ type rawLogEntry struct {
 	JobID      *uint  `json:"job_id"`
 	RequestID  string `json:"request_id"`
 	UserAction string `json:"user_action"`
+	Operation  string `json:"operation"`
+	Result     string `json:"result"`
+	Details    string `json:"details"`
+	Source     string `json:"source"`
 }
 
 type logLine struct {
@@ -217,7 +227,7 @@ func (h *LogHandler) logFilePath() string {
 	return filepath.Join(dir, "app.log")
 }
 
-func (h *LogHandler) readLogEntries() ([]logEntry, error) {
+func (h *LogHandler) readLogEntries(legacyMode bool) ([]logEntry, error) {
 	lines, err := h.readLogLines()
 	if err != nil {
 		return nil, err
@@ -260,6 +270,12 @@ func (h *LogHandler) readLogEntries() ([]logEntry, error) {
 			module = strings.TrimSpace(raw.Logger)
 		}
 
+		if !legacyMode {
+			if details := formatLogDetails(line.Raw); details != "" {
+				message = message + " " + details
+			}
+		}
+
 		requestID := strings.TrimSpace(raw.RequestID)
 		var requestPtr *string
 		if requestID != "" {
@@ -271,24 +287,124 @@ func (h *LogHandler) readLogEntries() ([]logEntry, error) {
 			userPtr = &userAction
 		}
 
+		details := ""
+		if !legacyMode {
+			details = strings.TrimSpace(raw.Details)
+			if details == "" {
+				details = formatLogDetails(line.Raw)
+			}
+		}
+
 		createdAt := line.Time
 		if !line.HasTime {
 			createdAt = time.Time{}
 		}
 
-		entries = append(entries, logEntry{
+		entry := logEntry{
 			ID:         id,
 			Level:      level,
 			Module:     module,
 			Message:    message,
+			Operation:  strings.TrimSpace(raw.Operation),
+			Result:     strings.TrimSpace(raw.Result),
+			Details:    details,
+			Source:     strings.TrimSpace(raw.Source),
 			JobID:      raw.JobID,
 			RequestID:  requestPtr,
 			UserAction: userPtr,
 			CreatedAt:  createdAt,
-		})
+		}
+		if legacyMode {
+			entry.Operation = ""
+			entry.Result = ""
+			entry.Details = ""
+			entry.Source = ""
+		}
+		entries = append(entries, entry)
 	}
 
 	return entries, nil
+}
+
+func formatLogDetails(rawLine string) string {
+	if strings.TrimSpace(rawLine) == "" {
+		return ""
+	}
+	var rawMap map[string]interface{}
+	if err := json.Unmarshal([]byte(rawLine), &rawMap); err != nil {
+		return ""
+	}
+	pairs := collectLogPairs(rawMap)
+	if len(pairs) == 0 {
+		return ""
+	}
+	return strings.Join(pairs, " ")
+}
+
+func collectLogPairs(rawMap map[string]interface{}) []string {
+	if len(rawMap) == 0 {
+		return nil
+	}
+	skipped := map[string]struct{}{
+		"level":      {},
+		"ts":         {},
+		"time":       {},
+		"msg":        {},
+		"message":    {},
+		"operation":  {},
+		"result":     {},
+		"details":    {},
+		"source":     {},
+		"module":     {},
+		"component":  {},
+		"logger":     {},
+		"job_id":     {},
+		"request_id": {},
+		"user_action": {},
+	}
+	keys := make([]string, 0, len(rawMap))
+	for key := range rawMap {
+		if _, ok := skipped[key]; ok {
+			continue
+		}
+		keys = append(keys, key)
+	}
+	if len(keys) == 0 {
+		return nil
+	}
+	sort.Strings(keys)
+	pairs := make([]string, 0, len(keys))
+	for _, key := range keys {
+		value := rawMap[key]
+		if value == nil {
+			continue
+		}
+		formatted := formatLogValue(value)
+		if formatted == "" {
+			continue
+		}
+		pairs = append(pairs, key+"="+formatted)
+	}
+	return pairs
+}
+
+func formatLogValue(value interface{}) string {
+	switch v := value.(type) {
+	case string:
+		return strings.TrimSpace(v)
+	case bool:
+		if v {
+			return "true"
+		}
+		return "false"
+	case float64:
+		return strconv.FormatFloat(v, 'f', -1, 64)
+	default:
+		if data, err := json.Marshal(v); err == nil {
+			return strings.TrimSpace(string(data))
+		}
+		return fmt.Sprint(v)
+	}
 }
 
 func (h *LogHandler) readLogLines() ([]logLine, error) {

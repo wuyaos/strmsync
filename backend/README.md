@@ -66,6 +66,23 @@
 
 ## 系统
 
+### 环境变量（日志相关）
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `LOG_LEVEL` | `info` | 日志级别（debug/info/warn/error） |
+| `LOG_DEBUG` | `false` | 是否强制开启 debug（覆盖 LOG_LEVEL） |
+| `LOG_DEBUG_MODULES` | `engine,worker,filesystem` | debug 模块白名单（逗号分隔） |
+| `LOG_DEBUG_RPS` | `10` | debug 速率限制（每秒最大条数） |
+| `LOG_PATH` | `logs` | 日志目录 |
+| `LOG_TO_DB` | `true` | 是否写入数据库日志 |
+| `LOG_SQL` | `false` | 是否输出 SQL 日志 |
+| `LOG_SQL_SLOW_MS` | `0` | SQL 慢查询阈值（毫秒，0=全部） |
+| `LOG_ROTATE_MAX_SIZE_MB` | `10` | 单文件最大大小 |
+| `LOG_ROTATE_MAX_BACKUPS` | `7` | 最大保留文件数 |
+| `LOG_ROTATE_MAX_AGE_DAYS` | `30` | 最大保留天数 |
+| `LOG_ROTATE_COMPRESS` | `true` | 是否压缩旧日志 |
+
 ### 1. 健康检查
 
 **接口**: `GET /api/health`

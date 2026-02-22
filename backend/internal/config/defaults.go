@@ -11,6 +11,8 @@ const (
 	DefaultLogToDB                 = true
 	DefaultLogSQL                  = false
 	DefaultLogSQLSlowMs            = 0
+	DefaultLogDebugModules         = "engine,worker,filesystem"
+	DefaultLogDebugRPS             = 10
 	DefaultLogRotateMaxSizeMB      = 10
 	DefaultLogRotateMaxBackups     = 7
 	DefaultLogRotateMaxAgeDays     = 30

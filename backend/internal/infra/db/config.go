@@ -43,6 +43,9 @@ type LogConfig struct {
 	ToDB      bool            // 是否写入数据库
 	SQL       bool            // 是否启用SQL日志
 	SQLSlowMs int             // SQL慢查询阈值（毫秒，0表示记录所有）
+	Debug     bool            // 是否启用debug输出（覆盖Level）
+	DebugRPS  int             // debug速率限制（每秒）
+	DebugMods []string        // debug模块白名单
 	Rotate    LogRotateConfig // 日志分割与压缩配置
 }
 
@@ -81,6 +84,8 @@ type NotifierConfig struct {
 // LoadFromEnv 从环境变量加载配置
 // 环境变量示例：PORT, LOG_LEVEL, DB_PATH, ENCRYPTION_KEY
 func LoadFromEnv() (*Config, error) {
+	debugEnabled := getEnvBool("LOG_DEBUG", false)
+	debugModules := parseCSVList(getEnv("LOG_DEBUG_MODULES", appconfig.DefaultLogDebugModules))
 	cfg := &Config{
 		Server: ServerConfig{
 			Port: getEnvInt("PORT", appconfig.DefaultServerPort),
@@ -95,6 +100,9 @@ func LoadFromEnv() (*Config, error) {
 			ToDB:      getEnvBool("LOG_TO_DB", appconfig.DefaultLogToDB),
 			SQL:       getEnvBool("LOG_SQL", appconfig.DefaultLogSQL),
 			SQLSlowMs: getEnvInt("LOG_SQL_SLOW_MS", appconfig.DefaultLogSQLSlowMs),
+			Debug:     debugEnabled,
+			DebugRPS:  getEnvInt("LOG_DEBUG_RPS", appconfig.DefaultLogDebugRPS),
+			DebugMods: debugModules,
 			Rotate: LogRotateConfig{
 				MaxSizeMB:  getEnvInt("LOG_ROTATE_MAX_SIZE_MB", appconfig.DefaultLogRotateMaxSizeMB),
 				MaxBackups: getEnvInt("LOG_ROTATE_MAX_BACKUPS", appconfig.DefaultLogRotateMaxBackups),
@@ -121,6 +129,9 @@ func LoadFromEnv() (*Config, error) {
 			Scope:           getEnv("NOTIFIER_SCOPE", appconfig.DefaultNotifierScope),
 		},
 	}
+	if debugEnabled {
+		cfg.Log.Level = "debug"
+	}
 
 	if err := Validate(cfg); err != nil {
 		return nil, err
@@ -135,6 +146,23 @@ func getEnv(key string, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func parseCSVList(raw string) []string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return nil
+	}
+	parts := strings.Split(trimmed, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		value := strings.TrimSpace(part)
+		if value == "" {
+			continue
+		}
+		out = append(out, value)
+	}
+	return out
 }
 
 func resolveDBPath() string {
@@ -202,6 +230,9 @@ func Validate(cfg *Config) error {
 	}
 	if cfg.Log.SQLSlowMs < 0 {
 		return fmt.Errorf("SQL 慢查询阈值不能为负数，当前值: %d", cfg.Log.SQLSlowMs)
+	}
+	if cfg.Log.DebugRPS < 0 {
+		return fmt.Errorf("日志 debug 速率限制不能为负数，当前值: %d", cfg.Log.DebugRPS)
 	}
 	if cfg.Log.Rotate.MaxSizeMB <= 0 {
 		return fmt.Errorf("日志分割大小必须为正数，当前值: %d", cfg.Log.Rotate.MaxSizeMB)
