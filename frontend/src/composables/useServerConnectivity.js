@@ -33,23 +33,14 @@ export const useServerConnectivity = (options) => {
     pollingInFlight.value = true
     try {
       const now = Date.now()
-      const keyMap = new Map()
-      for (const server of targets) {
-        const host = String(server.host || '').trim()
-        const port = server.port ?? ''
-        const key = host + ':' + port
-        if (!keyMap.has(key)) keyMap.set(key, [])
-        keyMap.get(key).push(server)
-      }
-
       const queue = []
-      for (const [key, servers] of keyMap.entries()) {
+      for (const server of targets) {
+        const key = String(server.id ?? '')
         if (!key) continue
         const lastAt = lastTestAtMap[key] || 0
         if (now - lastAt < intervalMs) continue
         if (inFlightKeyMap[key]) continue
-        const representative = servers[0]
-        queue.push({ key, servers, representative })
+        queue.push({ key, server })
       }
 
       const workers = Array.from({ length: maxConcurrentTests }, async () => {
@@ -58,16 +49,12 @@ export const useServerConnectivity = (options) => {
           if (!item) return
           inFlightKeyMap[item.key] = true
           try {
-            const result = await testServerSilent(item.representative.id, item.representative.type)
+            const result = await testServerSilent(item.server.id, item.server.type)
             const ok = !!result || result === undefined
             const status = ok ? 'success' : 'error'
-            item.servers.forEach((server) => {
-              connectionStatusMap[server.id] = status
-            })
+            connectionStatusMap[item.server.id] = status
           } catch (error) {
-            item.servers.forEach((server) => {
-              connectionStatusMap[server.id] = 'error'
-            })
+            connectionStatusMap[item.server.id] = 'error'
           } finally {
             lastTestAtMap[item.key] = Date.now()
             delete inFlightKeyMap[item.key]
