@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { onMounted, onUnmounted, reactive, ref, unref, watch } from 'vue'
 import { testServerSilent } from '@/api/servers'
 
 export const useServerConnectivity = (options) => {
@@ -26,7 +26,7 @@ export const useServerConnectivity = (options) => {
 
   const refreshConnectionStatus = async () => {
     if (pollingInFlight.value) return
-    const list = serverListRef?.value || []
+    const list = unref(serverListRef) || []
     const targets = list.filter(server => server.enabled && server.type !== 'local')
     if (targets.length === 0) return
 
@@ -95,11 +95,13 @@ export const useServerConnectivity = (options) => {
     }
   }
 
-  watch(serverListRef, (newList) => {
-    if (Array.isArray(newList)) {
-      handleListChange(newList)
-    }
-  })
+  if (serverListRef) {
+    watch(() => unref(serverListRef), (newList) => {
+      if (Array.isArray(newList)) {
+        handleListChange(newList)
+      }
+    })
+  }
 
   onMounted(() => {
     pollingTimer.value = setInterval(() => {
