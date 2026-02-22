@@ -49,6 +49,27 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
+            <el-form-item label="接口并发上限" class="compact-field">
+              <template #label>
+                <div class="flex items-center gap-8 w-full">
+                  <span>接口并发上限</span>
+                  <span
+                    class="ml-auto text-12 text-[var(--el-text-color-secondary)] leading-5 max-w-[320px] text-right inline-flex items-center gap-4"
+                  >
+                    0 表示使用系统设置
+                  </span>
+                </div>
+              </template>
+              <el-input
+                v-model.number="formData.api_concurrency"
+                type="number"
+                :min="0"
+                :max="100"
+                class="input-short"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
             <el-form-item label="接口重试次数" class="compact-field">
               <template #label>
                 <div class="flex items-center gap-8 w-full">

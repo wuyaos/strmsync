@@ -58,6 +58,7 @@ type notificationSettings struct {
 type qosSettings struct {
 	DownloadRatePerSec  int `json:"download_rate_per_sec"`
 	APIRate             int `json:"api_rate"`
+	APIConcurrency      int `json:"api_concurrency"`
 	APIRetryMax         int `json:"api_retry_max"`
 	APIRetryIntervalSec int `json:"api_retry_interval_sec"`
 }
@@ -186,7 +187,8 @@ func defaultAppSettings() appSettings {
 		},
 		Rate: qosSettings{
 			DownloadRatePerSec:  10,
-			APIRate:             10,
+			APIRate:             5,
+			APIConcurrency:      3,
 			APIRetryMax:         3,
 			APIRetryIntervalSec: 60,
 		},
@@ -233,11 +235,13 @@ func normalizeAppSettings(payload map[string]any) appSettings {
 	if raw, ok := payload["rate"].(map[string]any); ok {
 		settings.Rate.DownloadRatePerSec = parseIntWithDefault(raw, "download_rate_per_sec", settings.Rate.DownloadRatePerSec)
 		settings.Rate.APIRate = parseIntWithDefault(raw, "api_rate", settings.Rate.APIRate)
+		settings.Rate.APIConcurrency = parseIntWithDefault(raw, "api_concurrency", settings.Rate.APIConcurrency)
 		settings.Rate.APIRetryMax = parseIntWithDefault(raw, "api_retry_max", settings.Rate.APIRetryMax)
 		settings.Rate.APIRetryIntervalSec = parseIntWithDefault(raw, "api_retry_interval_sec", settings.Rate.APIRetryIntervalSec)
 	} else if raw, ok := payload["qos"].(map[string]any); ok {
 		settings.Rate.DownloadRatePerSec = parseIntWithDefault(raw, "download_rate_per_sec", settings.Rate.DownloadRatePerSec)
 		settings.Rate.APIRate = parseIntWithDefault(raw, "api_rate", settings.Rate.APIRate)
+		settings.Rate.APIConcurrency = parseIntWithDefault(raw, "api_concurrency", settings.Rate.APIConcurrency)
 		settings.Rate.APIRetryMax = parseIntWithDefault(raw, "api_retry_max", settings.Rate.APIRetryMax)
 		settings.Rate.APIRetryIntervalSec = parseIntWithDefault(raw, "api_retry_interval_sec", settings.Rate.APIRetryIntervalSec)
 	}

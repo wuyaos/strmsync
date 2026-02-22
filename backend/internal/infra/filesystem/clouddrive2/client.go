@@ -32,6 +32,7 @@ import (
 	syncengine "github.com/strmsync/strmsync/internal/engine"
 	"github.com/strmsync/strmsync/internal/infra/filesystem"
 	"github.com/strmsync/strmsync/internal/pkg/errutil"
+	"github.com/strmsync/strmsync/internal/pkg/qos"
 	cd2sdk "github.com/strmsync/strmsync/internal/pkg/sdk/clouddrive2"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -41,11 +42,13 @@ import (
 
 // cloudDrive2Provider CloudDrive2文件系统实现
 type cloudDrive2Provider struct {
-	config     filesystem.Config
-	logger     *zap.Logger
-	client     *cd2sdk.CloudDrive2Client
-	baseURL    *url.URL
-	httpClient *http.Client
+	config          filesystem.Config
+	logger          *zap.Logger
+	client          *cd2sdk.CloudDrive2Client
+	baseURL         *url.URL
+	httpClient      *http.Client
+	apiLimiter      *qos.Limiter
+	downloadLimiter *qos.Limiter
 }
 
 // NewCloudDrive2Provider 创建CloudDrive2 filesystem.Provider
@@ -64,11 +67,13 @@ func NewCloudDrive2Provider(c *filesystem.ClientImpl) (filesystem.Provider, erro
 	client := cd2sdk.NewCloudDrive2Client(target, c.Config.Password, cd2sdk.WithTimeout(c.Config.Timeout))
 
 	return &cloudDrive2Provider{
-		config:     c.Config,
-		logger:     c.Logger,
-		client:     client,
-		baseURL:    c.BaseURL,
-		httpClient: c.HTTPClient,
+		config:          c.Config,
+		logger:          c.Logger,
+		client:          client,
+		baseURL:         c.BaseURL,
+		httpClient:      c.HTTPClient,
+		apiLimiter:      c.APILimiter,
+		downloadLimiter: c.DownloadLimiter,
 	}, nil
 }
 
@@ -96,6 +101,11 @@ func (p *cloudDrive2Provider) TestConnection(ctx context.Context) error {
 	p.logger.Info("测试CloudDrive2连接", zap.String("type", filesystem.TypeCloudDrive2.String()))
 
 	// 使用GetSystemInfo测试连接（公开接口）
+	release, err := p.acquireAPI(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
 	_, err := p.client.GetSystemInfo(ctx)
 	if err != nil {
 		p.logger.Error("CloudDrive2连接失败", zap.Error(err))
@@ -122,7 +132,12 @@ func (p *cloudDrive2Provider) Download(ctx context.Context, remotePath string, w
 	p.logger.Debug("CloudDrive2 Download", zap.String("path", cleanPath))
 
 	// 调用gRPC获取下载URL信息
+	release, err := p.acquireAPI(ctx)
+	if err != nil {
+		return err
+	}
 	info, err := p.client.GetDownloadUrlPath(ctx, cleanPath, false, true, true)
+	release()
 	if err != nil {
 		return fmt.Errorf("clouddrive2: get download url path failed: %w", err)
 	}
@@ -158,7 +173,12 @@ func (p *cloudDrive2Provider) Download(ctx context.Context, remotePath string, w
 	}
 
 	// 执行下载
+	releaseDownload, err := p.acquireDownload(ctx)
+	if err != nil {
+		return err
+	}
 	resp, err := p.httpClient.Do(req)
+	releaseDownload()
 	if err != nil {
 		return fmt.Errorf("clouddrive2: download request failed: %w", err)
 	}
@@ -319,7 +339,12 @@ func (p *cloudDrive2Provider) listCloudDrive2(ctx context.Context, root string, 
 		queue = queue[1:]
 
 		// 调用GetSubFiles列出当前目录
+		release, err := p.acquireAPI(ctx)
+		if err != nil {
+			return nil, err
+		}
 		files, err := p.client.GetSubFiles(ctx, dir, false)
+		release()
 		if err != nil {
 			return nil, fmt.Errorf("list directory %s: %w", dir, err)
 		}
@@ -361,6 +386,20 @@ func (p *cloudDrive2Provider) listCloudDrive2(ctx context.Context, root string, 
 		zap.Int("count", len(results)))
 
 	return results, nil
+}
+
+func (p *cloudDrive2Provider) acquireAPI(ctx context.Context) (func(), error) {
+	if p.apiLimiter == nil {
+		return func() {}, nil
+	}
+	return p.apiLimiter.Acquire(ctx)
+}
+
+func (p *cloudDrive2Provider) acquireDownload(ctx context.Context) (func(), error) {
+	if p.downloadLimiter != nil {
+		return p.downloadLimiter.Acquire(ctx)
+	}
+	return p.acquireAPI(ctx)
 }
 
 // parseProtoTimestamp 解析protobuf Timestamp为time.Time

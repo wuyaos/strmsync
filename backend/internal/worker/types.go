@@ -152,6 +152,21 @@ type DataServerRepository interface {
 	GetByID(ctx context.Context, id uint) (model.DataServer, error)
 }
 
+// RateSettings 描述 QoS 默认参数。
+type RateSettings struct {
+	DownloadRatePerSec  int
+	APIRate             int
+	APIConcurrency      int
+	APIRetryMax         int
+	APIRetryIntervalSec int
+}
+
+// SettingsRepository 读取系统设置。
+type SettingsRepository interface {
+	// GetRateSettings 读取全局速率配置
+	GetRateSettings(ctx context.Context) (RateSettings, error)
+}
+
 // TaskRunProgress 描述 TaskRun 的进度字段
 //
 // 用于更新 TaskRun 的统计信息。
@@ -276,6 +291,11 @@ type WorkerConfig struct {
 	//
 	// Worker 通过此仓储写入执行事件明细。
 	TaskRunEvents TaskRunEventRepository
+
+	// Settings 全局设置仓储（可选）
+	//
+	// 用于读取 QoS 默认配置。
+	Settings SettingsRepository
 
 	// DriverFactory 驱动工厂（可选，默认使用 DefaultDriverFactory）
 	//

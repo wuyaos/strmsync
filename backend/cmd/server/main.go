@@ -144,6 +144,11 @@ func main() {
 		logger.LogError("TaskRunEventRepository 初始化失败", zap.Error(err))
 		os.Exit(1)
 	}
+	settingsRepo, err := worker.NewGormSettingsRepository(db)
+	if err != nil {
+		logger.LogError("SettingsRepository 初始化失败", zap.Error(err))
+		os.Exit(1)
+	}
 
 	// 初始化 Scheduler
 	cronScheduler, err := scheduler.NewScheduler(scheduler.SchedulerConfig{
@@ -168,6 +173,7 @@ func main() {
 		DataServers:   dataServerRepo, // 使用共享的 Repository
 		TaskRuns:      taskRunRepo,
 		TaskRunEvents: taskRunEventRepo,
+		Settings:      settingsRepo,
 		Logger:        logger.With(zap.String("component", "worker")),
 		GracePeriod:   15 * time.Second,
 	})

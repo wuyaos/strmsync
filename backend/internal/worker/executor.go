@@ -19,6 +19,7 @@ import (
 	"github.com/strmsync/strmsync/internal/engine"
 	"github.com/strmsync/strmsync/internal/infra/filesystem"
 	"github.com/strmsync/strmsync/internal/pkg/logger"
+	"github.com/strmsync/strmsync/internal/pkg/qos"
 	"github.com/strmsync/strmsync/internal/queue"
 	"github.com/strmsync/strmsync/internal/strmwriter"
 	"go.uber.org/zap"
@@ -38,8 +39,9 @@ import (
 // - 配置错误、权限问题等为永久失败
 // - 网络错误、临时 IO 错误为可重试失败
 type Executor struct {
-	cfg ExecutorConfig
-	log *zap.Logger
+	cfg        ExecutorConfig
+	log        *zap.Logger
+	qosManager *qos.Manager
 }
 
 // ExecutorConfig 描述 Executor 所需的依赖项
@@ -48,6 +50,7 @@ type ExecutorConfig struct {
 	DataServers   DataServerRepository
 	TaskRuns      TaskRunRepository
 	TaskRunEvents TaskRunEventRepository
+	Settings      SettingsRepository
 	DriverFactory DriverFactory
 	WriterFactory WriterFactory
 	Logger        *zap.Logger
@@ -72,22 +75,31 @@ func NewExecutor(cfg ExecutorConfig) (*Executor, error) {
 		return nil, fmt.Errorf("worker: task run repository is nil")
 	}
 
+	// 设置日志器
+	if cfg.Logger == nil {
+		cfg.Logger = logger.With(zap.String("component", "worker-executor"))
+	}
+	if cfg.Settings == nil {
+		cfg.Settings = DefaultSettingsRepository{}
+	}
+	manager := qos.NewManager()
+
 	// 设置默认工厂
 	if cfg.DriverFactory == nil {
-		cfg.DriverFactory = DefaultDriverFactory{Logger: cfg.Logger}
+		cfg.DriverFactory = DefaultDriverFactory{
+			Logger:     cfg.Logger,
+			QoSManager: manager,
+			Settings:   cfg.Settings,
+		}
 	}
 	if cfg.WriterFactory == nil {
 		cfg.WriterFactory = DefaultWriterFactory{Logger: cfg.Logger}
 	}
 
-	// 设置日志器
-	if cfg.Logger == nil {
-		cfg.Logger = logger.With(zap.String("component", "worker-executor"))
-	}
-
 	return &Executor{
-		cfg: cfg,
-		log: cfg.Logger,
+		cfg:        cfg,
+		log:        cfg.Logger,
+		qosManager: manager,
 	}, nil
 }
 
@@ -738,7 +750,7 @@ func applyJobStrmMode(server model.DataServer, extra model.JobOptions) (model.Da
 	return server, nil
 }
 
-func buildMetadataClient(server model.DataServer, log *zap.Logger) (filesystem.Client, error) {
+func buildMetadataClient(server model.DataServer, log *zap.Logger, apiLimiter, downloadLimiter *qos.Limiter) (filesystem.Client, error) {
 	cfg, err := buildFilesystemConfig(server)
 	if err != nil {
 		return nil, err
@@ -750,7 +762,7 @@ func buildMetadataClient(server model.DataServer, log *zap.Logger) (filesystem.C
 		cfg.STRMMode = filesystem.STRMModeHTTP
 	}
 
-	return filesystem.NewClient(cfg, filesystem.WithLogger(log))
+	return filesystem.NewClient(cfg, filesystem.WithLogger(log), filesystem.WithQoS(apiLimiter, downloadLimiter))
 }
 
 func buildLocalMetadataClient(job model.Job, log *zap.Logger) (filesystem.Client, error) {
@@ -837,12 +849,13 @@ func (e *Executor) syncMetadata(ctx context.Context, job model.Job, server model
 
 	metaLogger := e.log.With(zap.String("component", "metadata"))
 	var client filesystem.Client
+	apiLimiter, downloadLimiter := buildServerLimiters(ctx, server, e.cfg.Settings, e.qosManager, metaLogger)
 	if mode == "download" {
-		client, err = buildMetadataClient(server, metaLogger)
+		client, err = buildMetadataClient(server, metaLogger, apiLimiter, downloadLimiter)
 	} else if isRemoteServerType(server.Type) {
 		client, err = buildLocalMetadataClient(job, metaLogger)
 	} else {
-		client, err = buildMetadataClient(server, metaLogger)
+		client, err = buildMetadataClient(server, metaLogger, apiLimiter, downloadLimiter)
 	}
 	if err != nil {
 		return metadataStats{}, fmt.Errorf("build metadata client: %w", err)
@@ -1068,7 +1081,9 @@ func permanentTaskError(err error) error {
 
 // DefaultDriverFactory 根据 DataServer.Type 构建 Driver
 type DefaultDriverFactory struct {
-	Logger *zap.Logger
+	Logger     *zap.Logger
+	QoSManager *qos.Manager
+	Settings   SettingsRepository
 }
 
 // Build 构建同步引擎 Driver 实例
@@ -1091,7 +1106,8 @@ func (f DefaultDriverFactory) Build(ctx context.Context, server model.DataServer
 	}
 
 	// 创建 filesystem.Client
-	client, err := filesystem.NewClient(cfg, filesystem.WithLogger(f.logger()))
+	apiLimiter, downloadLimiter := buildServerLimiters(ctx, server, f.Settings, f.QoSManager, f.logger())
+	client, err := filesystem.NewClient(cfg, filesystem.WithLogger(f.logger()), filesystem.WithQoS(apiLimiter, downloadLimiter))
 	if err != nil {
 		return nil, fmt.Errorf("driver factory: new filesystem client: %w", err)
 	}

@@ -15,6 +15,7 @@ import (
 
 	syncengine "github.com/strmsync/strmsync/internal/engine"
 	"github.com/strmsync/strmsync/internal/pkg/logger"
+	"github.com/strmsync/strmsync/internal/pkg/qos"
 	"go.uber.org/zap"
 )
 
@@ -48,11 +49,13 @@ func RegisterProvider(t Type, factory providerFactory) {
 
 // ClientImpl 文件系统客户端实现
 type ClientImpl struct {
-	Config     Config
-	BaseURL    *url.URL
-	HTTPClient *http.Client
-	Logger     *zap.Logger
-	Provider   Provider
+	Config          Config
+	BaseURL         *url.URL
+	HTTPClient      *http.Client
+	Logger          *zap.Logger
+	Provider        Provider
+	APILimiter      *qos.Limiter
+	DownloadLimiter *qos.Limiter
 }
 
 // Option 客户端可选配置
@@ -78,6 +81,14 @@ func WithLogger(logger *zap.Logger) Option {
 		if logger != nil {
 			c.Logger = logger
 		}
+	}
+}
+
+// WithQoS 注入限流器（API 与下载）。
+func WithQoS(apiLimiter, downloadLimiter *qos.Limiter) Option {
+	return func(c *ClientImpl) {
+		c.APILimiter = apiLimiter
+		c.DownloadLimiter = downloadLimiter
 	}
 }
 

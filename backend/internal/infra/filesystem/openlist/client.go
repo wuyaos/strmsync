@@ -14,16 +14,19 @@ import (
 
 	"github.com/strmsync/strmsync/internal/engine"
 	"github.com/strmsync/strmsync/internal/infra/filesystem"
+	"github.com/strmsync/strmsync/internal/pkg/qos"
 	openlistsdk "github.com/strmsync/strmsync/internal/pkg/sdk/openlist"
 	"go.uber.org/zap"
 )
 
 // openListProvider OpenList文件系统实现
 type openListProvider struct {
-	config  filesystem.Config
-	baseURL *url.URL
-	client  *openlistsdk.Client
-	logger  *zap.Logger
+	config          filesystem.Config
+	baseURL         *url.URL
+	client          *openlistsdk.Client
+	logger          *zap.Logger
+	apiLimiter      *qos.Limiter
+	downloadLimiter *qos.Limiter
 }
 
 // NewOpenListProvider 创建OpenList filesystem.Provider
@@ -41,10 +44,12 @@ func NewOpenListProvider(c *filesystem.ClientImpl) (filesystem.Provider, error) 
 	}
 
 	return &openListProvider{
-		config:  c.Config,
-		baseURL: c.BaseURL,
-		client:  client,
-		logger:  c.Logger,
+		config:          c.Config,
+		baseURL:         c.BaseURL,
+		client:          client,
+		logger:          c.Logger,
+		apiLimiter:      c.APILimiter,
+		downloadLimiter: c.DownloadLimiter,
 	}, nil
 }
 
@@ -70,6 +75,11 @@ func (p *openListProvider) TestConnection(ctx context.Context) error {
 		ctx = context.Background()
 	}
 	p.logger.Info("测试OpenList连接", zap.String("type", filesystem.TypeOpenList.String()))
+	release, err := p.acquireAPI(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
 	_, err := p.client.List(ctx, "/")
 	if err != nil {
 		p.logger.Error("OpenList连接失败", zap.Error(err))
@@ -91,6 +101,11 @@ func (p *openListProvider) Download(ctx context.Context, remotePath string, w io
 	cleanPath := filesystem.CleanRemotePath(remotePath)
 	p.logger.Debug("OpenList Download", zap.String("path", cleanPath))
 
+	release, err := p.acquireDownload(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
 	return p.client.Download(ctx, cleanPath, w)
 }
 
@@ -120,6 +135,11 @@ func (p *openListProvider) Stat(ctx context.Context, targetPath string) (filesys
 	baseName := path.Base(cleanPath)
 
 	// 列出父目录
+	release, err := p.acquireAPI(ctx)
+	if err != nil {
+		return filesystem.RemoteFile{}, err
+	}
+	defer release()
 	items, err := p.client.List(ctx, parentPath)
 	if err != nil {
 		return filesystem.RemoteFile{}, fmt.Errorf("openlist: stat 列出父目录 %s 失败: %w", parentPath, err)
@@ -212,7 +232,12 @@ func (p *openListProvider) listOpenList(ctx context.Context, root string, recurs
 		queue = queue[1:]
 
 		// 列出当前目录
+		release, err := p.acquireAPI(ctx)
+		if err != nil {
+			return nil, err
+		}
 		items, err := p.client.List(ctx, dir)
+		release()
 		if err != nil {
 			return nil, fmt.Errorf("list directory %s: %w", dir, err)
 		}
@@ -247,6 +272,20 @@ func (p *openListProvider) listOpenList(ctx context.Context, root string, recurs
 		zap.Int("count", len(results)))
 
 	return results, nil
+}
+
+func (p *openListProvider) acquireAPI(ctx context.Context) (func(), error) {
+	if p.apiLimiter == nil {
+		return func() {}, nil
+	}
+	return p.apiLimiter.Acquire(ctx)
+}
+
+func (p *openListProvider) acquireDownload(ctx context.Context) (func(), error) {
+	if p.downloadLimiter != nil {
+		return p.downloadLimiter.Acquire(ctx)
+	}
+	return p.acquireAPI(ctx)
 }
 
 func init() {

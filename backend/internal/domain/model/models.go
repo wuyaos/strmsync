@@ -23,6 +23,7 @@ type DataServer struct {
 	// 高级配置（独立列，不参与UID计算，允许覆盖全局默认值）
 	DownloadRatePerSec  int       `gorm:"not null;default:0" json:"download_rate_per_sec"`  // 下载队列每秒处理数量（0=使用全局）
 	APIRate             int       `gorm:"not null;default:0" json:"api_rate"`               // 接口速率（每秒请求数，0=使用全局）
+	APIConcurrency      int       `gorm:"not null;default:0" json:"api_concurrency"`        // 接口并发上限（0=使用全局）
 	APIRetryMax         int       `gorm:"not null;default:0" json:"api_retry_max"`          // 接口重试次数（0=使用全局）
 	APIRetryIntervalSec int       `gorm:"not null;default:0" json:"api_retry_interval_sec"` // 接口重试间隔（秒，0=使用全局）
 	CreatedAt           time.Time `json:"created_at"`                                       // 创建时间
@@ -44,6 +45,7 @@ type MediaServer struct {
 	// 高级配置（独立列，不参与UID计算，允许覆盖全局默认值）
 	DownloadRatePerSec  int       `gorm:"not null;default:0" json:"download_rate_per_sec"`  // 下载队列每秒处理数量（0=使用全局）
 	APIRate             int       `gorm:"not null;default:0" json:"api_rate"`               // 接口速率（每秒请求数，0=使用全局）
+	APIConcurrency      int       `gorm:"not null;default:0" json:"api_concurrency"`        // 接口并发上限（0=使用全局）
 	APIRetryMax         int       `gorm:"not null;default:0" json:"api_retry_max"`          // 接口重试次数（0=使用全局）
 	APIRetryIntervalSec int       `gorm:"not null;default:0" json:"api_retry_interval_sec"` // 接口重试间隔（秒，0=使用全局）
 	CreatedAt           time.Time `json:"created_at"`                                       // 创建时间
@@ -161,6 +163,7 @@ type Setting struct {
 type QoSSettings struct {
 	DownloadRatePerSec  int `json:"download_rate_per_sec"`  // 下载队列每秒处理数量
 	APIRate             int `json:"api_rate"`               // 接口速率（每秒请求数）
+	APIConcurrency      int `json:"api_concurrency"`        // 接口并发上限
 	APIRetryMax         int `json:"api_retry_max"`          // 接口重试次数
 	APIRetryIntervalSec int `json:"api_retry_interval_sec"` // 接口重试间隔（秒）
 }

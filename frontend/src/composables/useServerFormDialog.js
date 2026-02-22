@@ -24,6 +24,7 @@ export const useServerFormDialog = (props, emit) => {
     enabled: true,
     download_rate_per_sec: 0,
     api_rate: 0,
+    api_concurrency: 0,
     api_retry_max: 0,
     api_retry_interval_sec: 0
   })
@@ -223,6 +224,7 @@ export const useServerFormDialog = (props, emit) => {
     formData.enabled = true
     formData.download_rate_per_sec = 0
     formData.api_rate = 0
+    formData.api_concurrency = 0
     formData.api_retry_max = 0
     formData.api_retry_interval_sec = 0
     autoNameActive.value = true
@@ -343,6 +345,7 @@ export const useServerFormDialog = (props, emit) => {
       enabled: formData.enabled,
       download_rate_per_sec: formData.download_rate_per_sec,
       api_rate: formData.api_rate,
+      api_concurrency: formData.api_concurrency,
       api_retry_max: formData.api_retry_max,
       api_retry_interval_sec: formData.api_retry_interval_sec
     }
@@ -389,6 +392,7 @@ export const useServerFormDialog = (props, emit) => {
     enabled: formData.enabled,
     download_rate_per_sec: formData.download_rate_per_sec,
     api_rate: formData.api_rate,
+    api_concurrency: formData.api_concurrency,
     api_retry_max: formData.api_retry_max,
     api_retry_interval_sec: formData.api_retry_interval_sec
   })
@@ -467,6 +471,7 @@ export const useServerFormDialog = (props, emit) => {
     formData.enabled = row.enabled !== false
     formData.download_rate_per_sec = row.download_rate_per_sec ?? 0
     formData.api_rate = row.api_rate ?? 0
+    formData.api_concurrency = row.api_concurrency ?? 0
     formData.api_retry_max = row.api_retry_max ?? 0
     formData.api_retry_interval_sec = row.api_retry_interval_sec ?? 0
     if (props.mode === 'data' && props.dataTypeDefs.length > 0) {

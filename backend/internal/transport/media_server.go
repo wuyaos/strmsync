@@ -42,6 +42,7 @@ func (h *MediaServerHandler) CreateMediaServer(c *gin.Context) {
 		// 高级配置（独立列，可覆盖全局默认值，0 表示使用全局）
 		DownloadRatePerSec  *int `json:"download_rate_per_sec,omitempty"`
 		APIRate             *int `json:"api_rate,omitempty"`
+		APIConcurrency      *int `json:"api_concurrency,omitempty"`
 		APIRetryMax         *int `json:"api_retry_max,omitempty"`
 		APIRetryIntervalSec *int `json:"api_retry_interval_sec,omitempty"`
 	}
@@ -87,6 +88,10 @@ func (h *MediaServerHandler) CreateMediaServer(c *gin.Context) {
 	if req.APIRate != nil {
 		apiRate = *req.APIRate
 	}
+	apiConcurrency := 0
+	if req.APIConcurrency != nil {
+		apiConcurrency = *req.APIConcurrency
+	}
 	apiRetryMax := 0
 	if req.APIRetryMax != nil {
 		apiRetryMax = *req.APIRetryMax
@@ -107,6 +112,7 @@ func (h *MediaServerHandler) CreateMediaServer(c *gin.Context) {
 		Options:             req.Options,
 		DownloadRatePerSec:  downloadRatePerSec,
 		APIRate:             apiRate,
+		APIConcurrency:      apiConcurrency,
 		APIRetryMax:         apiRetryMax,
 		APIRetryIntervalSec: apiRetryIntervalSec,
 	}
@@ -121,6 +127,7 @@ func (h *MediaServerHandler) CreateMediaServer(c *gin.Context) {
 			"options":                buildOptionsLog(server.Options),
 			"download_rate_per_sec":  server.DownloadRatePerSec,
 			"api_rate":               server.APIRate,
+			"api_concurrency":        server.APIConcurrency,
 			"api_retry_max":          server.APIRetryMax,
 			"api_retry_interval_sec": server.APIRetryIntervalSec,
 		})))
@@ -248,6 +255,7 @@ func (h *MediaServerHandler) UpdateMediaServer(c *gin.Context) {
 		// 高级配置（独立列，可覆盖全局默认值，0 表示使用全局）
 		DownloadRatePerSec  *int `json:"download_rate_per_sec,omitempty"`
 		APIRate             *int `json:"api_rate,omitempty"`
+		APIConcurrency      *int `json:"api_concurrency,omitempty"`
 		APIRetryMax         *int `json:"api_retry_max,omitempty"`
 		APIRetryIntervalSec *int `json:"api_retry_interval_sec,omitempty"`
 	}
@@ -312,6 +320,9 @@ func (h *MediaServerHandler) UpdateMediaServer(c *gin.Context) {
 	if req.APIRate != nil {
 		server.APIRate = *req.APIRate
 	}
+	if req.APIConcurrency != nil {
+		server.APIConcurrency = *req.APIConcurrency
+	}
 	if req.APIRetryMax != nil {
 		server.APIRetryMax = *req.APIRetryMax
 	}
@@ -330,6 +341,7 @@ func (h *MediaServerHandler) UpdateMediaServer(c *gin.Context) {
 			"options":                buildOptionsLog(server.Options),
 			"download_rate_per_sec":  server.DownloadRatePerSec,
 			"api_rate":               server.APIRate,
+			"api_concurrency":        server.APIConcurrency,
 			"api_retry_max":          server.APIRetryMax,
 			"api_retry_interval_sec": server.APIRetryIntervalSec,
 		})))
@@ -700,6 +712,7 @@ func (h *MediaServerHandler) TestMediaServerTemp(c *gin.Context) {
 		// 高级配置（独立列，可覆盖全局默认值，0 表示使用全局）
 		DownloadRatePerSec  *int `json:"download_rate_per_sec,omitempty"`
 		APIRate             *int `json:"api_rate,omitempty"`
+		APIConcurrency      *int `json:"api_concurrency,omitempty"`
 		APIRetryMax         *int `json:"api_retry_max,omitempty"`
 		APIRetryIntervalSec *int `json:"api_retry_interval_sec,omitempty"`
 	}

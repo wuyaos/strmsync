@@ -26,7 +26,8 @@ export const useSettingsPage = () => {
       concurrency: 20,
       batchSize: 500,
       download_rate_per_sec: 10,
-      api_rate: 10,
+      api_rate: 5,
+      api_concurrency: 3,
       api_retry_max: 3,
       api_retry_interval_sec: 60
     },
@@ -65,6 +66,7 @@ export const useSettingsPage = () => {
             batchSize: resolvedGlobal.batchSize ?? resolvedScanner.batchSize ?? defaults.global.batchSize,
             download_rate_per_sec: resolvedGlobal.download_rate_per_sec ?? resolvedRate.download_rate_per_sec ?? defaults.global.download_rate_per_sec,
             api_rate: resolvedGlobal.api_rate ?? resolvedRate.api_rate ?? defaults.global.api_rate,
+            api_concurrency: resolvedGlobal.api_concurrency ?? resolvedRate.api_concurrency ?? defaults.global.api_concurrency,
             api_retry_max: resolvedGlobal.api_retry_max ?? resolvedRate.api_retry_max ?? defaults.global.api_retry_max,
             api_retry_interval_sec: resolvedGlobal.api_retry_interval_sec ?? resolvedRate.api_retry_interval_sec ?? defaults.global.api_retry_interval_sec
           },
@@ -93,7 +95,8 @@ export const useSettingsPage = () => {
         },
         rate: {
           download_rate_per_sec: settings.value?.global?.download_rate_per_sec ?? 10,
-          api_rate: settings.value?.global?.api_rate ?? 10,
+          api_rate: settings.value?.global?.api_rate ?? 5,
+          api_concurrency: settings.value?.global?.api_concurrency ?? 3,
           api_retry_max: settings.value?.global?.api_retry_max ?? 3,
           api_retry_interval_sec: settings.value?.global?.api_retry_interval_sec ?? 60
         }

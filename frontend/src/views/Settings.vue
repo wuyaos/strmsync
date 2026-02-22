@@ -58,6 +58,17 @@
               <span class="form-help">限制接口请求频率，避免触发服务端限流</span>
             </el-form-item>
 
+            <el-form-item label="接口并发上限">
+              <el-input
+                v-model.number="settings.global.api_concurrency"
+                type="number"
+                :min="1"
+                :max="100"
+                class="input-short"
+              />
+              <span class="form-help">限制单个服务器同时请求数量</span>
+            </el-form-item>
+
             <el-form-item label="接口重试次数">
               <el-input
                 v-model.number="settings.global.api_retry_max"
