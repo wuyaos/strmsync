@@ -12,6 +12,14 @@ import (
 	"gorm.io/gorm"
 )
 
+type batchDeleteRunsRequest struct {
+	IDs []uint `json:"ids"`
+}
+
+func isTaskRunDeletable(status string) bool {
+	return status != "running" && status != "pending"
+}
+
 // TaskRunHandler 任务执行记录处理器
 type TaskRunHandler struct {
 	db     *gorm.DB
@@ -117,6 +125,122 @@ func (h *TaskRunHandler) GetTaskRun(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"run": run})
+}
+
+// DeleteTaskRun 删除单个执行记录
+// DELETE /api/runs/:id
+func (h *TaskRunHandler) DeleteTaskRun(c *gin.Context) {
+	id, err := parseUintParam(c, "id")
+	if err != nil {
+		respondError(c, http.StatusBadRequest, "invalid_request", "无效的ID参数", nil)
+		return
+	}
+
+	var run model.TaskRun
+	if err := h.db.First(&run, uint(id)).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			respondError(c, http.StatusNotFound, "not_found", "执行记录不存在", nil)
+			return
+		}
+		h.logger.Error("查询执行记录失败", zap.Error(err), zap.Uint64("id", id))
+		respondError(c, http.StatusInternalServerError, "db_error", "查询失败", nil)
+		return
+	}
+
+	if !isTaskRunDeletable(run.Status) {
+		respondError(c, http.StatusConflict, "run_running", "运行中的执行记录无法删除", nil)
+		return
+	}
+
+	tx := h.db.Begin()
+	if err := tx.Where("task_run_id = ?", run.ID).Delete(&model.TaskRunEvent{}).Error; err != nil {
+		tx.Rollback()
+		h.logger.Error("删除执行记录事件失败", zap.Error(err), zap.Uint("run_id", run.ID))
+		respondError(c, http.StatusInternalServerError, "db_error", "删除失败", nil)
+		return
+	}
+	if err := tx.Where("id = ?", run.ID).Delete(&model.TaskRun{}).Error; err != nil {
+		tx.Rollback()
+		h.logger.Error("删除执行记录失败", zap.Error(err), zap.Uint("run_id", run.ID))
+		respondError(c, http.StatusInternalServerError, "db_error", "删除失败", nil)
+		return
+	}
+	if err := tx.Commit().Error; err != nil {
+		h.logger.Error("提交删除执行记录失败", zap.Error(err), zap.Uint("run_id", run.ID))
+		respondError(c, http.StatusInternalServerError, "db_error", "删除失败", nil)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"deleted": 1})
+}
+
+// BatchDeleteTaskRuns 批量删除执行记录
+// POST /api/runs/batch-delete
+func (h *TaskRunHandler) BatchDeleteTaskRuns(c *gin.Context) {
+	var req batchDeleteRunsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, "invalid_request", "请求体格式错误", nil)
+		return
+	}
+	if len(req.IDs) == 0 {
+		respondError(c, http.StatusBadRequest, "invalid_request", "ids不能为空", nil)
+		return
+	}
+
+	ids := uniqueUintIDs(req.IDs)
+	var runs []model.TaskRun
+	if err := h.db.Where("id IN ?", ids).Find(&runs).Error; err != nil {
+		h.logger.Error("查询执行记录失败", zap.Error(err))
+		respondError(c, http.StatusInternalServerError, "db_error", "查询失败", nil)
+		return
+	}
+	if len(runs) == 0 {
+		respondError(c, http.StatusNotFound, "not_found", "执行记录不存在", nil)
+		return
+	}
+	for _, run := range runs {
+		if !isTaskRunDeletable(run.Status) {
+			respondError(c, http.StatusConflict, "run_running", "存在运行中的执行记录，无法删除", nil)
+			return
+		}
+	}
+
+	tx := h.db.Begin()
+	if err := tx.Where("task_run_id IN ?", ids).Delete(&model.TaskRunEvent{}).Error; err != nil {
+		tx.Rollback()
+		h.logger.Error("批量删除执行记录事件失败", zap.Error(err))
+		respondError(c, http.StatusInternalServerError, "db_error", "删除失败", nil)
+		return
+	}
+	if err := tx.Where("id IN ?", ids).Delete(&model.TaskRun{}).Error; err != nil {
+		tx.Rollback()
+		h.logger.Error("批量删除执行记录失败", zap.Error(err))
+		respondError(c, http.StatusInternalServerError, "db_error", "删除失败", nil)
+		return
+	}
+	if err := tx.Commit().Error; err != nil {
+		h.logger.Error("提交批量删除执行记录失败", zap.Error(err))
+		respondError(c, http.StatusInternalServerError, "db_error", "删除失败", nil)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"deleted": len(runs)})
+}
+
+func uniqueUintIDs(ids []uint) []uint {
+	seen := make(map[uint]struct{}, len(ids))
+	result := make([]uint, 0, len(ids))
+	for _, id := range ids {
+		if id == 0 {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		result = append(result, id)
+	}
+	return result
 }
 
 // ListRunEvents 获取执行事件明细

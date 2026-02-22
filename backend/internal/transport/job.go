@@ -37,6 +37,14 @@ const (
 	JobStatusError   JobStatus = "error"
 )
 
+// JobSTRMMode STRM生成模式类型
+type JobSTRMMode string
+
+const (
+	JobSTRMModeLocal JobSTRMMode = "local"
+	JobSTRMModeURL   JobSTRMMode = "url"
+)
+
 // TaskRunStatus 执行记录状态类型
 type TaskRunStatus string
 
@@ -50,6 +58,7 @@ const (
 var (
 	allowedJobWatchModes = []string{string(JobWatchModeLocal), string(JobWatchModeAPI)}
 	allowedJobStatuses   = []string{string(JobStatusIdle), string(JobStatusRunning), string(JobStatusError)}
+	allowedJobSTRMModes  = []string{string(JobSTRMModeLocal), string(JobSTRMModeURL)}
 
 	// 内部sentinel错误，用于在事务中传递业务逻辑错误
 	errJobDisabled       = errors.New("job_disabled")
@@ -450,6 +459,15 @@ func (h *JobHandler) ListJobs(c *gin.Context) {
 			return
 		}
 		query = query.Where("media_server_id = ?", id)
+	}
+
+	// strm_mode过滤
+	if strmMode := strings.TrimSpace(c.Query("strm_mode")); strmMode != "" {
+		if !isAllowedValue(strmMode, allowedJobSTRMModes) {
+			respondError(c, http.StatusBadRequest, "invalid_request", "无效的strm_mode参数", nil)
+			return
+		}
+		query = query.Where("options LIKE ?", fmt.Sprintf("%%\"strm_mode\":\"%s\"%%", strmMode))
 	}
 
 	// 统计总数

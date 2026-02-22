@@ -464,7 +464,7 @@ func (h *DataServerHandler) TestDataServerConnection(c *gin.Context) {
 
 	// 检查是否已启用
 	if !server.Enabled {
-		h.logger.Warn(fmt.Sprintf("尝试测试已禁用的数据服务器：%s", server.Name),
+		h.logger.Debug(fmt.Sprintf("尝试测试已禁用的数据服务器：%s", server.Name),
 			zap.Uint("id", server.ID),
 			zap.String("name", server.Name))
 		c.JSON(http.StatusOK, ConnectionTestResult{
@@ -487,14 +487,14 @@ func (h *DataServerHandler) TestDataServerConnection(c *gin.Context) {
 
 	// 如果是内网地址，记录警告但允许访问
 	if isPrivate {
-		h.logger.Warn("测试内网地址（SSRF风险）",
+		h.logger.Debug("测试内网地址（SSRF风险）",
 			zap.Uint("id", server.ID),
 			zap.String("name", server.Name),
 			zap.String("host", server.Host),
 			zap.Int("port", server.Port))
 	}
 
-	h.logger.Info(fmt.Sprintf("开始测试数据服务器连接：%s", server.Name),
+	h.logger.Debug(fmt.Sprintf("开始测试数据服务器连接：%s", server.Name),
 		zap.Uint("id", server.ID),
 		zap.String("name", server.Name),
 		zap.String("type", server.Type),
@@ -512,7 +512,7 @@ func (h *DataServerHandler) TestDataServerConnection(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info(fmt.Sprintf("测试数据服务器连接完成：%s", server.Name),
+	h.logger.Debug(fmt.Sprintf("测试数据服务器连接完成：%s", server.Name),
 		zap.Uint("id", server.ID),
 		zap.String("type", server.Type),
 		zap.Bool("success", result.Success),
@@ -581,7 +581,7 @@ func (h *DataServerHandler) TestDataServerTemp(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info(fmt.Sprintf("临时测试数据服务器连接完成：%s", server.Name),
+	h.logger.Debug(fmt.Sprintf("临时测试数据服务器连接完成：%s", server.Name),
 		zap.String("type", server.Type),
 		zap.Bool("success", result.Success),
 		zap.Int64("latency_ms", result.LatencyMs))

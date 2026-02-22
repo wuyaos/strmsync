@@ -477,6 +477,8 @@ func setupRouter(db *gorm.DB, logDir string, scheduler httphandlers.JobScheduler
 			runs.GET("/:id", taskRunHandler.GetTaskRun)
 			runs.GET("/:id/events", taskRunHandler.ListRunEvents)
 			runs.POST("/:id/cancel", taskRunHandler.CancelRun)
+			runs.POST("/batch-delete", taskRunHandler.BatchDeleteTaskRuns)
+			runs.DELETE("/:id", taskRunHandler.DeleteTaskRun)
 			runs.GET("/stats", taskRunHandler.GetRunStats)
 		}
 	}
@@ -722,6 +724,10 @@ func describeAPIAction(method string, path string) string {
 		return "执行历史：统计"
 	case method == http.MethodPost && strings.HasSuffix(path, "/cancel") && strings.HasPrefix(path, "/api/runs/"):
 		return "执行历史：取消"
+	case method == http.MethodPost && path == "/api/runs/batch-delete":
+		return "执行历史：批量删除"
+	case method == http.MethodDelete && strings.HasPrefix(path, "/api/runs/"):
+		return "执行历史：删除"
 	case method == http.MethodGet && strings.HasPrefix(path, "/api/runs/"):
 		return "执行历史：详情"
 	default:
