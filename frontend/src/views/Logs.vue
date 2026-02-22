@@ -99,6 +99,7 @@ const currentPage = ref(1)
 const pageSize = ref(50)
 const isLoadingLogs = ref(false)
 const isActive = ref(true)
+const autoRefresh = ref(true)
 
 const getLogTime = (log) => {
   const time = Date.parse(log?.created_at || '')
@@ -111,6 +112,7 @@ const filteredLogs = computed(() => {
 })
 
 let loadTimeout = null
+let refreshTimer = null
 const loadLogs = async () => {
   if (!isActive.value) return
   if (loadTimeout) {
@@ -165,13 +167,31 @@ onMounted(() => {
   loadLogs()
 })
 
+const startAutoRefresh = () => {
+  if (!isActive.value || refreshTimer) return
+  refreshTimer = setInterval(() => {
+    loadLogs()
+  }, 30000)
+}
+
+const stopAutoRefresh = () => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+}
+
 onActivated(() => {
   isActive.value = true
   loadLogs()
+  if (autoRefresh.value) {
+    startAutoRefresh()
+  }
 })
 
 onDeactivated(() => {
   isActive.value = false
+  stopAutoRefresh()
   if (loadTimeout) {
     clearTimeout(loadTimeout)
     loadTimeout = null
@@ -179,11 +199,21 @@ onDeactivated(() => {
 })
 
 onUnmounted(() => {
+  stopAutoRefresh()
   if (loadTimeout) {
     clearTimeout(loadTimeout)
     loadTimeout = null
   }
 })
+
+watch(
+  autoRefresh,
+  (enabled) => {
+    if (enabled) startAutoRefresh()
+    else stopAutoRefresh()
+  },
+  { immediate: true }
+)
 
 watch([levelFilter, taskFilter, searchText, pageSize], () => {
   currentPage.value = 1
