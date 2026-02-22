@@ -49,6 +49,14 @@ func (h *LogHandler) ListLogs(c *gin.Context) {
 	}
 
 	levelFilter := strings.ToLower(strings.TrimSpace(c.Query("level")))
+	var validLevels []string
+	if levelFilter != "" {
+		for _, p := range strings.Split(levelFilter, ",") {
+			if p = strings.TrimSpace(p); p != "" {
+				validLevels = append(validLevels, p)
+			}
+		}
+	}
 	moduleFilter := strings.TrimSpace(c.Query("module"))
 	search := strings.TrimSpace(c.Query("search"))
 	var jobIDFilter *uint
@@ -63,8 +71,17 @@ func (h *LogHandler) ListLogs(c *gin.Context) {
 
 	filtered := make([]logEntry, 0, len(entries))
 	for _, entry := range entries {
-		if levelFilter != "" && entry.Level != levelFilter {
-			continue
+		if len(validLevels) > 0 {
+			match := false
+			for _, l := range validLevels {
+				if entry.Level == l {
+					match = true
+					break
+				}
+			}
+			if !match {
+				continue
+			}
 		}
 		if moduleFilter != "" && entry.Module != moduleFilter {
 			continue
