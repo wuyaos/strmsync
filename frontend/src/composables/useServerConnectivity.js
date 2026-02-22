@@ -82,9 +82,9 @@ export const useServerConnectivity = (options) => {
   }
 
   const handleListChange = (newList) => {
-    const validIds = new Set(newList.map(s => s.id))
+    const validIds = new Set(newList.map(s => String(s.id)))
     for (const id in connectionStatusMap) {
-      if (!validIds.has(Number(id))) {
+      if (!validIds.has(String(id))) {
         delete connectionStatusMap[id]
       }
     }

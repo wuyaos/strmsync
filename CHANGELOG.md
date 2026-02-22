@@ -11,6 +11,7 @@
 - Avoid crashes when server type definitions omit sections or fields.
 - Fall back to server id when names are empty or whitespace.
 - Allow chunk reload recovery even when sessionStorage is unavailable.
+- Normalize server id comparison to preserve connectivity status entries when ids mix string and number types.
 
 ### Changed
 
