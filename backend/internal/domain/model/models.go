@@ -11,15 +11,15 @@ import (
 // DataServer 数据服务器配置模型
 // 用于配置CloudDrive2/OpenList等数据源服务器
 type DataServer struct {
-	ID      uint   `gorm:"primaryKey" json:"id"`
-	UID     string `gorm:"size:64;uniqueIndex" json:"uid"`       // 唯一标识（基于连接信息生成）
-	Name    string `gorm:"uniqueIndex;not null" json:"name"`     // 服务器名称
-	Type    string `gorm:"index;not null" json:"type"`           // 类型: clouddrive2/openlist
-	Host    string `gorm:"not null" json:"host"`                 // 主机地址
-	Port    int    `gorm:"not null" json:"port"`                 // 端口
-	APIKey  string `gorm:"type:text" json:"api_key"`             // API密钥(可选)
-	Enabled bool   `gorm:"not null;default:true" json:"enabled"` // 是否启用
-	Options string `gorm:"type:text" json:"options"`             // JSON扩展字段
+	ID      uint              `gorm:"primaryKey" json:"id"`
+	UID     string            `gorm:"size:64;uniqueIndex" json:"uid"`       // 唯一标识（基于连接信息生成）
+	Name    string            `gorm:"uniqueIndex;not null" json:"name"`     // 服务器名称
+	Type    string            `gorm:"index;not null" json:"type"`           // 类型: clouddrive2/openlist
+	Host    string            `gorm:"not null" json:"host"`                 // 主机地址
+	Port    int               `gorm:"not null" json:"port"`                 // 端口
+	APIKey  string            `gorm:"type:text" json:"api_key"`             // API密钥(可选)
+	Enabled bool              `gorm:"not null;default:true" json:"enabled"` // 是否启用
+	Options DataServerOptions `gorm:"type:text" json:"options"`             // 结构化配置
 	// 高级配置（独立列，不参与UID计算，允许覆盖全局默认值）
 	DownloadRatePerSec  int       `gorm:"not null;default:0" json:"download_rate_per_sec"`  // 下载队列每秒处理数量（0=使用全局）
 	APIRate             int       `gorm:"not null;default:0" json:"api_rate"`               // 接口速率（每秒请求数，0=使用全局）
@@ -32,15 +32,15 @@ type DataServer struct {
 // MediaServer 媒体服务器配置模型
 // 用于配置Emby/Jellyfin/Plex等媒体库服务器
 type MediaServer struct {
-	ID      uint   `gorm:"primaryKey" json:"id"`
-	UID     string `gorm:"size:64;uniqueIndex" json:"uid"`       // 唯一标识（基于连接信息生成）
-	Name    string `gorm:"uniqueIndex;not null" json:"name"`     // 服务器名称
-	Type    string `gorm:"index;not null" json:"type"`           // 类型: emby/jellyfin/plex
-	Host    string `gorm:"not null" json:"host"`                 // 主机地址
-	Port    int    `gorm:"not null" json:"port"`                 // 端口
-	APIKey  string `gorm:"type:text" json:"api_key"`             // API密钥
-	Enabled bool   `gorm:"not null;default:true" json:"enabled"` // 是否启用
-	Options string `gorm:"type:text" json:"options"`             // JSON扩展字段
+	ID      uint               `gorm:"primaryKey" json:"id"`
+	UID     string             `gorm:"size:64;uniqueIndex" json:"uid"`       // 唯一标识（基于连接信息生成）
+	Name    string             `gorm:"uniqueIndex;not null" json:"name"`     // 服务器名称
+	Type    string             `gorm:"index;not null" json:"type"`           // 类型: emby/jellyfin/plex
+	Host    string             `gorm:"not null" json:"host"`                 // 主机地址
+	Port    int                `gorm:"not null" json:"port"`                 // 端口
+	APIKey  string             `gorm:"type:text" json:"api_key"`             // API密钥
+	Enabled bool               `gorm:"not null;default:true" json:"enabled"` // 是否启用
+	Options MediaServerOptions `gorm:"type:text" json:"options"`             // 结构化配置
 	// 高级配置（独立列，不参与UID计算，允许覆盖全局默认值）
 	DownloadRatePerSec  int       `gorm:"not null;default:0" json:"download_rate_per_sec"`  // 下载队列每秒处理数量（0=使用全局）
 	APIRate             int       `gorm:"not null;default:0" json:"api_rate"`               // 接口速率（每秒请求数，0=使用全局）
@@ -64,7 +64,7 @@ type Job struct {
 	STRMPath      string     `gorm:"not null" json:"strm_path"`                             // STRM文件内容路径
 	DataServerID  *uint      `gorm:"index" json:"data_server_id"`                           // 数据服务器ID(可空)
 	MediaServerID *uint      `gorm:"index" json:"media_server_id"`                          // 媒体服务器ID(可空)
-	Options       string     `gorm:"type:text" json:"options"`                              // JSON扩展选项
+	Options       JobOptions `gorm:"type:text" json:"options"`                              // 结构化配置
 	Status        string     `gorm:"default:'idle'" json:"status"`                          // 状态: idle/running/error
 	LastRunAt     *time.Time `json:"last_run_at"`                                           // 最后执行时间
 	ErrorMessage  string     `gorm:"type:text" json:"error_message"`                        // 错误信息

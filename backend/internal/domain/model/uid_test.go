@@ -15,7 +15,7 @@ func TestGenerateDataServerUID(t *testing.T) {
 		serverType  string
 		host        string
 		port        int
-		options     string
+		options     DataServerOptions
 		apiKey      string
 		wantErr     bool
 		description string
@@ -25,7 +25,7 @@ func TestGenerateDataServerUID(t *testing.T) {
 			serverType:  "clouddrive2",
 			host:        "127.0.0.1",
 			port:        19798,
-			options:     "{}",
+			options:     DataServerOptions{},
 			apiKey:      "test-key",
 			wantErr:     false,
 			description: "基本的CloudDrive2服务器配置",
@@ -35,7 +35,7 @@ func TestGenerateDataServerUID(t *testing.T) {
 			serverType:  "openlist",
 			host:        "localhost",
 			port:        8080,
-			options:     `{"timeout": 30, "retry": 3}`,
+			options:     DataServerOptions{TimeoutSeconds: 30},
 			apiKey:      "",
 			wantErr:     false,
 			description: "OpenList服务器带扩展选项",
@@ -45,7 +45,7 @@ func TestGenerateDataServerUID(t *testing.T) {
 			serverType:  "clouddrive2",
 			host:        "server.local",
 			port:        443,
-			options:     "",
+			options:     DataServerOptions{},
 			apiKey:      "key123",
 			wantErr:     false,
 			description: "空options应被规范化为{}",
@@ -55,7 +55,7 @@ func TestGenerateDataServerUID(t *testing.T) {
 			serverType:  "openlist",
 			host:        "api.example.com",
 			port:        8443,
-			options:     `{"enabled": false, "retry": 0, "timeout": 30}`,
+			options:     DataServerOptions{TimeoutSeconds: 30},
 			apiKey:      "secret",
 			wantErr:     false,
 			description: "false和0应保留（不被过滤）",
@@ -89,7 +89,7 @@ func TestGenerateMediaServerUID(t *testing.T) {
 		serverType string
 		host       string
 		port       int
-		options    string
+		options    MediaServerOptions
 		apiKey     string
 		wantErr    bool
 	}{
@@ -98,7 +98,7 @@ func TestGenerateMediaServerUID(t *testing.T) {
 			serverType: "emby",
 			host:       "192.168.1.200",
 			port:       8096,
-			options:    "{}",
+			options:    MediaServerOptions{},
 			apiKey:     "emby-key",
 			wantErr:    false,
 		},
@@ -107,7 +107,7 @@ func TestGenerateMediaServerUID(t *testing.T) {
 			serverType: "jellyfin",
 			host:       "jellyfin.local",
 			port:       8096,
-			options:    "{}",
+			options:    MediaServerOptions{},
 			apiKey:     "jf-key",
 			wantErr:    false,
 		},
@@ -116,7 +116,7 @@ func TestGenerateMediaServerUID(t *testing.T) {
 			serverType: "plex",
 			host:       "plex.example.com",
 			port:       32400,
-			options:    `{"library": "Movies", "quality": "original"}`,
+			options:    MediaServerOptions{},
 			apiKey:     "plex-token",
 			wantErr:    false,
 		},
@@ -147,8 +147,8 @@ func TestGenerateMediaServerUID(t *testing.T) {
 
 func TestUID_Stability(t *testing.T) {
 	// 相同参数应生成相同UID
-	uid1, err1 := GenerateDataServerUID("clouddrive2", "127.0.0.1", 19798, "{}", "key")
-	uid2, err2 := GenerateDataServerUID("clouddrive2", "127.0.0.1", 19798, "{}", "key")
+	uid1, err1 := GenerateDataServerUID("clouddrive2", "127.0.0.1", 19798, DataServerOptions{}, "key")
+	uid2, err2 := GenerateDataServerUID("clouddrive2", "127.0.0.1", 19798, DataServerOptions{}, "key")
 
 	if err1 != nil || err2 != nil {
 		t.Fatalf("GenerateDataServerUID() error: %v, %v", err1, err2)
@@ -160,23 +160,12 @@ func TestUID_Stability(t *testing.T) {
 
 func TestUID_HostCaseInsensitive(t *testing.T) {
 	// Host大小写不应影响UID
-	uid1, _ := GenerateDataServerUID("clouddrive2", "Server.Local", 19798, "{}", "key")
-	uid2, _ := GenerateDataServerUID("clouddrive2", "server.local", 19798, "{}", "key")
-	uid3, _ := GenerateDataServerUID("clouddrive2", "SERVER.LOCAL", 19798, "{}", "key")
+	uid1, _ := GenerateDataServerUID("clouddrive2", "Server.Local", 19798, DataServerOptions{}, "key")
+	uid2, _ := GenerateDataServerUID("clouddrive2", "server.local", 19798, DataServerOptions{}, "key")
+	uid3, _ := GenerateDataServerUID("clouddrive2", "SERVER.LOCAL", 19798, DataServerOptions{}, "key")
 
 	if uid1 != uid2 || uid2 != uid3 {
 		t.Errorf("Host大小写导致不同的UID:\nUID1: %s\nUID2: %s\nUID3: %s", uid1, uid2, uid3)
-	}
-}
-
-func TestUID_OptionOrderIndependent(t *testing.T) {
-	// JSON选项的key顺序不应影响UID
-	uid1, _ := GenerateDataServerUID("clouddrive2", "host", 80, `{"a":1,"b":2,"c":3}`, "key")
-	uid2, _ := GenerateDataServerUID("clouddrive2", "host", 80, `{"c":3,"a":1,"b":2}`, "key")
-	uid3, _ := GenerateDataServerUID("clouddrive2", "host", 80, `{"b":2,"c":3,"a":1}`, "key")
-
-	if uid1 != uid2 || uid2 != uid3 {
-		t.Errorf("JSON key顺序导致不同的UID:\nUID1: %s\nUID2: %s\nUID3: %s", uid1, uid2, uid3)
 	}
 }
 
@@ -187,15 +176,15 @@ func TestUID_DifferentConfigurations(t *testing.T) {
 		serverType string
 		host       string
 		port       int
-		options    string
+		options    DataServerOptions
 		apiKey     string
 	}{
-		{"config1", "clouddrive2", "host1", 19798, "{}", "key1"},
-		{"config2", "clouddrive2", "host2", 19798, "{}", "key1"}, // 不同host
-		{"config3", "clouddrive2", "host1", 19799, "{}", "key1"}, // 不同port
-		{"config4", "clouddrive2", "host1", 19798, `{"a":1}`, "key1"}, // 不同options
-		{"config5", "clouddrive2", "host1", 19798, "{}", "key2"}, // 不同apikey
-		{"config6", "openlist", "host1", 19798, "{}", "key1"}, // 不同type
+		{"config1", "clouddrive2", "host1", 19798, DataServerOptions{}, "key1"},
+		{"config2", "clouddrive2", "host2", 19798, DataServerOptions{}, "key1"},                    // 不同host
+		{"config3", "clouddrive2", "host1", 19799, DataServerOptions{}, "key1"},                    // 不同port
+		{"config4", "clouddrive2", "host1", 19798, DataServerOptions{AccessPath: "/data"}, "key1"}, // 不同options
+		{"config5", "clouddrive2", "host1", 19798, DataServerOptions{}, "key2"},                    // 不同apikey
+		{"config6", "openlist", "host1", 19798, DataServerOptions{}, "key1"},                       // 不同type
 	}
 
 	uids := make(map[string]string)
@@ -223,62 +212,62 @@ func TestUID_DifferentConfigurations(t *testing.T) {
 
 func TestBuildDataServerUIDForUpdate(t *testing.T) {
 	// 生成初始UID
-	originalUID, _ := GenerateDataServerUID("clouddrive2", "host", 19798, "{}", "key")
+	originalUID, _ := GenerateDataServerUID("clouddrive2", "host", 19798, DataServerOptions{}, "key")
 
 	tests := []struct {
-		name         string
-		currentUID   string
-		serverType   string
-		host         string
-		port         int
-		options      string
-		apiKey       string
-		wantChanged  bool
-		description  string
+		name        string
+		currentUID  string
+		serverType  string
+		host        string
+		port        int
+		options     DataServerOptions
+		apiKey      string
+		wantChanged bool
+		description string
 	}{
 		{
-			name:         "no change",
-			currentUID:   originalUID,
-			serverType:   "clouddrive2",
-			host:         "host",
-			port:         19798,
-			options:      "{}",
-			apiKey:       "key",
-			wantChanged:  false,
-			description:  "相同配置不应改变UID",
+			name:        "no change",
+			currentUID:  originalUID,
+			serverType:  "clouddrive2",
+			host:        "host",
+			port:        19798,
+			options:     DataServerOptions{},
+			apiKey:      "key",
+			wantChanged: false,
+			description: "相同配置不应改变UID",
 		},
 		{
-			name:         "host changed",
-			currentUID:   originalUID,
-			serverType:   "clouddrive2",
-			host:         "newhost",
-			port:         19798,
-			options:      "{}",
-			apiKey:       "key",
-			wantChanged:  true,
-			description:  "Host变化应导致UID改变",
+			name:        "host changed",
+			currentUID:  originalUID,
+			serverType:  "clouddrive2",
+			host:        "newhost",
+			port:        19798,
+			options:     DataServerOptions{},
+			apiKey:      "key",
+			wantChanged: true,
+			description: "Host变化应导致UID改变",
 		},
 		{
-			name:         "port changed",
-			currentUID:   originalUID,
-			serverType:   "clouddrive2",
-			host:         "host",
-			port:         19799,
-			options:      "{}",
-			apiKey:       "key",
-			wantChanged:  true,
-			description:  "Port变化应导致UID改变",
+			name:        "port changed",
+			currentUID:  originalUID,
+			serverType:  "clouddrive2",
+			host:        "host",
+			port:        19799,
+			options:     DataServerOptions{},
+			apiKey:      "key",
+			wantChanged: true,
+			description: "Port变化应导致UID改变",
 		},
 		{
-			name:         "options changed",
-			currentUID:   originalUID,
-			serverType:   "clouddrive2",
-			host:         "host",
-			port:         19798,
-			options:      `{"timeout":30}`,
-			apiKey:       "key",
-			wantChanged:  true,
-			description:  "Options变化应导致UID改变",
+			name:        "options changed",
+			currentUID:  originalUID,
+			serverType:  "clouddrive2",
+			host:        "host",
+			port:        19798,
+			options:     DataServerOptions{TimeoutSeconds: 30},
+			apiKey:      "key",
+			wantChanged: true,
+			description: "Options变化应导致UID改变",
 		},
 	}
 
@@ -381,7 +370,7 @@ func TestIsEmptyValue(t *testing.T) {
 		{"empty map", map[string]any{}, true},
 		{"empty slice", []any{}, true},
 		{"false", false, false}, // false不是空值
-		{"zero int", 0, false},   // 0不是空值
+		{"zero int", 0, false},  // 0不是空值
 		{"zero float", 0.0, false},
 		{"non-empty string", "test", false},
 		{"non-empty map", map[string]any{"a": 1}, false},
@@ -440,7 +429,7 @@ func TestDataServer_BeforeCreate(t *testing.T) {
 		Type:    "clouddrive2",
 		Host:    "127.0.0.1",
 		Port:    19798,
-		Options: "{}",
+		Options: DataServerOptions{},
 		APIKey:  "test-key",
 	}
 
@@ -465,7 +454,7 @@ func TestDataServer_BeforeCreate_PreserveExistingUID(t *testing.T) {
 		Type:    "clouddrive2",
 		Host:    "127.0.0.1",
 		Port:    19798,
-		Options: "{}",
+		Options: DataServerOptions{},
 		APIKey:  "test-key",
 	}
 
@@ -485,7 +474,7 @@ func TestMediaServer_BeforeCreate(t *testing.T) {
 		Type:    "emby",
 		Host:    "192.168.1.200",
 		Port:    8096,
-		Options: "{}",
+		Options: MediaServerOptions{},
 		APIKey:  "emby-key",
 	}
 

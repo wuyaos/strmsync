@@ -14,8 +14,8 @@ import (
 //
 // UID 基于：type + host + port + normalized options + apikey
 // 使用 SHA-256 hash，返回 hex 编码（64字符）
-func GenerateDataServerUID(serverType, host string, port int, optionsJSON, apiKey string) (string, error) {
-	input, err := buildUIDInput(serverType, host, port, optionsJSON, apiKey)
+func GenerateDataServerUID(serverType, host string, port int, options DataServerOptions, apiKey string) (string, error) {
+	input, err := buildUIDInput(serverType, host, port, options, apiKey)
 	if err != nil {
 		return "", fmt.Errorf("build uid input: %w", err)
 	}
@@ -28,8 +28,8 @@ func GenerateDataServerUID(serverType, host string, port int, optionsJSON, apiKe
 // - newUID: 新计算的 UID
 // - changed: UID 是否发生变化
 // - error: 生成过程中的错误
-func BuildDataServerUIDForUpdate(currentUID, serverType, host string, port int, optionsJSON, apiKey string) (string, bool, error) {
-	newUID, err := GenerateDataServerUID(serverType, host, port, optionsJSON, apiKey)
+func BuildDataServerUIDForUpdate(currentUID, serverType, host string, port int, options DataServerOptions, apiKey string) (string, bool, error) {
+	newUID, err := GenerateDataServerUID(serverType, host, port, options, apiKey)
 	if err != nil {
 		return "", false, err
 	}
@@ -40,8 +40,8 @@ func BuildDataServerUIDForUpdate(currentUID, serverType, host string, port int, 
 //
 // UID 基于：type + host + port + normalized options + apikey
 // 使用 SHA-256 hash，返回 hex 编码（64字符）
-func GenerateMediaServerUID(serverType, host string, port int, optionsJSON, apiKey string) (string, error) {
-	input, err := buildUIDInput(serverType, host, port, optionsJSON, apiKey)
+func GenerateMediaServerUID(serverType, host string, port int, options MediaServerOptions, apiKey string) (string, error) {
+	input, err := buildUIDInput(serverType, host, port, options, apiKey)
 	if err != nil {
 		return "", fmt.Errorf("build uid input: %w", err)
 	}
@@ -54,8 +54,8 @@ func GenerateMediaServerUID(serverType, host string, port int, optionsJSON, apiK
 // - newUID: 新计算的 UID
 // - changed: UID 是否发生变化
 // - error: 生成过程中的错误
-func BuildMediaServerUIDForUpdate(currentUID, serverType, host string, port int, optionsJSON, apiKey string) (string, bool, error) {
-	newUID, err := GenerateMediaServerUID(serverType, host, port, optionsJSON, apiKey)
+func BuildMediaServerUIDForUpdate(currentUID, serverType, host string, port int, options MediaServerOptions, apiKey string) (string, bool, error) {
+	newUID, err := GenerateMediaServerUID(serverType, host, port, options, apiKey)
 	if err != nil {
 		return "", false, err
 	}
@@ -66,15 +66,12 @@ func BuildMediaServerUIDForUpdate(currentUID, serverType, host string, port int,
 //
 // 使用结构化JSON序列化避免字段拼接歧义
 // 格式：{"type":"...","host":"...","port":123,"options":"...","api_key":"..."}
-func buildUIDInput(serverType, host string, port int, optionsJSON, apiKey string) (string, error) {
+func buildUIDInput(serverType, host string, port int, options any, apiKey string) (string, error) {
 	// 1. normalize host（lower + trim）
 	normalizedHost := strings.ToLower(strings.TrimSpace(host))
 
-	// 2. 移除 options 中的 QoS 字段（避免 QoS 变更影响 UID）
-	optionsWithoutQoS := stripQoSFields(optionsJSON)
-
-	// 3. normalize options（递归排序 + 过滤空值）
-	normalizedOptions, err := normalizeJSON(optionsWithoutQoS)
+	// 2. normalize options（递归排序 + 过滤空值）
+	normalizedOptions, err := normalizeOptions(options)
 	if err != nil {
 		return "", fmt.Errorf("normalize options: %w", err)
 	}
@@ -238,30 +235,10 @@ func sortedKeys(m map[string]any) []string {
 // - api_retry_max
 // - api_retry_interval_sec
 // - qos (整个嵌套对象，历史字段)
-func stripQoSFields(optionsJSON string) string {
-	optionsJSON = strings.TrimSpace(optionsJSON)
-	if optionsJSON == "" {
-		return optionsJSON
-	}
-
-	var obj map[string]any
-	if err := json.Unmarshal([]byte(optionsJSON), &obj); err != nil {
-		// 非法 JSON 直接返回原值（兼容非 JSON 格式）
-		return optionsJSON
-	}
-
-	// 移除根级高级配置字段
-	delete(obj, "download_rate_per_sec")
-	delete(obj, "api_rate")
-	delete(obj, "api_retry_max")
-	delete(obj, "api_retry_interval_sec")
-
-	// 移除嵌套 qos 对象（如果存在）
-	delete(obj, "qos")
-
-	out, err := json.Marshal(obj)
+func normalizeOptions(options any) (string, error) {
+	data, err := json.Marshal(options)
 	if err != nil {
-		return optionsJSON
+		return "", fmt.Errorf("marshal options: %w", err)
 	}
-	return string(out)
+	return normalizeJSON(string(data))
 }
