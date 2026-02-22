@@ -32,6 +32,11 @@
 - Normalize connection status updates and log failures in non-dev environments.
 - Add top-level error handling and safe pending refresh scheduling.
 - Use a shared cursor and id helper to avoid extra array churn.
+- Allow forced connectivity refreshes to bypass timing throttle.
+- Ensure polling reschedules even when refresh throws.
+- Avoid production console spam on expected connectivity failures.
+- Fully clear stale timing caches when servers disappear.
+- Reset log pagination on filter changes to avoid empty pages.
 
 ### Changed
 

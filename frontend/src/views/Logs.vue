@@ -82,7 +82,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { getLogList } from '@/api/log'
 import { ElMessage } from 'element-plus'
 import Loading from '~icons/ep/loading'
@@ -96,6 +96,7 @@ const loading = ref(false)
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(50)
+const isLoadingLogs = ref(false)
 
 const getLogTime = (log) => {
   const time = Date.parse(log?.created_at || '')
@@ -123,7 +124,9 @@ const filteredLogs = computed(() => {
 })
 
 const loadLogs = async () => {
+  if (isLoadingLogs.value) return
   try {
+    isLoadingLogs.value = true
     loading.value = true
     const params = {
       page: currentPage.value,
@@ -136,11 +139,17 @@ const loadLogs = async () => {
     const data = await getLogList(params)
     logs.value = data.logs || []
     total.value = data.total || 0
+
+    if (logs.value.length === 0 && total.value > 0 && currentPage.value > 1) {
+      currentPage.value = 1
+      await loadLogs()
+    }
   } catch (error) {
     console.error('加载日志失败:', error)
     ElMessage.error('加载日志失败')
   } finally {
     loading.value = false
+    isLoadingLogs.value = false
   }
 }
 
@@ -153,6 +162,11 @@ const formatTime = (time) => {
 }
 
 onMounted(() => {
+  loadLogs()
+})
+
+watch([levelFilter, taskFilter, searchText, pageSize], () => {
+  currentPage.value = 1
   loadLogs()
 })
 </script>

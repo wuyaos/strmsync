@@ -31,7 +31,7 @@ export const useServerConnectivity = (options) => {
     connectionStatusMap[key] = status
   }
 
-  const refreshConnectionStatus = async () => {
+  const refreshConnectionStatus = async (force = false) => {
     if (pollingInFlight.value) {
       pendingRefresh.value = true
       return
@@ -49,18 +49,16 @@ export const useServerConnectivity = (options) => {
         const key = getSafeId(server.id)
         if (!key) continue
         const lastAt = lastTestAtMap[key] || 0
-        if (now - lastAt < intervalMs - pollToleranceMs) continue
+        if (!force && now - lastAt < intervalMs - pollToleranceMs) continue
         queue.push({ key, server })
       }
 
       const workerCount = Math.min(maxConcurrentTests, queue.length)
-      const cursorRef = { value: 0 }
       const workers = Array.from({ length: workerCount }, async () => {
         try {
-          while (cursorRef.value < queue.length) {
+          while (queue.length > 0) {
             if (isUnmounted) break
-            const item = queue[cursorRef.value]
-            cursorRef.value += 1
+            const item = queue.pop()
             if (!item) return
             try {
               const result = await testServerSilent(item.server.id, item.server.type)
@@ -74,8 +72,6 @@ export const useServerConnectivity = (options) => {
                 connectionStatusMap[item.key] = 'error'
                 if (import.meta?.env?.DEV) {
                   console.debug('服务器连通性检测失败:', error)
-                } else {
-                  console.warn('服务器连通性检测失败:', error)
                 }
               }
             } finally {
@@ -97,7 +93,7 @@ export const useServerConnectivity = (options) => {
       pollingInFlight.value = false
       if (pendingRefresh.value && !isUnmounted) {
         pendingRefresh.value = false
-        refreshConnectionStatus().catch((error) => {
+        refreshConnectionStatus(true).catch((error) => {
           console.error('服务器连通性检测失败:', error)
         })
       }
@@ -109,6 +105,11 @@ export const useServerConnectivity = (options) => {
     for (const id in connectionStatusMap) {
       if (!validIds.has(String(id))) {
         delete connectionStatusMap[id]
+        delete lastTestAtMap[id]
+      }
+    }
+    for (const id in lastTestAtMap) {
+      if (!validIds.has(String(id))) {
         delete lastTestAtMap[id]
       }
     }
@@ -132,7 +133,7 @@ export const useServerConnectivity = (options) => {
         const list = unref(serverListRef) || []
         if (Array.isArray(list)) {
           handleListChange(list)
-          refreshConnectionStatus()
+          refreshConnectionStatus(true)
         }
       }
     )
@@ -144,8 +145,11 @@ export const useServerConnectivity = (options) => {
       clearTimeout(pollingTimer.value)
     }
     pollingTimer.value = setTimeout(async () => {
-      await refreshConnectionStatus()
-      scheduleNext()
+      try {
+        await refreshConnectionStatus()
+      } finally {
+        scheduleNext()
+      }
     }, intervalMs)
   }
 

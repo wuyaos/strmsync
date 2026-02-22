@@ -60,8 +60,20 @@ if ! command -v air >/dev/null 2>&1; then
 fi
 
 echo "==> 清理后端端口..."
-if command -v lsof > /dev/null; then
+if command -v lsof >/dev/null 2>&1; then
   lsof -nP -t -iTCP:${PORT} -sTCP:LISTEN 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+elif command -v fuser >/dev/null 2>&1; then
+  fuser -k "${PORT}/tcp" 2>/dev/null || true
+elif command -v ss >/dev/null 2>&1; then
+  pids="$(ss -ltnp 2>/dev/null | awk -v port=":${PORT}" '$4 ~ port {print $6}' | sed -n 's/.*pid=\([0-9]\+\).*/\1/p' | sort -u)"
+  if [ -n "${pids}" ]; then
+    kill -9 ${pids} 2>/dev/null || true
+  fi
+elif command -v netstat >/dev/null 2>&1; then
+  pids="$(netstat -lntp 2>/dev/null | awk -v port=":${PORT}" '$4 ~ port {print $7}' | sed -n 's#^\([0-9]\+\)/.*#\1#p' | sort -u)"
+  if [ -n "${pids}" ]; then
+    kill -9 ${pids} 2>/dev/null || true
+  fi
 fi
 
 echo "==> 启动后端服务（前台）(http://localhost:${PORT})..."
