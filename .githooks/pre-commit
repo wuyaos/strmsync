@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ver="$(tr -d '[:space:]' < VERSION)"
+if [[ -z "${ver}" ]]; then
+  echo "VERSION 为空，跳过 README 徽章更新。"
+  exit 0
+fi
+
+if ! grep -q "Version-" README.md; then
+  echo "README 未找到 Version 徽章，跳过。"
+  exit 0
+fi
+
+sed -i "s/Version-[0-9.]*-fb7299/Version-${ver}-fb7299/g" README.md
+git add README.md
