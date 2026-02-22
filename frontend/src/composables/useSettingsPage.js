@@ -30,6 +30,9 @@ export const useSettingsPage = () => {
       api_retry_max: 3,
       api_retry_interval_sec: 60
     },
+    ui: {
+      auto_refresh_interval_ms: 2000
+    },
     theme: {
       mode: "light",
       primaryColor: "#409EFF",
@@ -55,6 +58,7 @@ export const useSettingsPage = () => {
         const resolvedScanner = resolved.scanner || {}
         const resolvedRate = resolved.rate || resolved.qos || {}
         const resolvedGlobal = resolved.global || {}
+        const resolvedUI = resolved.ui || {}
         settings.value = {
           global: {
             concurrency: resolvedGlobal.concurrency ?? resolvedScanner.concurrency ?? defaults.global.concurrency,
@@ -63,6 +67,9 @@ export const useSettingsPage = () => {
             api_rate: resolvedGlobal.api_rate ?? resolvedRate.api_rate ?? defaults.global.api_rate,
             api_retry_max: resolvedGlobal.api_retry_max ?? resolvedRate.api_retry_max ?? defaults.global.api_retry_max,
             api_retry_interval_sec: resolvedGlobal.api_retry_interval_sec ?? resolvedRate.api_retry_interval_sec ?? defaults.global.api_retry_interval_sec
+          },
+          ui: {
+            auto_refresh_interval_ms: resolvedUI.auto_refresh_interval_ms ?? defaults.ui.auto_refresh_interval_ms
           },
           theme: { ...defaults.theme, ...(resolved.theme || {}) },
           notification: { ...defaults.notification, ...(resolved.notification || {}) }

@@ -120,6 +120,7 @@ import { normalizeListResponse } from '@/api/normalize'
 import TaskRunExpandPanel from '@/components/runs/TaskRunExpandPanel.vue'
 import TaskRunsToolbar from '@/components/runs/TaskRunsToolbar.vue'
 import { confirmDialog } from '@/composables/useConfirmDialog'
+import { getSettings } from '@/api/settings'
 
 dayjs.extend(relativeTime)
 dayjs.locale('zh-cn')
@@ -130,6 +131,7 @@ const jobOptions = ref([])
 const autoRefresh = ref(true)
 let refreshTimer = null
 const isActive = ref(true)
+const refreshIntervalMs = ref(2000)
 const expandedRowKeys = ref([])
 const selectedRunIds = ref([])
 
@@ -310,10 +312,12 @@ const formatReplaceRules = (rules) => {
 }
 
 const loadRuns = async (silent = false) => {
+  if (!isActive.value) return
   if (!silent) {
     loading.value = true
   }
   try {
+    if (!isActive.value) return
     const [from, to] = filters.timeRange || []
     const params = {
       job_id: filters.jobId || undefined,
@@ -334,9 +338,26 @@ const loadRuns = async (silent = false) => {
   } catch (error) {
     console.error('加载运行记录失败:', error)
   } finally {
-    if (!silent) {
+    if (!silent && isActive.value) {
       loading.value = false
     }
+  }
+}
+
+const resolveRefreshInterval = (data) => {
+  const resolved = data?.settings || data || {}
+  const interval = resolved?.ui?.auto_refresh_interval_ms
+  const parsed = Number(interval)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 2000
+}
+
+const loadRefreshInterval = async () => {
+  try {
+    const data = await getSettings()
+    refreshIntervalMs.value = resolveRefreshInterval(data)
+  } catch (error) {
+    console.error('加载自动刷新间隔失败:', error)
+    refreshIntervalMs.value = 2000
   }
 }
 
@@ -414,7 +435,7 @@ const startAutoRefresh = () => {
   if (!isActive.value || refreshTimer) return
   refreshTimer = setInterval(() => {
     loadRuns(true)
-  }, 30000)
+  }, refreshIntervalMs.value)
 }
 
 const stopAutoRefresh = () => {
@@ -433,13 +454,27 @@ watch(
   { immediate: true }
 )
 
+watch(
+  refreshIntervalMs,
+  () => {
+    if (refreshTimer) {
+      stopAutoRefresh()
+      if (autoRefresh.value && isActive.value) {
+        startAutoRefresh()
+      }
+    }
+  }
+)
+
 onMounted(() => {
+  loadRefreshInterval()
   loadJobs()
   loadRuns()
 })
 
 onActivated(() => {
   isActive.value = true
+  loadRefreshInterval()
   if (autoRefresh.value) {
     startAutoRefresh()
   }
@@ -451,6 +486,7 @@ onDeactivated(() => {
 })
 
 onUnmounted(() => {
+  isActive.value = false
   stopAutoRefresh()
 })
 </script>

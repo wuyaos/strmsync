@@ -85,6 +85,7 @@
 <script setup>
 import { ref, computed, onActivated, onDeactivated, onMounted, onUnmounted, watch } from 'vue'
 import { getLogList } from '@/api/log'
+import { getSettings } from '@/api/settings'
 import { ElMessage } from 'element-plus'
 import Loading from '~icons/ep/loading'
 import dayjs from 'dayjs'
@@ -100,6 +101,7 @@ const pageSize = ref(50)
 const isLoadingLogs = ref(false)
 const isActive = ref(true)
 const autoRefresh = ref(true)
+const refreshIntervalMs = ref(2000)
 
 const getLogTime = (log) => {
   const time = Date.parse(log?.created_at || '')
@@ -113,7 +115,7 @@ const filteredLogs = computed(() => {
 
 let loadTimeout = null
 let refreshTimer = null
-const loadLogs = async () => {
+const loadLogs = async (silent = false) => {
   if (!isActive.value) return
   if (loadTimeout) {
     clearTimeout(loadTimeout)
@@ -121,7 +123,9 @@ const loadLogs = async () => {
   loadTimeout = setTimeout(async () => {
     try {
       if (!isActive.value) return
-      loading.value = true
+      if (!silent) {
+        loading.value = true
+      }
       const params = {
         page: currentPage.value,
         page_size: pageSize.value
@@ -145,7 +149,7 @@ const loadLogs = async () => {
       console.error('加载日志失败:', error)
       ElMessage.error('加载日志失败')
     } finally {
-      if (isActive.value) {
+      if (isActive.value && !silent) {
         loading.value = false
       }
     }
@@ -164,14 +168,32 @@ onMounted(() => {
   if (!Array.isArray(levelFilter.value)) {
     levelFilter.value = ['info', 'warn', 'error']
   }
+  loadRefreshInterval()
   loadLogs()
 })
+
+const resolveRefreshInterval = (data) => {
+  const resolved = data?.settings || data || {}
+  const interval = resolved?.ui?.auto_refresh_interval_ms
+  const parsed = Number(interval)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 2000
+}
+
+const loadRefreshInterval = async () => {
+  try {
+    const data = await getSettings()
+    refreshIntervalMs.value = resolveRefreshInterval(data)
+  } catch (error) {
+    console.error('加载自动刷新间隔失败:', error)
+    refreshIntervalMs.value = 2000
+  }
+}
 
 const startAutoRefresh = () => {
   if (!isActive.value || refreshTimer) return
   refreshTimer = setInterval(() => {
-    loadLogs()
-  }, 30000)
+    loadLogs(true)
+  }, refreshIntervalMs.value)
 }
 
 const stopAutoRefresh = () => {
@@ -183,6 +205,7 @@ const stopAutoRefresh = () => {
 
 onActivated(() => {
   isActive.value = true
+  loadRefreshInterval()
   loadLogs()
   if (autoRefresh.value) {
     startAutoRefresh()
@@ -213,6 +236,18 @@ watch(
     else stopAutoRefresh()
   },
   { immediate: true }
+)
+
+watch(
+  refreshIntervalMs,
+  () => {
+    if (refreshTimer) {
+      stopAutoRefresh()
+      if (autoRefresh.value && isActive.value) {
+        startAutoRefresh()
+      }
+    }
+  }
 )
 
 watch([levelFilter, taskFilter, searchText, pageSize], () => {

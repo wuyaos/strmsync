@@ -79,6 +79,17 @@
               />
               <span class="form-help">重试之间的等待时间（秒）</span>
             </el-form-item>
+
+            <el-form-item label="页面自动刷新间隔(ms)">
+              <el-input
+                v-model.number="settings.ui.auto_refresh_interval_ms"
+                type="number"
+                :min="100"
+                :max="60000"
+                class="input-short"
+              />
+              <span class="form-help">执行历史/系统日志的自动刷新频率</span>
+            </el-form-item>
           </el-form>
         </div>
       </el-tab-pane>

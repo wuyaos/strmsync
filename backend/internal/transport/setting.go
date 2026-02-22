@@ -62,12 +62,17 @@ type qosSettings struct {
 	APIRetryIntervalSec int `json:"api_retry_interval_sec"`
 }
 
+type uiSettings struct {
+	AutoRefreshIntervalMs int `json:"auto_refresh_interval_ms"`
+}
+
 type appSettings struct {
 	Scanner      scannerSettings      `json:"scanner"`
 	Log          logSettings          `json:"log"`
 	Theme        themeSettings        `json:"theme"`
 	Notification notificationSettings `json:"notification"`
 	Rate         qosSettings          `json:"rate"`
+	UI           uiSettings           `json:"ui"`
 }
 
 // GetSettings 获取系统设置
@@ -185,6 +190,9 @@ func defaultAppSettings() appSettings {
 			APIRetryMax:         3,
 			APIRetryIntervalSec: 60,
 		},
+		UI: uiSettings{
+			AutoRefreshIntervalMs: 2000,
+		},
 	}
 }
 
@@ -232,6 +240,9 @@ func normalizeAppSettings(payload map[string]any) appSettings {
 		settings.Rate.APIRate = parseIntWithDefault(raw, "api_rate", settings.Rate.APIRate)
 		settings.Rate.APIRetryMax = parseIntWithDefault(raw, "api_retry_max", settings.Rate.APIRetryMax)
 		settings.Rate.APIRetryIntervalSec = parseIntWithDefault(raw, "api_retry_interval_sec", settings.Rate.APIRetryIntervalSec)
+	}
+	if raw, ok := payload["ui"].(map[string]any); ok {
+		settings.UI.AutoRefreshIntervalMs = parseIntWithDefault(raw, "auto_refresh_interval_ms", settings.UI.AutoRefreshIntervalMs)
 	}
 
 	return settings
