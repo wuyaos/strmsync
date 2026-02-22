@@ -15,6 +15,8 @@ export const useServerConnectivity = (options) => {
   const localServerType = 'local'
   const pollToleranceMs = 500
 
+  const getSafeId = (id) => String(id ?? '')
+
   const getConnectionStatus = (server) => {
     if (!server?.enabled) return 'status-disabled'
     if (server?.type === localServerType) return 'status-success'
@@ -24,7 +26,7 @@ export const useServerConnectivity = (options) => {
   }
 
   const setConnectionStatus = (serverId, status) => {
-    const key = String(serverId ?? '')
+    const key = getSafeId(serverId)
     if (!key) return
     connectionStatusMap[key] = status
   }
@@ -44,7 +46,7 @@ export const useServerConnectivity = (options) => {
       const now = Date.now()
       const queue = []
       for (const server of targets) {
-        const key = String(server.id ?? '')
+        const key = getSafeId(server.id)
         if (!key) continue
         const lastAt = lastTestAtMap[key] || 0
         if (now - lastAt < intervalMs - pollToleranceMs) continue
@@ -52,11 +54,13 @@ export const useServerConnectivity = (options) => {
       }
 
       const workerCount = Math.min(maxConcurrentTests, queue.length)
+      const cursorRef = { value: 0 }
       const workers = Array.from({ length: workerCount }, async () => {
         try {
-          while (queue.length > 0) {
+          while (cursorRef.value < queue.length) {
             if (isUnmounted) break
-            const item = queue.shift()
+            const item = queue[cursorRef.value]
+            cursorRef.value += 1
             if (!item) return
             try {
               const result = await testServerSilent(item.server.id, item.server.type)
@@ -87,11 +91,15 @@ export const useServerConnectivity = (options) => {
       })
 
       await Promise.all(workers)
+    } catch (error) {
+      console.error('服务器连通性检测失败:', error)
     } finally {
       pollingInFlight.value = false
       if (pendingRefresh.value && !isUnmounted) {
         pendingRefresh.value = false
-        refreshConnectionStatus()
+        refreshConnectionStatus().catch((error) => {
+          console.error('服务器连通性检测失败:', error)
+        })
       }
     }
   }
@@ -106,7 +114,7 @@ export const useServerConnectivity = (options) => {
     }
     for (const server of newList) {
       if (!server.enabled || server.type === localServerType) {
-        const key = String(server.id ?? '')
+        const key = getSafeId(server.id)
         if (!key) continue
         delete connectionStatusMap[key]
         delete lastTestAtMap[key]
@@ -118,7 +126,7 @@ export const useServerConnectivity = (options) => {
     watch(
       () => {
         const list = unref(serverListRef) || []
-        return list.map(item => `${item?.id}|${item?.enabled}|${item?.type}`)
+        return list.map(item => `${item?.id}|${item?.enabled}|${item?.type}`).join(',')
       },
       () => {
         const list = unref(serverListRef) || []

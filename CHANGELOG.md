@@ -30,6 +30,8 @@
 - Extract polling tolerance into a named constant.
 - Replace deep watch with a focused signature to limit reactivity overhead.
 - Normalize connection status updates and log failures in non-dev environments.
+- Add top-level error handling and safe pending refresh scheduling.
+- Use a shared cursor and id helper to avoid extra array churn.
 
 ### Changed
 
