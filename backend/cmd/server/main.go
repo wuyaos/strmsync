@@ -169,6 +169,7 @@ func main() {
 		TaskRuns:      taskRunRepo,
 		TaskRunEvents: taskRunEventRepo,
 		Logger:        logger.With(zap.String("component", "worker")),
+		GracePeriod:   15 * time.Second,
 	})
 	if err != nil {
 		logger.LogError("Worker 初始化失败", zap.Error(err))
@@ -239,7 +240,7 @@ func main() {
 	}
 
 	// 最后停止Worker，让已入队的任务尽可能处理完毕
-	workerCtx, workerCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	workerCtx, workerCancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer workerCancel()
 	if err := workerPool.Stop(workerCtx); err != nil {
 		logger.LogError("Worker 关闭失败", zap.Error(err))
