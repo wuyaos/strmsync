@@ -83,7 +83,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onActivated, onDeactivated, onMounted, onUnmounted, watch } from 'vue'
 import { getLogList } from '@/api/log'
 import { ElMessage } from 'element-plus'
 import Loading from '~icons/ep/loading'
@@ -98,6 +98,7 @@ const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(50)
 const isLoadingLogs = ref(false)
+const isActive = ref(true)
 
 const getLogTime = (log) => {
   const time = Date.parse(log?.created_at || '')
@@ -111,11 +112,13 @@ const filteredLogs = computed(() => {
 
 let loadTimeout = null
 const loadLogs = async () => {
+  if (!isActive.value) return
   if (loadTimeout) {
     clearTimeout(loadTimeout)
   }
   loadTimeout = setTimeout(async () => {
     try {
+      if (!isActive.value) return
       loading.value = true
       const params = {
         page: currentPage.value,
@@ -128,6 +131,7 @@ const loadLogs = async () => {
       if (searchText.value) params.search = searchText.value
 
       const data = await getLogList(params)
+      if (!isActive.value) return
       logs.value = data.logs || []
       total.value = data.total || 0
 
@@ -139,7 +143,9 @@ const loadLogs = async () => {
       console.error('加载日志失败:', error)
       ElMessage.error('加载日志失败')
     } finally {
-      loading.value = false
+      if (isActive.value) {
+        loading.value = false
+      }
     }
   }, 100)
 }
@@ -157,6 +163,26 @@ onMounted(() => {
     levelFilter.value = ['info', 'warn', 'error']
   }
   loadLogs()
+})
+
+onActivated(() => {
+  isActive.value = true
+  loadLogs()
+})
+
+onDeactivated(() => {
+  isActive.value = false
+  if (loadTimeout) {
+    clearTimeout(loadTimeout)
+    loadTimeout = null
+  }
+})
+
+onUnmounted(() => {
+  if (loadTimeout) {
+    clearTimeout(loadTimeout)
+    loadTimeout = null
+  }
 })
 
 watch([levelFilter, taskFilter, searchText, pageSize], () => {

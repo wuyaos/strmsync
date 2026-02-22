@@ -109,7 +109,7 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
@@ -129,6 +129,7 @@ const runList = ref([])
 const jobOptions = ref([])
 const autoRefresh = ref(true)
 let refreshTimer = null
+const isActive = ref(true)
 const expandedRowKeys = ref([])
 const selectedRunIds = ref([])
 
@@ -410,7 +411,7 @@ const handleSizeChange = () => {
 }
 
 const startAutoRefresh = () => {
-  if (refreshTimer) return
+  if (!isActive.value || refreshTimer) return
   refreshTimer = setInterval(() => {
     loadRuns(true)
   }, 30000)
@@ -426,11 +427,8 @@ const stopAutoRefresh = () => {
 watch(
   autoRefresh,
   (enabled) => {
-    if (enabled) {
-      startAutoRefresh()
-    } else {
-      stopAutoRefresh()
-    }
+    if (enabled) startAutoRefresh()
+    else stopAutoRefresh()
   },
   { immediate: true }
 )
@@ -438,6 +436,18 @@ watch(
 onMounted(() => {
   loadJobs()
   loadRuns()
+})
+
+onActivated(() => {
+  isActive.value = true
+  if (autoRefresh.value) {
+    startAutoRefresh()
+  }
+})
+
+onDeactivated(() => {
+  isActive.value = false
+  stopAutoRefresh()
 })
 
 onUnmounted(() => {
