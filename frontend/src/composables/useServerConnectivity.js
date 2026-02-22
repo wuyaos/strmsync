@@ -11,6 +11,8 @@ export const useServerConnectivity = (options) => {
   const pollingInFlight = ref(false)
   const lastTestAtMap = reactive({})
   const inFlightKeyMap = reactive({})
+  const isUnmounted = ref(false)
+  const localServerType = 'local'
 
   const getConnectionStatus = (server) => {
     if (!server?.enabled) return 'status-disabled'
@@ -27,11 +29,12 @@ export const useServerConnectivity = (options) => {
   const refreshConnectionStatus = async () => {
     if (pollingInFlight.value) return
     const list = unref(serverListRef) || []
-    const targets = list.filter(server => server.enabled && server.type !== 'local')
+    const targets = list.filter(server => server.enabled && server.type !== localServerType)
     if (targets.length === 0) return
 
     pollingInFlight.value = true
     try {
+      if (isUnmounted.value) return
       const now = Date.now()
       const queue = []
       for (const server of targets) {
@@ -43,18 +46,25 @@ export const useServerConnectivity = (options) => {
         queue.push({ key, server })
       }
 
-      const workers = Array.from({ length: maxConcurrentTests }, async () => {
+      const workerCount = Math.min(maxConcurrentTests, queue.length)
+      const workers = Array.from({ length: workerCount }, async () => {
         while (queue.length > 0) {
+          if (isUnmounted.value) return
           const item = queue.shift()
           if (!item) return
           inFlightKeyMap[item.key] = true
           try {
             const result = await testServerSilent(item.server.id, item.server.type)
-            const ok = !!result || result === undefined
+            if (isUnmounted.value) return
+            const ok = result === true
             const status = ok ? 'success' : 'error'
-            connectionStatusMap[item.server.id] = status
+            connectionStatusMap[item.key] = status
           } catch (error) {
-            connectionStatusMap[item.server.id] = 'error'
+            if (isUnmounted.value) return
+            connectionStatusMap[item.key] = 'error'
+            if (import.meta?.env?.DEV) {
+              console.debug('服务器连通性检测失败:', error)
+            }
           } finally {
             lastTestAtMap[item.key] = Date.now()
             delete inFlightKeyMap[item.key]
@@ -78,10 +88,12 @@ export const useServerConnectivity = (options) => {
       }
     }
     for (const server of newList) {
-      if (!server.enabled || server.type === 'local') {
-        delete connectionStatusMap[server.id]
-        delete lastTestAtMap[server.id]
-        delete inFlightKeyMap[server.id]
+      if (!server.enabled || server.type === localServerType) {
+        const key = String(server.id ?? '')
+        if (!key) continue
+        delete connectionStatusMap[key]
+        delete lastTestAtMap[key]
+        delete inFlightKeyMap[key]
       }
     }
   }
@@ -102,6 +114,7 @@ export const useServerConnectivity = (options) => {
   })
 
   onUnmounted(() => {
+    isUnmounted.value = true
     if (pollingTimer.value) {
       clearInterval(pollingTimer.value)
       pollingTimer.value = null

@@ -18,6 +18,8 @@
 - Trigger connectivity checks immediately on mount to avoid initial unknown state.
 - Add a small tolerance window to avoid interval jitter skipping checks.
 - Watch server list deeply to react to in-place mutations.
+- Tighten connectivity success criteria and standardize id keys; add dev-only failure logs.
+- Stop updating connectivity state after unmount and avoid excess workers when queue is small.
 
 ### Changed
 
