@@ -28,6 +28,8 @@
 - Queue a pending refresh when list changes while polling is in-flight.
 - Switch polling to recursive timeouts for accurate spacing.
 - Extract polling tolerance into a named constant.
+- Replace deep watch with a focused signature to limit reactivity overhead.
+- Normalize connection status updates and log failures in non-dev environments.
 
 ### Changed
 

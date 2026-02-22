@@ -10,7 +10,7 @@ export const useServerConnectivity = (options) => {
   const pollingTimer = ref(null)
   const pollingInFlight = ref(false)
   const lastTestAtMap = {}
-  const isUnmounted = ref(false)
+  let isUnmounted = false
   const pendingRefresh = ref(false)
   const localServerType = 'local'
   const pollToleranceMs = 500
@@ -24,8 +24,9 @@ export const useServerConnectivity = (options) => {
   }
 
   const setConnectionStatus = (serverId, status) => {
-    if (!serverId) return
-    connectionStatusMap[serverId] = status
+    const key = String(serverId ?? '')
+    if (!key) return
+    connectionStatusMap[key] = status
   }
 
   const refreshConnectionStatus = async () => {
@@ -39,7 +40,7 @@ export const useServerConnectivity = (options) => {
 
     pollingInFlight.value = true
     try {
-      if (isUnmounted.value) return
+      if (isUnmounted) return
       const now = Date.now()
       const queue = []
       for (const server of targets) {
@@ -54,29 +55,31 @@ export const useServerConnectivity = (options) => {
       const workers = Array.from({ length: workerCount }, async () => {
         try {
           while (queue.length > 0) {
-            if (isUnmounted.value) break
+            if (isUnmounted) break
             const item = queue.shift()
             if (!item) return
             try {
               const result = await testServerSilent(item.server.id, item.server.type)
               const ok = result === true
               const status = ok ? 'success' : 'error'
-              if (!isUnmounted.value) {
+              if (!isUnmounted) {
                 connectionStatusMap[item.key] = status
               }
             } catch (error) {
-              if (!isUnmounted.value) {
+              if (!isUnmounted) {
                 connectionStatusMap[item.key] = 'error'
                 if (import.meta?.env?.DEV) {
                   console.debug('服务器连通性检测失败:', error)
+                } else {
+                  console.warn('服务器连通性检测失败:', error)
                 }
               }
             } finally {
-              if (!isUnmounted.value) {
+              if (!isUnmounted) {
                 lastTestAtMap[item.key] = Date.now()
               }
             }
-            if (isUnmounted.value) break
+            if (isUnmounted) break
           }
         } catch (error) {
           console.error('服务器连通性检测任务异常:', error)
@@ -86,7 +89,7 @@ export const useServerConnectivity = (options) => {
       await Promise.all(workers)
     } finally {
       pollingInFlight.value = false
-      if (pendingRefresh.value && !isUnmounted.value) {
+      if (pendingRefresh.value && !isUnmounted) {
         pendingRefresh.value = false
         refreshConnectionStatus()
       }
@@ -112,16 +115,26 @@ export const useServerConnectivity = (options) => {
   }
 
   if (serverListRef) {
-    watch(() => unref(serverListRef), (newList) => {
-      if (Array.isArray(newList)) {
-        handleListChange(newList)
-        refreshConnectionStatus()
+    watch(
+      () => {
+        const list = unref(serverListRef) || []
+        return list.map(item => `${item?.id}|${item?.enabled}|${item?.type}`)
+      },
+      () => {
+        const list = unref(serverListRef) || []
+        if (Array.isArray(list)) {
+          handleListChange(list)
+          refreshConnectionStatus()
+        }
       }
-    }, { deep: true })
+    )
   }
 
   const scheduleNext = () => {
-    if (isUnmounted.value) return
+    if (isUnmounted) return
+    if (pollingTimer.value) {
+      clearTimeout(pollingTimer.value)
+    }
     pollingTimer.value = setTimeout(async () => {
       await refreshConnectionStatus()
       scheduleNext()
@@ -134,7 +147,7 @@ export const useServerConnectivity = (options) => {
   })
 
   onUnmounted(() => {
-    isUnmounted.value = true
+    isUnmounted = true
     if (pollingTimer.value) {
       clearTimeout(pollingTimer.value)
       pollingTimer.value = null
