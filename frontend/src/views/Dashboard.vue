@@ -194,9 +194,9 @@ const buildDurationBuckets = (runs) => {
 
 const ensureEcharts = async () => {
   if (echartsModule) return echartsModule
-  const module = await import('echarts')
-  echartsModule = module
-  return module
+  const module = await import('@/utils/echarts')
+  echartsModule = module.default
+  return module.default
 }
 
 const renderCharts = async (runs) => {

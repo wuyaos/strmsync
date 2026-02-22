@@ -62,16 +62,11 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (!id.includes('node_modules')) return
           if (id.includes('node_modules/echarts')) return 'echarts'
-          if (id.includes('node_modules/element-plus') || id.includes('node_modules/@element-plus')) {
-            return 'element-plus'
-          }
-          if (id.includes('node_modules/dayjs')) return 'dayjs'
-          if (id.includes('node_modules/vue') || id.includes('node_modules/pinia') || id.includes('node_modules/vue-router')) {
+          if (id.includes('node_modules/vue') || id.includes('node_modules/vue-router')) {
             return 'vue'
           }
-          return 'vendor'
+          // 移除对 element-plus 和 vendor 的强制合并，让按需引入真正生效
         }
       }
     }
