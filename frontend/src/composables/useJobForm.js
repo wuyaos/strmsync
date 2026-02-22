@@ -252,7 +252,7 @@ export const useJobForm = ({ isActive, onSaved } = {}) => {
       remote_root: formData.remote_root,
       target_path: formData.local_dir,
       strm_path: resolveStrmPath(),
-      options: JSON.stringify(buildOptionsPayload()),
+      options: buildOptionsPayload(),
       enabled: formData.enabled,
       cron: formData.schedule_enabled ? formData.cron : ""
     }

@@ -305,6 +305,7 @@ defineProps({
       }
     }
 
+
     .card-actions {
       min-height: 36px;
       margin-top: 6px;

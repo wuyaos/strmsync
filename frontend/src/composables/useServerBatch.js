@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, unref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { confirmDialog } from '@/composables/useConfirmDialog'
 
@@ -28,25 +28,29 @@ export function useServerBatch() {
 
   // 切换单个选择
   const toggleSelect = (server) => {
-    if (selectedIds.value.has(server.id)) {
-      selectedIds.value.delete(server.id)
+    const next = new Set(selectedIds.value)
+    if (next.has(server.id)) {
+      next.delete(server.id)
     } else {
-      selectedIds.value.add(server.id)
+      next.add(server.id)
     }
+    selectedIds.value = next
   }
 
   // 全选/取消全选
   const toggleSelectAll = (list, value) => {
+    const next = new Set(selectedIds.value)
     if (value) {
-      list.forEach(server => selectedIds.value.add(server.id))
+      list.forEach(server => next.add(server.id))
     } else {
-      selectedIds.value.clear()
+      next.clear()
     }
+    selectedIds.value = next
   }
 
   // 清空选择
   const clearSelection = () => {
-    selectedIds.value.clear()
+    selectedIds.value = new Set()
     batchMode.value = false
   }
 
@@ -68,8 +72,22 @@ export function useServerBatch() {
     return true
   }
 
+  const normalizeOptions = (raw) => {
+    if (!raw) return {}
+    if (typeof raw === 'object') return raw
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw)
+        return parsed && typeof parsed === 'object' ? parsed : {}
+      } catch (error) {
+        return {}
+      }
+    }
+    return {}
+  }
+
   const buildTogglePayload = (server, enabled) => {
-    const options = server.options ?? '{}'
+    const options = normalizeOptions(server.options)
     return {
       name: server.name ?? '',
       type: server.type ?? '',
@@ -98,7 +116,12 @@ export function useServerBatch() {
     if (!validateBatchOperation()) return
 
     try {
-      const selectedServers = serverList.filter(s => selectedIds.value.has(s.id))
+      const list = unref(serverList) || []
+      if (!Array.isArray(list)) {
+        console.error(errorLabel, 'serverList is not an array')
+        return
+      }
+      const selectedServers = list.filter(s => selectedIds.value.has(s.id))
       const confirmed = await confirmDialog({
         ...confirmOptions,
         items: selectedServers.map(s => s.name || `ID:${s.id}`)

@@ -14,7 +14,8 @@ import { confirmDialog } from "@/composables/useConfirmDialog"
 dayjs.extend(relativeTime)
 dayjs.locale("zh-cn")
 
-export const useServersPage = () => {
+export const useServersPage = (options = {}) => {
+  const enableConnectivity = options?.enableConnectivity === true
   const {
     selectedIds,
     batchMode,
@@ -47,7 +48,8 @@ export const useServersPage = () => {
   const { getConnectionStatus, refreshConnectionStatus, setConnectionStatus } = useServerConnectivity({
     serverList,
     intervalMs: 10000,
-    maxConcurrentTests: 3
+    maxConcurrentTests: 3,
+    autoStart: enableConnectivity
   })
 
   const dialogVisible = ref(false)
@@ -85,7 +87,9 @@ export const useServersPage = () => {
       const { list, total } = normalizeListResponse(response)
       serverList.value = list
       pagination.total = total
-      await refreshConnectionStatus()
+      if (enableConnectivity) {
+        await refreshConnectionStatus()
+      }
     } catch (error) {
       console.error("加载服务器列表失败:", error)
     } finally {
@@ -133,8 +137,22 @@ export const useServersPage = () => {
     dialogVisible.value = true
   }
 
+  const normalizeOptions = (raw) => {
+    if (!raw) return {}
+    if (typeof raw === "object") return raw
+    if (typeof raw === "string") {
+      try {
+        const parsed = JSON.parse(raw)
+        return parsed && typeof parsed === "object" ? parsed : {}
+      } catch (error) {
+        return {}
+      }
+    }
+    return {}
+  }
+
   const buildTogglePayload = (server, enabled) => {
-    const options = server.options ?? "{}"
+    const options = normalizeOptions(server.options)
     return {
       name: server.name ?? "",
       type: server.type ?? "",
@@ -156,7 +174,9 @@ export const useServersPage = () => {
     try {
       const payload = buildTogglePayload(server, enabled)
       await updateServer(server.id, payload)
-      await refreshConnectionStatus()
+      if (enableConnectivity) {
+        await refreshConnectionStatus()
+      }
     } catch (error) {
       server.enabled = prevEnabled
       ElMessage.error("更新服务器状态失败")
@@ -211,8 +231,7 @@ export const useServersPage = () => {
     if (selectedIds.value.size === 1 && selectedIds.value.has(server.id)) {
       return
     }
-    selectedIds.value.clear()
-    selectedIds.value.add(server.id)
+    selectedIds.value = new Set([server.id])
   }
 
   const handleCardClick = (server) => {

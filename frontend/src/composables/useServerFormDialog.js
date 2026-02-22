@@ -20,7 +20,7 @@ export const useServerFormDialog = (props, emit) => {
     host: '',
     port: 80,
     api_key: '',
-    options: '{}',
+    options: {},
     enabled: true,
     download_rate_per_sec: 0,
     api_rate: 0,
@@ -336,7 +336,6 @@ export const useServerFormDialog = (props, emit) => {
   const getVisibleFields = (fields) => (fields || []).filter((field) => isFieldVisible(field))
   const isTextField = (field) => field.type === 'text'
   const isPathField = (field) => field?.type === 'path'
-
   const buildPayload = () => {
     const payload = {
       name: formData.name,
@@ -376,7 +375,7 @@ export const useServerFormDialog = (props, emit) => {
       options[field.name] = value
     }
 
-    payload.options = JSON.stringify(options)
+    payload.options = options
     return payload
   }
 
@@ -386,7 +385,7 @@ export const useServerFormDialog = (props, emit) => {
     host: formData.host,
     port: formData.port,
     api_key: formData.api_key,
-    options: formData.options,
+    options: normalizeOptions(formData.options),
     enabled: formData.enabled,
     download_rate_per_sec: formData.download_rate_per_sec,
     api_rate: formData.api_rate,
@@ -464,10 +463,7 @@ export const useServerFormDialog = (props, emit) => {
     formData.host = row.host
     formData.port = row.port
     formData.api_key = row.api_key || ''
-    formData.options =
-      typeof row.options === 'object'
-        ? JSON.stringify(row.options, null, 2)
-        : row.options || '{}'
+    formData.options = normalizeOptions(row.options)
     formData.enabled = row.enabled !== false
     formData.download_rate_per_sec = row.download_rate_per_sec ?? 0
     formData.api_rate = row.api_rate ?? 0

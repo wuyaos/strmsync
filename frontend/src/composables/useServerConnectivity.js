@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted, reactive, unref, watch } from 'vue'
+import { onActivated, onDeactivated, onMounted, onUnmounted, reactive, unref, watch } from 'vue'
 import { testServerSilent } from '@/api/servers'
 
 const STATUS = { DISABLED: 'disabled', SUCCESS: 'success', UNKNOWN: 'unknown', ERROR: 'error' }
@@ -9,6 +9,7 @@ export const useServerConnectivity = (options) => {
   const intervalMs = Math.max(options?.intervalMs ?? 10000, 2000)
   const maxConcurrentTests = options?.maxConcurrentTests ?? 3
   const requestTimeoutMs = options?.requestTimeoutMs ?? 8000
+  const autoStart = options?.autoStart !== false
 
   const connectionStatusMap = reactive({})
   const lastTestAtMap = {}
@@ -18,6 +19,7 @@ export const useServerConnectivity = (options) => {
   let isUnmounted = false
   let isTesting = false
   let listChangeTimer = null
+  let isPaused = !autoStart
 
   const inFlightControllers = new Set()
 
@@ -75,7 +77,7 @@ export const useServerConnectivity = (options) => {
   }
 
   const refreshConnectionStatus = async (force = false) => {
-    if (isUnmounted || isTesting) return
+    if (isUnmounted || isPaused || isTesting) return
     isTesting = true
 
     try {
@@ -115,7 +117,7 @@ export const useServerConnectivity = (options) => {
   }
 
   const scheduleNext = () => {
-    if (isUnmounted) return
+    if (isUnmounted || isPaused) return
     clearTimeout(pollingTimer)
     pollingTimer = setTimeout(async () => {
       await refreshConnectionStatus()
@@ -133,6 +135,7 @@ export const useServerConnectivity = (options) => {
       (newSig, oldSig) => {
         if (newSig !== oldSig) {
           syncActiveKeys(unref(serverListRef) || [])
+          if (isPaused) return
           clearTimeout(listChangeTimer)
           listChangeTimer = setTimeout(() => refreshConnectionStatus(true), 300)
         }
@@ -140,21 +143,40 @@ export const useServerConnectivity = (options) => {
     )
   }
 
-  onMounted(() => {
-    if (serverListRef) {
-      syncActiveKeys(unref(serverListRef) || [])
-      refreshConnectionStatus().finally(() => scheduleNext())
-    }
-  })
+  const start = () => {
+    if (isUnmounted) return
+    isPaused = false
+    if (!serverListRef) return
+    syncActiveKeys(unref(serverListRef) || [])
+    refreshConnectionStatus().finally(() => scheduleNext())
+  }
 
-  const stop = () => {
-    isUnmounted = true
+  const pause = () => {
+    isPaused = true
     clearTimeout(pollingTimer)
     clearTimeout(listChangeTimer)
     for (const controller of inFlightControllers) {
       controller.abort('Unmounted')
     }
     inFlightControllers.clear()
+    isTesting = false
+  }
+
+  onMounted(() => {
+    if (autoStart) start()
+  })
+
+  onActivated(() => {
+    if (autoStart) start()
+  })
+
+  onDeactivated(() => {
+    pause()
+  })
+
+  const stop = () => {
+    isUnmounted = true
+    pause()
   }
 
   onUnmounted(stop)

@@ -21,10 +21,23 @@ export const getLocalIconUrl = (name) => {
   return localSvgModules[svgKey] || localPngModules[pngKey] || ''
 }
 
+const normalizeIconUrl = (value) => {
+  if (typeof value !== 'string') return ''
+  const trimmed = value.trim()
+  return trimmed ? trimmed : ''
+}
+
 export const getServerIconUrl = (server) => {
   const typeName = server?.type ? String(server.type).toLowerCase() : ''
   const localIcon = getLocalIconUrl(typeName)
-  return localIcon || server?.icon || server?.icon_url || server?.ico || server?.favicon || ''
+  if (localIcon) return localIcon
+  return (
+    normalizeIconUrl(server?.icon) ||
+    normalizeIconUrl(server?.icon_url) ||
+    normalizeIconUrl(server?.ico) ||
+    normalizeIconUrl(server?.favicon) ||
+    ''
+  )
 }
 
 export { SERVER_ICON_MAP, localSvgModules, localPngModules }

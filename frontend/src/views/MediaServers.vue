@@ -91,7 +91,7 @@ const {
   getConnectionStatus,
   handleCardClick,
   handleToggleEnabled
-} = useServersPage()
+} = useServersPage({ enableConnectivity: true })
 
 activeTab.value = 'media'
 

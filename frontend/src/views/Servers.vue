@@ -133,7 +133,7 @@ const {
   getConnectionStatus,
   handleCardClick,
   handleToggleEnabled
-} = useServersPage()
+} = useServersPage({ enableConnectivity: false })
 
 const updateFilters = (next) => {
   Object.assign(filters, next || {})
