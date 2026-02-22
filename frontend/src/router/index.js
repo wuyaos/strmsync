@@ -69,28 +69,6 @@ const router = createRouter({
   routes
 })
 
-const prefetchRouteChunks = () => {
-  const children = routes[0]?.children || []
-  children.forEach((route) => {
-    if (typeof route.component === 'function') {
-      try {
-        route.component()
-      } catch (error) {
-        // ignore prefetch errors
-      }
-    }
-  })
-}
-
-const schedulePrefetch = () => {
-  if (typeof window === 'undefined') return
-  if (typeof window.requestIdleCallback === 'function') {
-    window.requestIdleCallback(prefetchRouteChunks, { timeout: 2000 })
-    return
-  }
-  window.setTimeout(prefetchRouteChunks, 800)
-}
-
 // 路由守卫
 router.beforeEach((to, from, next) => {
   // 设置页面标题
@@ -108,10 +86,6 @@ router.afterEach(() => {
   try {
     delete window.__route_chunk_reload_once__
   } catch (error) {}
-})
-
-router.isReady().then(() => {
-  schedulePrefetch()
 })
 
 router.onError((error) => {
