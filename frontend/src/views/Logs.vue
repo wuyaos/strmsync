@@ -46,14 +46,19 @@
 
           <div v-else-if="!loading" class="log-list">
             <div
-              v-for="log in filteredLogs"
+              v-for="log in viewLogs"
               :key="log.id"
               :class="['log-item', `log-${(log.level || 'info').toLowerCase()}`]"
             >
               <span class="log-time">{{ formatTime(log.created_at) }}</span>
               <span class="log-level-badge">{{ (log.level || 'info').toUpperCase() }}</span>
               <span v-if="log.module" class="log-module">{{ log.module }}</span>
-              <span class="log-message">{{ log.message || '-' }}</span>
+              <span class="log-action">
+                <span v-if="log.actionLogo" class="log-logo">S</span>
+                {{ log.action || '-' }}
+              </span>
+              <span class="log-result">{{ log.result || '-' }}</span>
+              <span class="log-details">{{ log.details || '-' }}</span>
             </div>
           </div>
 
@@ -111,6 +116,99 @@ const getLogTime = (log) => {
 
 const filteredLogs = computed(() => {
   return logs.value.slice().sort((a, b) => getLogTime(b) - getLogTime(a))
+})
+
+const splitLogMessage = (message) => {
+  const text = String(message || '').trim()
+  if (!text) return { action: '-', details: '' }
+  const match = text.match(/\s+[a-zA-Z0-9_]+=/)
+  if (!match || typeof match.index !== 'number') {
+    return { action: text, details: '' }
+  }
+  const idx = match.index
+  return {
+    action: text.slice(0, idx).trim(),
+    details: text.slice(idx).trim()
+  }
+}
+
+const moduleMap = {
+  system: '系统',
+  api: 'API',
+  worker: '任务执行器',
+  queue: '任务队列',
+  scheduler: '调度器',
+  engine: '同步引擎',
+  filesystem: '文件系统',
+  mediaserver: '媒体服务'
+}
+
+const mapModuleLabel = (value) => {
+  const key = String(value || '').toLowerCase()
+  return moduleMap[key] || value || ''
+}
+
+const parseDetailMap = (details) => {
+  const map = {}
+  const text = String(details || '').trim()
+  if (!text) return map
+  for (const part of text.split(' ')) {
+    const idx = part.indexOf('=')
+    if (idx <= 0) continue
+    const key = part.slice(0, idx)
+    const val = part.slice(idx + 1)
+    if (!key) continue
+    map[key] = val
+  }
+  return map
+}
+
+const resolveOperation = (log, fallbackAction, detailMap) => {
+  if (log?.operation) return log.operation
+  const module = String(log?.module || '').toLowerCase()
+  if (module === 'api' && /连接/.test(fallbackAction)) {
+    return '测试连通性'
+  }
+  if (module === 'worker' || module === 'queue' || module === 'engine') {
+    const jobName = detailMap.job_name || detailMap.job || detailMap.job_id
+    if (/同步|任务/.test(fallbackAction)) {
+      return jobName ? `STRM同步任务(${jobName})` : 'STRM同步任务'
+    }
+  }
+  return fallbackAction
+}
+
+const resolveDetails = (log, fallbackDetails) => {
+  const detailText = String(log?.details || '').trim()
+  let details = detailText || fallbackDetails || ''
+  const source = String(log?.source || '').trim()
+  if (source && !details.includes('source=')) {
+    details = details ? `source=${source} ${details}` : `source=${source}`
+  }
+  return details
+}
+
+const viewLogs = computed(() => {
+  return filteredLogs.value.map((log) => {
+    const { action: fallbackAction, details: fallbackDetails } = splitLogMessage(log?.message)
+    const details = resolveDetails(log, fallbackDetails)
+    const detailMap = parseDetailMap(details)
+    let action = resolveOperation(log, fallbackAction, detailMap)
+    let actionLogo = false
+    if (action && action.includes('[LOGO]')) {
+      actionLogo = true
+      action = action.replace('[LOGO]', '').trim()
+    }
+    const result = log?.result || fallbackAction
+    return {
+      ...log,
+      module: mapModuleLabel(log?.module),
+      action,
+      actionLogo,
+      result,
+      details
+    }
+  })
 })
 
 let loadTimeout = null
@@ -333,12 +431,12 @@ watch([levelFilter, taskFilter, searchText, pageSize], () => {
 
         .log-time {
           color: var(--el-text-color-secondary);
-          min-width: 190px;
+          min-width: 150px;
           font-variant-numeric: tabular-nums;
         }
 
         .log-level-badge {
-          min-width: 56px;
+          min-width: 44px;
           padding: 2px 8px;
           border-radius: 0;
           font-size: 12px;
@@ -349,11 +447,38 @@ watch([levelFilter, taskFilter, searchText, pageSize], () => {
 
         .log-module {
           color: var(--el-text-color-secondary);
-          min-width: 120px;
+          min-width: 80px;
         }
 
-        .log-message {
+        .log-action {
+          min-width: 150px;
+          color: var(--el-text-color-regular);
+        }
+
+        .log-result {
+          min-width: 200px;
+          color: var(--el-text-color-regular);
+        }
+
+        .log-details {
           flex: 1;
+          color: var(--el-text-color-secondary);
+        }
+
+        .log-logo {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 16px;
+          height: 16px;
+          margin-right: 6px;
+          border-radius: 999px;
+          background: var(--el-color-primary-light-9);
+          color: var(--el-color-primary);
+          font-size: 11px;
+          font-weight: 700;
+          border: 1px solid var(--el-color-primary-light-5);
+          vertical-align: middle;
         }
 
         &.log-debug {
