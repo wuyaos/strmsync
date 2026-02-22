@@ -1,6 +1,15 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
+// 错误提示防抖，避免并发请求失败时产生 Toast 风暴
+const shownErrors = new Set()
+const showErrorMessage = (message) => {
+  if (!message || shownErrors.has(message)) return
+  shownErrors.add(message)
+  ElMessage.error({ message, grouping: true })
+  setTimeout(() => shownErrors.delete(message), 3000)
+}
+
 // 格式化字段验证错误信息
 const formatValidationErrors = (data) => {
   if (!data || typeof data !== 'object') return ''
@@ -78,7 +87,7 @@ request.interceptors.response.use(
       message = '网络连接失败'
     }
 
-    ElMessage.error(message)
+    showErrorMessage(message)
     return Promise.reject(error)
   }
 )

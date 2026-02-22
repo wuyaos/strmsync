@@ -1,175 +1,169 @@
-import { onMounted, onUnmounted, reactive, ref, unref, watch } from 'vue'
+import { onMounted, onUnmounted, reactive, unref, watch } from 'vue'
 import { testServerSilent } from '@/api/servers'
+
+const STATUS = { DISABLED: 'disabled', SUCCESS: 'success', UNKNOWN: 'unknown', ERROR: 'error' }
+const localServerType = 'local'
 
 export const useServerConnectivity = (options) => {
   const serverListRef = options?.serverList
-  const intervalMs = options?.intervalMs ?? 10000
+  const intervalMs = Math.max(options?.intervalMs ?? 10000, 2000)
   const maxConcurrentTests = options?.maxConcurrentTests ?? 3
+  const requestTimeoutMs = options?.requestTimeoutMs ?? 8000
 
   const connectionStatusMap = reactive({})
-  const pollingTimer = ref(null)
-  const pollingInFlight = ref(false)
   const lastTestAtMap = {}
+  const activeServerKeys = new Set()
+
+  let pollingTimer = null
   let isUnmounted = false
-  const pendingRefresh = ref(false)
-  const localServerType = 'local'
-  const pollToleranceMs = 500
+  let isTesting = false
+  let listChangeTimer = null
+
+  const inFlightControllers = new Set()
 
   const getSafeId = (id) => String(id ?? '')
 
-  const getConnectionStatus = (server) => {
-    if (!server?.enabled) return 'status-disabled'
-    if (server?.type === localServerType) return 'status-success'
-    const cached = connectionStatusMap[server.id]
-    if (cached) return 'status-' + cached
-    return 'status-unknown'
-  }
-
-  const setConnectionStatus = (serverId, status) => {
-    const key = getSafeId(serverId)
-    if (!key) return
-    connectionStatusMap[key] = status
-  }
-
-  const refreshConnectionStatus = async (force = false) => {
-    if (pollingInFlight.value) {
-      pendingRefresh.value = true
-      return
-    }
-    const list = unref(serverListRef) || []
-    const targets = list.filter(server => server.enabled && server.type !== localServerType)
-    if (targets.length === 0) return
-
-    pollingInFlight.value = true
-    try {
-      if (isUnmounted) return
-      const now = Date.now()
-      const queue = []
-      for (const server of targets) {
-        const key = getSafeId(server.id)
-        if (!key) continue
-        const lastAt = lastTestAtMap[key] || 0
-        if (!force && now - lastAt < intervalMs - pollToleranceMs) continue
-        queue.push({ key, server })
-      }
-
-      const workerCount = Math.min(maxConcurrentTests, queue.length)
-      const workers = Array.from({ length: workerCount }, async () => {
-        try {
-          while (queue.length > 0) {
-            if (isUnmounted) break
-            const item = queue.pop()
-            if (!item) return
-            try {
-              const result = await testServerSilent(item.server.id, item.server.type)
-              const ok = result === true
-              const status = ok ? 'success' : 'error'
-              if (!isUnmounted) {
-                connectionStatusMap[item.key] = status
-              }
-            } catch (error) {
-              if (!isUnmounted) {
-                connectionStatusMap[item.key] = 'error'
-                if (import.meta?.env?.DEV) {
-                  console.debug('服务器连通性检测失败:', error)
-                }
-              }
-            } finally {
-              if (!isUnmounted) {
-                lastTestAtMap[item.key] = Date.now()
-              }
-            }
-            if (isUnmounted) break
-          }
-        } catch (error) {
-          console.error('服务器连通性检测任务异常:', error)
-        }
-      })
-
-      await Promise.all(workers)
-    } catch (error) {
-      console.error('服务器连通性检测失败:', error)
-    } finally {
-      pollingInFlight.value = false
-      if (pendingRefresh.value && !isUnmounted) {
-        pendingRefresh.value = false
-        refreshConnectionStatus(true).catch((error) => {
-          console.error('服务器连通性检测失败:', error)
-        })
+  // 同步当前活跃的服务器 ID，并清理掉已删除或已禁用的状态缓存
+  const syncActiveKeys = (list) => {
+    activeServerKeys.clear()
+    const validKeys = new Set()
+    for (const server of list) {
+      const key = getSafeId(server.id)
+      if (!key) continue
+      validKeys.add(key)
+      if (server.enabled && server.type !== localServerType) {
+        activeServerKeys.add(key)
+      } else {
+        delete connectionStatusMap[key]
       }
     }
-  }
-
-  const handleListChange = (newList) => {
-    const validIds = new Set(newList.map(s => String(s.id)))
-    for (const id in connectionStatusMap) {
-      if (!validIds.has(String(id))) {
-        delete connectionStatusMap[id]
-        delete lastTestAtMap[id]
-      }
-    }
-    for (const id in lastTestAtMap) {
-      if (!validIds.has(String(id))) {
-        delete lastTestAtMap[id]
-      }
-    }
-    for (const server of newList) {
-      if (!server.enabled || server.type === localServerType) {
-        const key = getSafeId(server.id)
-        if (!key) continue
+    // 清理已经不存在于列表中的服务器状态
+    for (const key of Object.keys(connectionStatusMap)) {
+      if (!validKeys.has(key)) {
         delete connectionStatusMap[key]
         delete lastTestAtMap[key]
       }
     }
   }
 
+  const getConnectionStatus = (server) => {
+    if (!server?.enabled) return `status-${STATUS.DISABLED}`
+    if (server?.type === localServerType) return `status-${STATUS.SUCCESS}`
+    const key = getSafeId(server?.id)
+    return `status-${connectionStatusMap[key] || STATUS.UNKNOWN}`
+  }
+
+  const setConnectionStatus = (serverId, status) => {
+    const key = getSafeId(serverId)
+    if (key) connectionStatusMap[key] = status
+  }
+
+  const runTest = async (server) => {
+    const controller = new AbortController()
+    inFlightControllers.add(controller)
+    const timeoutId = setTimeout(() => controller.abort('TimeoutError'), requestTimeoutMs)
+
+    try {
+      const result = await testServerSilent(server.id, server.type, { signal: controller.signal })
+      return result === true || result?.success === true
+    } catch (error) {
+      return false
+    } finally {
+      clearTimeout(timeoutId)
+      inFlightControllers.delete(controller)
+    }
+  }
+
+  const refreshConnectionStatus = async (force = false) => {
+    if (isUnmounted || isTesting) return
+    isTesting = true
+
+    try {
+      const list = unref(serverListRef) || []
+      const now = Date.now()
+      const targets = list.filter(s => {
+        if (!s.enabled || s.type === localServerType) return false
+        const key = getSafeId(s.id)
+        if (!key) return false
+        // 除非强制刷新，否则在轮询间隔内的不再重复测试
+        if (!force && (now - (lastTestAtMap[key] || 0) < intervalMs - 500)) return false
+        return true
+      })
+
+      // 并发控制池 (Concurrency Pool)
+      const executing = new Set()
+      for (const server of targets) {
+        if (isUnmounted) break
+        const key = getSafeId(server.id)
+        const p = runTest(server).then(success => {
+          if (isUnmounted || !activeServerKeys.has(key)) return
+          connectionStatusMap[key] = success ? STATUS.SUCCESS : STATUS.ERROR
+          lastTestAtMap[key] = Date.now()
+        }).finally(() => executing.delete(p))
+
+        executing.add(p)
+        // 达到最大并发限制时，等待任意一个请求完成
+        if (executing.size >= maxConcurrentTests) {
+          await Promise.race(executing)
+        }
+      }
+      // 等待剩余请求全部完成
+      await Promise.all(executing)
+    } finally {
+      isTesting = false
+    }
+  }
+
+  const scheduleNext = () => {
+    if (isUnmounted) return
+    clearTimeout(pollingTimer)
+    pollingTimer = setTimeout(async () => {
+      await refreshConnectionStatus()
+      scheduleNext()
+    }, intervalMs)
+  }
+
   if (serverListRef) {
+    // 使用签名监听以避免对象引用变化带来的无限循环刷新，仅关注关键字段
     watch(
       () => {
         const list = unref(serverListRef) || []
-        return list.map(item => `${item?.id}|${item?.enabled}|${item?.type}`).join(',')
+        return list.map(s => `${s.id}|${s.type}|${s.enabled}|${s.host}|${s.port}`).join(',')
       },
-      () => {
-        const list = unref(serverListRef) || []
-        if (Array.isArray(list)) {
-          handleListChange(list)
-          refreshConnectionStatus(true)
+      (newSig, oldSig) => {
+        if (newSig !== oldSig) {
+          syncActiveKeys(unref(serverListRef) || [])
+          clearTimeout(listChangeTimer)
+          listChangeTimer = setTimeout(() => refreshConnectionStatus(true), 300)
         }
       }
     )
   }
 
-  const scheduleNext = () => {
-    if (isUnmounted) return
-    if (pollingTimer.value) {
-      clearTimeout(pollingTimer.value)
+  onMounted(() => {
+    if (serverListRef) {
+      syncActiveKeys(unref(serverListRef) || [])
+      refreshConnectionStatus().finally(() => scheduleNext())
     }
-    pollingTimer.value = setTimeout(async () => {
-      try {
-        await refreshConnectionStatus()
-      } finally {
-        scheduleNext()
-      }
-    }, intervalMs)
+  })
+
+  const stop = () => {
+    isUnmounted = true
+    clearTimeout(pollingTimer)
+    clearTimeout(listChangeTimer)
+    for (const controller of inFlightControllers) {
+      controller.abort('Unmounted')
+    }
+    inFlightControllers.clear()
   }
 
-  onMounted(() => {
-    refreshConnectionStatus()
-    scheduleNext()
-  })
-
-  onUnmounted(() => {
-    isUnmounted = true
-    if (pollingTimer.value) {
-      clearTimeout(pollingTimer.value)
-      pollingTimer.value = null
-    }
-  })
+  onUnmounted(stop)
 
   return {
     connectionStatusMap,
     getConnectionStatus,
     setConnectionStatus,
-    refreshConnectionStatus
+    refreshConnectionStatus,
+    stop
   }
 }

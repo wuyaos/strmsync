@@ -3,6 +3,7 @@
  * 统一管理数据服务器（DataServer）与媒体服务器（MediaServer）
  */
 import request from './request'
+import { DATA_SERVER_TYPES, MEDIA_SERVER_TYPES } from '@/constants/serverTypes'
 
 /**
  * 序列化 options 字段
@@ -14,7 +15,7 @@ function serializeOptions(data) {
 
   return {
     ...data,
-    options: typeof data.options === 'object'
+    options: (typeof data.options === 'object' && data.options !== null)
       ? JSON.stringify(data.options)
       : data.options
   }
@@ -32,19 +33,11 @@ function serializeOptions(data) {
  * @returns {Promise<{data: Array, meta: Object}>} 服务器列表及分页信息
  */
 export function getServerList(params) {
-  const { category, serverType, type, ...restParams } = params || {}
-  const endpointCategory = category || (type === 'data' || type === 'media' ? type : 'data')
-  const url = `/servers/${endpointCategory}`
-  if (serverType) {
-    restParams.type = serverType
-  } else if (category && type && type !== 'data' && type !== 'media') {
-    restParams.type = type
-  }
-
+  const { endpointCategory, queryParams } = resolveServerListParams(params)
   return request({
-    url,
+    url: `/servers/${endpointCategory}`,
     method: 'get',
-    params: restParams
+    params: queryParams
   })
 }
 
@@ -98,18 +91,28 @@ function inferCategory(type) {
     console.warn('[inferCategory] type is empty, defaulting to data')
     return 'data'
   }
-  const dataTypes = ['local', 'clouddrive2', 'openlist']
-  const mediaTypes = ['emby', 'jellyfin', 'plex']
-
-  if (dataTypes.includes(type)) {
+  if (DATA_SERVER_TYPES.includes(type)) {
     return 'data'
   }
-  if (mediaTypes.includes(type)) {
+  if (MEDIA_SERVER_TYPES.includes(type)) {
     return 'media'
   }
 
-  console.warn(`[inferCategory] unknown type: ${type}, defaulting to media`)
-  return 'media'
+  console.error(`[inferCategory] unknown type: ${type}, defaulting to data`)
+  return 'data'
+}
+
+function resolveServerListParams(params) {
+  const { category, serverType, type, ...restParams } = params || {}
+  const endpointCategory = category || (type && type !== 'data' && type !== 'media'
+    ? inferCategory(type)
+    : (type || 'data'))
+  if (serverType) {
+    restParams.type = serverType
+  } else if (type && type !== 'data' && type !== 'media') {
+    restParams.type = type
+  }
+  return { endpointCategory, queryParams: restParams }
 }
 
 /**
@@ -179,12 +182,13 @@ export function testServer(id, type) {
 }
 
 // 静默测试服务器连接（不弹错误提示）
-export function testServerSilent(id, type) {
+export function testServerSilent(id, type, options = {}) {
   const category = inferCategory(type)
   return request({
     url: `/servers/${category}/${id}/test`,
     method: 'post',
-    silent: true
+    silent: true,
+    signal: options.signal
   })
 }
 
