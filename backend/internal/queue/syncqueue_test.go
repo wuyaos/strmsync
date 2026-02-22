@@ -1,9 +1,9 @@
 package syncqueue
 
 import (
-	"github.com/strmsync/strmsync/internal/domain/model"
 	"context"
 	"errors"
+	"github.com/strmsync/strmsync/internal/domain/model"
 	"net"
 	"syscall"
 	"testing"
@@ -80,6 +80,16 @@ func TestTaskStatusTransitions(t *testing.T) {
 // 错误分类测试
 // =============================================================
 
+type retryableErr struct {
+	retry bool
+}
+
+func (e retryableErr) Error() string { return "retryable error" }
+
+func (e retryableErr) IsRetryable() bool {
+	return e.retry
+}
+
 func TestClassifyError(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -120,6 +130,16 @@ func TestClassifyError(t *testing.T) {
 			name:     "syscall.ECONNRESET",
 			err:      syscall.ECONNRESET,
 			expected: FailureRetryable,
+		},
+		{
+			name:     "explicit retryable error",
+			err:      retryableErr{retry: true},
+			expected: FailureRetryable,
+		},
+		{
+			name:     "explicit non-retryable error",
+			err:      retryableErr{retry: false},
+			expected: FailurePermanent,
 		},
 		{
 			name:     "unknown error",

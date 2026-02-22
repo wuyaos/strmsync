@@ -41,6 +41,15 @@ func classifyError(err error) FailureKind {
 		return FailureCancelled
 	}
 
+	// 如果驱动层显式标注可重试性，优先使用
+	var retryable RetryableError
+	if errors.As(err, &retryable) {
+		if retryable.IsRetryable() {
+			return FailureRetryable
+		}
+		return FailurePermanent
+	}
+
 	// 网络错误或临时IO错误
 	if isNetworkError(err) || isTransientIO(err) {
 		return FailureRetryable
@@ -48,6 +57,13 @@ func classifyError(err error) FailureKind {
 
 	// 其他错误视为永久性失败
 	return FailurePermanent
+}
+
+// RetryableError 表示可显式标注重试语义的错误
+//
+// 驱动层应通过实现该接口来声明错误是否可重试。
+type RetryableError interface {
+	IsRetryable() bool
 }
 
 // isTransientIO 判断是否是临时IO错误
@@ -124,11 +140,11 @@ func isNetworkError(err error) bool {
 	}
 
 	// 检查常见的网络相关系统调用错误
-	if errors.Is(err, syscall.ECONNRESET) ||      // 连接被重置
-		errors.Is(err, syscall.ECONNREFUSED) ||   // 连接被拒绝
-		errors.Is(err, syscall.ETIMEDOUT) ||      // 连接超时
-		errors.Is(err, syscall.EHOSTUNREACH) ||   // 主机不可达
-		errors.Is(err, syscall.ENETUNREACH) {     // 网络不可达
+	if errors.Is(err, syscall.ECONNRESET) || // 连接被重置
+		errors.Is(err, syscall.ECONNREFUSED) || // 连接被拒绝
+		errors.Is(err, syscall.ETIMEDOUT) || // 连接超时
+		errors.Is(err, syscall.EHOSTUNREACH) || // 主机不可达
+		errors.Is(err, syscall.ENETUNREACH) { // 网络不可达
 		return true
 	}
 
