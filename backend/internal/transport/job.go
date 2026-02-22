@@ -109,17 +109,17 @@ func NewJobHandler(db *gorm.DB, logger *zap.Logger, scheduler JobScheduler, queu
 
 // createJobRequest 创建任务请求体（复用创建和更新）
 type jobRequest struct {
-	Name          string `json:"name"`
-	Enabled       *bool  `json:"enabled"`
-	Cron          string `json:"cron"`
-	WatchMode     string `json:"watch_mode"`
-	SourcePath    string `json:"source_path"`
-	RemoteRoot    string `json:"remote_root"`
-	TargetPath    string `json:"target_path"`
-	STRMPath      string `json:"strm_path"`
-	DataServerID  *uint  `json:"data_server_id"`
-	MediaServerID *uint  `json:"media_server_id"`
-	Options       string `json:"options"`
+	Name          string           `json:"name"`
+	Enabled       *bool            `json:"enabled"`
+	Cron          string           `json:"cron"`
+	WatchMode     string           `json:"watch_mode"`
+	SourcePath    string           `json:"source_path"`
+	RemoteRoot    string           `json:"remote_root"`
+	TargetPath    string           `json:"target_path"`
+	STRMPath      string           `json:"strm_path"`
+	DataServerID  *uint            `json:"data_server_id"`
+	MediaServerID *uint            `json:"media_server_id"`
+	Options       model.JobOptions `json:"options"`
 }
 
 func buildJobLogPayload(req jobRequest) map[string]interface{} {
@@ -136,34 +136,12 @@ func buildJobLogPayload(req jobRequest) map[string]interface{} {
 		"media_server_id": req.MediaServerID,
 	}
 
-	rawOptions := strings.TrimSpace(req.Options)
-	if rawOptions == "" {
-		return payload
-	}
-
-	options, err := parseOptionsMap(rawOptions)
-	if err != nil {
-		payload["options_error"] = err.Error()
-		payload["options_length"] = len(rawOptions)
-		return payload
-	}
-	payload["options"] = sanitizeMapForLog(options)
+	payload["options"] = sanitizeOptionsForLog(req.Options)
 	return payload
 }
 
-func buildOptionsLog(raw string) interface{} {
-	rawOptions := strings.TrimSpace(raw)
-	if rawOptions == "" {
-		return nil
-	}
-	options, err := parseOptionsMap(rawOptions)
-	if err != nil {
-		return map[string]interface{}{
-			"error":      err.Error(),
-			"raw_length": len(rawOptions),
-		}
-	}
-	return sanitizeMapForLog(options)
+func buildOptionsLog(options any) interface{} {
+	return sanitizeOptionsForLog(options)
 }
 
 func validateCronSpec(spec string, errs *[]FieldError) {
@@ -199,7 +177,7 @@ func validateJobRequest(req *jobRequest) []FieldError {
 	validateRequiredString("target_path", req.TargetPath, &fieldErrors)
 	validateRequiredString("strm_path", req.STRMPath, &fieldErrors)
 	validateEnum("watch_mode", req.WatchMode, allowedJobWatchModes, &fieldErrors)
-	validateJSONString("options", req.Options, &fieldErrors)
+	validateJobOptions(req.Options, &fieldErrors)
 	validateCronSpec(req.Cron, &fieldErrors)
 
 	watchMode := JobWatchMode(strings.TrimSpace(req.WatchMode))
@@ -220,6 +198,29 @@ func validateJobRequest(req *jobRequest) []FieldError {
 	}
 
 	return fieldErrors
+}
+
+func validateJobOptions(options model.JobOptions, errs *[]FieldError) {
+	strmMode := strings.TrimSpace(options.STRMMode)
+	if strmMode != "" {
+		validateEnum("options.strm_mode", strmMode, allowedJobSTRMModes, errs)
+	}
+	metadataMode := strings.TrimSpace(options.MetadataMode)
+	if metadataMode != "" {
+		validateEnum("options.metadata_mode", metadataMode, []string{"copy", "download", "none"}, errs)
+	}
+	if options.MaxConcurrency < 0 {
+		*errs = append(*errs, FieldError{Field: "options.max_concurrency", Message: "max_concurrency 不能为负数"})
+	}
+	if options.MinFileSize < 0 {
+		*errs = append(*errs, FieldError{Field: "options.min_file_size", Message: "min_file_size 不能为负数"})
+	}
+	if options.Interval != nil && *options.Interval <= 0 {
+		*errs = append(*errs, FieldError{Field: "options.interval", Message: "interval 必须为正数"})
+	}
+	if options.ModTimeEpsilonSeconds < 0 {
+		*errs = append(*errs, FieldError{Field: "options.mod_time_epsilon_seconds", Message: "mod_time_epsilon_seconds 不能为负数"})
+	}
 }
 
 // validateRelatedServers 校验关联服务器是否存在
@@ -352,7 +353,7 @@ func (h *JobHandler) CreateJob(c *gin.Context) {
 		STRMPath:      strings.TrimSpace(req.STRMPath),
 		DataServerID:  req.DataServerID,
 		MediaServerID: req.MediaServerID,
-		Options:       strings.TrimSpace(req.Options),
+		Options:       req.Options,
 		Status:        string(JobStatusIdle),
 	}
 
@@ -605,7 +606,7 @@ func (h *JobHandler) UpdateJob(c *gin.Context) {
 	job.STRMPath = strings.TrimSpace(req.STRMPath)
 	job.DataServerID = req.DataServerID
 	job.MediaServerID = req.MediaServerID
-	job.Options = strings.TrimSpace(req.Options)
+	job.Options = req.Options
 
 	if err := h.db.Save(&job).Error; err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") ||

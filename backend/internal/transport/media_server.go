@@ -32,13 +32,13 @@ func NewMediaServerHandler(db *gorm.DB, logger *zap.Logger) *MediaServerHandler 
 // POST /api/servers/media
 func (h *MediaServerHandler) CreateMediaServer(c *gin.Context) {
 	var req struct {
-		Name    string `json:"name"`
-		Type    string `json:"type"` // emby/jellyfin/plex
-		Host    string `json:"host"`
-		Port    int    `json:"port"`
-		APIKey  string `json:"api_key"`
-		Enabled *bool  `json:"enabled"`
-		Options string `json:"options"`
+		Name    string                   `json:"name"`
+		Type    string                   `json:"type"` // emby/jellyfin/plex
+		Host    string                   `json:"host"`
+		Port    int                      `json:"port"`
+		APIKey  string                   `json:"api_key"`
+		Enabled *bool                    `json:"enabled"`
+		Options model.MediaServerOptions `json:"options"`
 		// 高级配置（独立列，可覆盖全局默认值，0 表示使用全局）
 		DownloadRatePerSec  *int `json:"download_rate_per_sec,omitempty"`
 		APIRate             *int `json:"api_rate,omitempty"`
@@ -52,7 +52,7 @@ func (h *MediaServerHandler) CreateMediaServer(c *gin.Context) {
 	}
 
 	// 参数验证（使用组合验证器）
-	fieldErrors := validateServerRequest(req.Name, req.Type, req.Host, req.Port, req.Options, []string{"emby", "jellyfin", "plex"})
+	fieldErrors := validateServerRequest(req.Name, req.Type, req.Host, req.Port, []string{"emby", "jellyfin", "plex"})
 	if len(fieldErrors) > 0 {
 		respondValidationError(c, fieldErrors)
 		return
@@ -104,7 +104,7 @@ func (h *MediaServerHandler) CreateMediaServer(c *gin.Context) {
 		Port:                req.Port,
 		APIKey:              strings.TrimSpace(req.APIKey),
 		Enabled:             enabled,
-		Options:             strings.TrimSpace(req.Options),
+		Options:             req.Options,
 		DownloadRatePerSec:  downloadRatePerSec,
 		APIRate:             apiRate,
 		APIRetryMax:         apiRetryMax,
@@ -238,13 +238,13 @@ func (h *MediaServerHandler) UpdateMediaServer(c *gin.Context) {
 	}
 
 	var req struct {
-		Name    string `json:"name"`
-		Type    string `json:"type"` // emby/jellyfin/plex
-		Host    string `json:"host"`
-		Port    int    `json:"port"`
-		APIKey  string `json:"api_key"`
-		Enabled *bool  `json:"enabled"`
-		Options string `json:"options"`
+		Name    string                   `json:"name"`
+		Type    string                   `json:"type"` // emby/jellyfin/plex
+		Host    string                   `json:"host"`
+		Port    int                      `json:"port"`
+		APIKey  string                   `json:"api_key"`
+		Enabled *bool                    `json:"enabled"`
+		Options model.MediaServerOptions `json:"options"`
 		// 高级配置（独立列，可覆盖全局默认值，0 表示使用全局）
 		DownloadRatePerSec  *int `json:"download_rate_per_sec,omitempty"`
 		APIRate             *int `json:"api_rate,omitempty"`
@@ -258,7 +258,7 @@ func (h *MediaServerHandler) UpdateMediaServer(c *gin.Context) {
 	}
 
 	// 参数验证（使用组合验证器）
-	fieldErrors := validateServerRequest(req.Name, req.Type, req.Host, req.Port, req.Options, []string{"emby", "jellyfin", "plex"})
+	fieldErrors := validateServerRequest(req.Name, req.Type, req.Host, req.Port, []string{"emby", "jellyfin", "plex"})
 	if len(fieldErrors) > 0 {
 		respondValidationError(c, fieldErrors)
 		return
@@ -300,7 +300,7 @@ func (h *MediaServerHandler) UpdateMediaServer(c *gin.Context) {
 	server.Host = strings.TrimSpace(req.Host)
 	server.Port = req.Port
 	server.APIKey = strings.TrimSpace(req.APIKey)
-	server.Options = strings.TrimSpace(req.Options)
+	server.Options = req.Options
 	if req.Enabled != nil {
 		server.Enabled = *req.Enabled
 	}
@@ -690,13 +690,13 @@ func testPlexConnection(server model.MediaServer, logger *zap.Logger) Connection
 // POST /api/servers/media/test
 func (h *MediaServerHandler) TestMediaServerTemp(c *gin.Context) {
 	var req struct {
-		Name    string `json:"name"`
-		Type    string `json:"type"` // emby/jellyfin/plex
-		Host    string `json:"host"`
-		Port    int    `json:"port"`
-		APIKey  string `json:"api_key"`
-		Enabled *bool  `json:"enabled"`
-		Options string `json:"options"`
+		Name    string                   `json:"name"`
+		Type    string                   `json:"type"` // emby/jellyfin/plex
+		Host    string                   `json:"host"`
+		Port    int                      `json:"port"`
+		APIKey  string                   `json:"api_key"`
+		Enabled *bool                    `json:"enabled"`
+		Options model.MediaServerOptions `json:"options"`
 		// 高级配置（独立列，可覆盖全局默认值，0 表示使用全局）
 		DownloadRatePerSec  *int `json:"download_rate_per_sec,omitempty"`
 		APIRate             *int `json:"api_rate,omitempty"`
@@ -710,7 +710,7 @@ func (h *MediaServerHandler) TestMediaServerTemp(c *gin.Context) {
 	}
 
 	// 参数验证（使用组合验证器）
-	fieldErrors := validateServerRequest(req.Name, req.Type, req.Host, req.Port, req.Options, []string{"emby", "jellyfin", "plex"})
+	fieldErrors := validateServerRequest(req.Name, req.Type, req.Host, req.Port, []string{"emby", "jellyfin", "plex"})
 	if len(fieldErrors) > 0 {
 		respondValidationError(c, fieldErrors)
 		return
@@ -724,7 +724,7 @@ func (h *MediaServerHandler) TestMediaServerTemp(c *gin.Context) {
 		Port:    req.Port,
 		APIKey:  strings.TrimSpace(req.APIKey),
 		Enabled: true,
-		Options: strings.TrimSpace(req.Options),
+		Options: req.Options,
 	}
 
 	h.logger.Debug(fmt.Sprintf("临时测试媒体服务器连接请求：%s", server.Name),

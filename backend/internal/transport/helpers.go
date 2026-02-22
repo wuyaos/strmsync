@@ -3,7 +3,6 @@ package http
 
 import (
 	"encoding/json"
-	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -11,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/strmsync/strmsync/internal/domain/model"
 )
 
 // ================== 错误响应结构 ==================
@@ -150,79 +150,6 @@ func validatePort(field string, port int, errs *[]FieldError) {
 	}
 }
 
-// validateJSONString 验证JSON字符串格式
-// 空字符串被视为合法（表示没有额外配置）
-func validateJSONString(field, jsonStr string, errs *[]FieldError) {
-	jsonStr = strings.TrimSpace(jsonStr)
-	if jsonStr == "" {
-		return
-	}
-
-	var js interface{}
-	if err := json.Unmarshal([]byte(jsonStr), &js); err != nil {
-		*errs = append(*errs, FieldError{
-			Field:   field,
-			Message: "无效的JSON格式: " + err.Error(),
-		})
-	}
-}
-
-// parseOptionsMap 解析 options JSON 字符串为 map
-func parseOptionsMap(options string) (map[string]interface{}, error) {
-	options = strings.TrimSpace(options)
-	if options == "" {
-		return map[string]interface{}{}, nil
-	}
-
-	var out map[string]interface{}
-	if err := json.Unmarshal([]byte(options), &out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// getOptionString 从 options map 中获取字符串值
-func getOptionString(options map[string]interface{}, key string) string {
-	if options == nil {
-		return ""
-	}
-	val, ok := options[key]
-	if !ok || val == nil {
-		return ""
-	}
-	if s, ok := val.(string); ok {
-		return strings.TrimSpace(s)
-	}
-	return strings.TrimSpace(fmt.Sprintf("%v", val))
-}
-
-// validateOptionRequiredString 验证 options 中的必填字符串字段
-func validateOptionRequiredString(field string, options map[string]interface{}, errs *[]FieldError) {
-	if strings.TrimSpace(getOptionString(options, field)) == "" {
-		*errs = append(*errs, FieldError{
-			Field:   field,
-			Message: "必填字段不能为空",
-		})
-	}
-}
-
-// validateOptionEnum 验证 options 中的枚举字段
-func validateOptionEnum(field string, options map[string]interface{}, allowed []string, errs *[]FieldError) {
-	value := strings.TrimSpace(getOptionString(options, field))
-	if value == "" {
-		return
-	}
-	for _, allowedValue := range allowed {
-		if value == allowedValue {
-			return
-		}
-	}
-	*errs = append(*errs, FieldError{
-		Field:   field,
-		Message: "无效的值，允许值为: " + strings.Join(allowed, ", "),
-	})
-}
-
 // fieldErrorsToMap 将 FieldError 切片转换为映射格式
 // 用于结构化错误响应
 func fieldErrorsToMap(fieldErrors []FieldError) map[string][]string {
@@ -248,7 +175,7 @@ func fieldErrorsToMap(fieldErrors []FieldError) map[string][]string {
 //   - host: 主机地址（根据类型要求不同）
 //   - port: 端口号（根据类型要求不同）
 //   - apiKey: API 密钥（根据类型要求不同）
-//   - options: JSON 配置字符串（包含扩展字段）
+//   - options: 结构化配置
 //
 // 返回：
 //   - []FieldError: 字段验证错误列表（为空表示验证通过）
@@ -256,7 +183,7 @@ func validateDataServerRequest(
 	name, stype, host string,
 	port int,
 	apiKey string,
-	options string,
+	options model.DataServerOptions,
 ) []FieldError {
 	var fieldErrors []FieldError
 
@@ -266,23 +193,22 @@ func validateDataServerRequest(
 
 	stype = strings.TrimSpace(stype)
 	validateEnum("type", stype, allowedDataServerTypes(), &fieldErrors)
-	validateJSONString("options", options, &fieldErrors)
-
-	// 解析 options
-	optionsMap, err := parseOptionsMap(options)
-	if err != nil {
-		fieldErrors = append(fieldErrors, FieldError{
-			Field:   "options",
-			Message: "无效的JSON格式: " + err.Error(),
-		})
-		return fieldErrors
+	if strings.TrimSpace(options.STRMMode) != "" {
+		switch strings.ToLower(strings.TrimSpace(options.STRMMode)) {
+		case "http", "mount":
+		default:
+			fieldErrors = append(fieldErrors, FieldError{Field: "options.strm_mode", Message: "strm_mode 必须为 http 或 mount"})
+		}
+	}
+	if options.TimeoutSeconds < 0 {
+		fieldErrors = append(fieldErrors, FieldError{Field: "options.timeout_seconds", Message: "timeout_seconds 不能为负数"})
 	}
 
 	// 类型特定验证
 	switch stype {
 	case "local":
 		// Local 类型：路径验证（host/port 由后端自动设置）
-		validateOptionRequiredString("access_path", optionsMap, &fieldErrors)
+		validateRequiredString("options.access_path", options.AccessPath, &fieldErrors)
 
 	case "clouddrive2":
 		// CloudDrive2 类型：需要 host、port、api_token、访问目录、挂载目录
@@ -296,7 +222,7 @@ func validateDataServerRequest(
 			fieldErrors = append(fieldErrors, FieldError{Field: "api_key", Message: "必填字段不能为空"})
 		}
 		// 路径验证：访问目录必填，挂载目录可选（为空时默认使用访问目录）
-		validateOptionRequiredString("access_path", optionsMap, &fieldErrors)
+		validateRequiredString("options.access_path", options.AccessPath, &fieldErrors)
 
 	case "openlist":
 		// OpenList 类型：需要 host、port、用户名密码
@@ -307,17 +233,17 @@ func validateDataServerRequest(
 			validatePort("port", port, &fieldErrors)
 		}
 		// 认证信息验证：用户名/密码必填
-		validateOptionRequiredString("username", optionsMap, &fieldErrors)
-		validateOptionRequiredString("password", optionsMap, &fieldErrors)
+		validateRequiredString("options.username", options.Username, &fieldErrors)
+		validateRequiredString("options.password", options.Password, &fieldErrors)
 
 		// 路径验证：访问目录必填时允许挂载目录为空（默认使用访问目录）
-		accessPath := getOptionString(optionsMap, "access_path")
-		mountPath := getOptionString(optionsMap, "mount_path")
-		hasAccessPath := strings.TrimSpace(accessPath) != ""
-		hasMountPath := strings.TrimSpace(mountPath) != ""
+		accessPath := strings.TrimSpace(options.AccessPath)
+		mountPath := strings.TrimSpace(options.MountPath)
+		hasAccessPath := accessPath != ""
+		hasMountPath := mountPath != ""
 
 		if hasMountPath && !hasAccessPath {
-			validateOptionRequiredString("access_path", optionsMap, &fieldErrors)
+			validateRequiredString("options.access_path", options.AccessPath, &fieldErrors)
 		}
 
 	default:
@@ -343,7 +269,7 @@ func validateDataServerRequest(
 //   - stype: 服务器类型（必填，需在 allowedTypes 中）
 //   - host: 主机地址（必填，会进行 SSRF 检查）
 //   - port: 端口号（必填，1-65535）
-//   - options: JSON 配置字符串（可选，需为合法 JSON）
+//   - options: 结构化配置
 //   - allowedTypes: 允许的类型列表（如 []string{"clouddrive2", "openlist"}）
 //
 // 返回：
@@ -351,7 +277,6 @@ func validateDataServerRequest(
 func validateServerRequest(
 	name, stype, host string,
 	port int,
-	options string,
 	allowedTypes []string,
 ) []FieldError {
 	var fieldErrors []FieldError
@@ -367,7 +292,6 @@ func validateServerRequest(
 	}
 
 	validateEnum("type", stype, allowedTypes, &fieldErrors)
-	validateJSONString("options", options, &fieldErrors)
 
 	// SSRF防护：验证host（只传host，不带port）
 	if allowed, _, msg := validateHostForSSRF(host); !allowed {
@@ -415,6 +339,29 @@ func sanitizeMapForLog(fields map[string]interface{}) map[string]interface{} {
 		}
 	}
 	return sanitized
+}
+
+// sanitizeOptionsForLog 将结构化 options 转为 map 并进行脱敏
+func sanitizeOptionsForLog(options any) interface{} {
+	data, err := json.Marshal(options)
+	if err != nil {
+		return map[string]interface{}{
+			"error": err.Error(),
+		}
+	}
+	if string(data) == "null" {
+		return nil
+	}
+	var out map[string]interface{}
+	if err := json.Unmarshal(data, &out); err != nil {
+		return map[string]interface{}{
+			"error": err.Error(),
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return sanitizeMapForLog(out)
 }
 
 // truncateString 截断字符串到指定长度

@@ -26,13 +26,13 @@ type DataServerHandler struct {
 
 // dataServerRequest 数据服务器请求结构
 type dataServerRequest struct {
-	Name    string `json:"name"`
-	Type    string `json:"type"` // local/clouddrive2/openlist
-	Host    string `json:"host"`
-	Port    int    `json:"port"`
-	APIKey  string `json:"api_key"`
-	Enabled *bool  `json:"enabled"`
-	Options string `json:"options"`
+	Name    string                  `json:"name"`
+	Type    string                  `json:"type"` // local/clouddrive2/openlist
+	Host    string                  `json:"host"`
+	Port    int                     `json:"port"`
+	APIKey  string                  `json:"api_key"`
+	Enabled *bool                   `json:"enabled"`
+	Options model.DataServerOptions `json:"options"`
 	// 高级配置（独立列，可覆盖全局默认值，0 表示使用全局）
 	DownloadRatePerSec  *int `json:"download_rate_per_sec,omitempty"`
 	APIRate             *int `json:"api_rate,omitempty"`
@@ -111,7 +111,7 @@ func (h *DataServerHandler) CreateDataServer(c *gin.Context) {
 		Port:                req.Port,
 		APIKey:              strings.TrimSpace(req.APIKey),
 		Enabled:             enabled,
-		Options:             strings.TrimSpace(req.Options),
+		Options:             req.Options,
 		DownloadRatePerSec:  downloadRatePerSec,
 		APIRate:             apiRate,
 		APIRetryMax:         apiRetryMax,
@@ -305,7 +305,7 @@ func (h *DataServerHandler) UpdateDataServer(c *gin.Context) {
 	server.Host = strings.TrimSpace(req.Host)
 	server.Port = req.Port
 	server.APIKey = strings.TrimSpace(req.APIKey)
-	server.Options = strings.TrimSpace(req.Options)
+	server.Options = req.Options
 	if req.Enabled != nil {
 		server.Enabled = *req.Enabled
 	}
@@ -545,7 +545,7 @@ func (h *DataServerHandler) TestDataServerTemp(c *gin.Context) {
 		Port:    req.Port,
 		APIKey:  strings.TrimSpace(req.APIKey),
 		Enabled: true,
-		Options: strings.TrimSpace(req.Options),
+		Options: req.Options,
 	}
 
 	// Local 类型特殊处理：强制设置 host 和 port

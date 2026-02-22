@@ -143,10 +143,14 @@ func doReq(r *gin.Engine, method, path string, body interface{}) *httptest.Respo
 func insertJobRaw(t *testing.T, db *gorm.DB, name string, enabled bool) model.Job {
 	t.Helper()
 
+	optionsValue, err := model.JobOptions{}.Value()
+	if err != nil {
+		t.Fatalf("insertJobRaw: options value: %v", err)
+	}
 	if err := db.Exec(
 		`INSERT INTO jobs (name, enabled, watch_mode, source_path, target_path, strm_path, options, status)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		name, enabled, string(JobWatchModeLocal), "/src", "/dst", "/strm", "{}", string(JobStatusIdle),
+		name, enabled, string(JobWatchModeLocal), "/src", "/dst", "/strm", optionsValue, string(JobStatusIdle),
 	).Error; err != nil {
 		t.Fatalf("insertJobRaw: %v", err)
 	}
@@ -185,7 +189,7 @@ func insertDataServer(t *testing.T, db *gorm.DB, name, dsType, host string, port
 		Host:    host,
 		Port:    port,
 		Enabled: true,
-		Options: "{}",
+		Options: model.DataServerOptions{},
 	}
 	if err := db.Create(&ds).Error; err != nil {
 		t.Fatalf("insertDataServer: %v", err)
@@ -215,7 +219,8 @@ func TestJobHandler_CreateJob_Success(t *testing.T) {
 		"target_path":    "/dst",
 		"strm_path":      "/strm",
 		"data_server_id": dsID,
-		"options":        "{}",
+		"remote_root":    "/remote",
+		"options":        map[string]interface{}{},
 	}
 
 	resp := doReq(router, http.MethodPost, "/api/jobs", payload)
@@ -240,7 +245,7 @@ func TestJobHandler_CreateJob_ValidationError(t *testing.T) {
 	router := setupJobRouter(handler)
 
 	// 缺少 name、watch_mode、source_path 等必填字段
-	payload := map[string]interface{}{"options": "{}"}
+	payload := map[string]interface{}{"options": map[string]interface{}{}}
 
 	resp := doReq(router, http.MethodPost, "/api/jobs", payload)
 
@@ -248,14 +253,14 @@ func TestJobHandler_CreateJob_ValidationError(t *testing.T) {
 		t.Fatalf("expected status %d, got %d: %s", http.StatusBadRequest, resp.Code, resp.Body)
 	}
 
-	var body ErrorResponse
+	var body ValidationErrorResponse
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if body.Code != "invalid_request" {
-		t.Errorf("error code: want %q, got %q", "invalid_request", body.Code)
+	if body.Code != 400 {
+		t.Errorf("error code: want %d, got %d", 400, body.Code)
 	}
-	if len(body.FieldErrors) == 0 {
+	if len(body.Errors) == 0 {
 		t.Errorf("expected field_errors to be non-empty")
 	}
 }
@@ -271,7 +276,7 @@ func TestJobHandler_CreateJob_APIWatchModeRequiresDataServerID(t *testing.T) {
 		"target_path": "/dst",
 		"strm_path":   "/strm",
 		// data_server_id 缺失或为0
-		"options": "{}",
+		"options": map[string]interface{}{},
 	}
 
 	resp := doReq(router, http.MethodPost, "/api/jobs", payload)
@@ -280,40 +285,14 @@ func TestJobHandler_CreateJob_APIWatchModeRequiresDataServerID(t *testing.T) {
 		t.Fatalf("expected status %d, got %d: %s", http.StatusBadRequest, resp.Code, resp.Body)
 	}
 
-	var body ErrorResponse
+	var body ValidationErrorResponse
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
 	// 验证 field_errors 中包含 data_server_id 相关错误
-	found := false
-	for _, fe := range body.FieldErrors {
-		if fe.Field == "data_server_id" {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Errorf("expected field_errors to contain data_server_id, got: %+v", body.FieldErrors)
-	}
-}
 
-func TestJobHandler_CreateJob_InvalidOptionsJSON(t *testing.T) {
-	handler := NewJobHandler(newJobTestDB(t), zap.NewNop(), nil, nil)
-	router := setupJobRouter(handler)
-
-	payload := map[string]interface{}{
-		"name":        "bad-options-job",
-		"watch_mode":  "local",
-		"source_path": "/src",
-		"target_path": "/dst",
-		"strm_path":   "/strm",
-		"options":     "{invalid-json}",
-	}
-
-	resp := doReq(router, http.MethodPost, "/api/jobs", payload)
-
-	if resp.Code != http.StatusBadRequest {
-		t.Fatalf("expected status %d, got %d: %s", http.StatusBadRequest, resp.Code, resp.Body)
+	if _, ok := body.Errors["data_server_id"]; !ok {
+		t.Errorf("expected errors to contain data_server_id, got: %+v", body.Errors)
 	}
 }
 
@@ -330,7 +309,7 @@ func TestJobHandler_CreateJob_DuplicateName(t *testing.T) {
 		"source_path": "/src",
 		"target_path": "/dst",
 		"strm_path":   "/strm",
-		"options":     "{}",
+		"options":     map[string]interface{}{},
 	}
 
 	resp := doReq(router, http.MethodPost, "/api/jobs", payload)
@@ -480,7 +459,7 @@ func TestJobHandler_UpdateJob_Success(t *testing.T) {
 		"source_path": "/src-new",
 		"target_path": "/dst-new",
 		"strm_path":   "/strm-new",
-		"options":     "{}",
+		"options":     map[string]interface{}{},
 	}
 
 	resp := doReq(router, http.MethodPut, fmt.Sprintf("/api/jobs/%d", job.ID), payload)
@@ -515,7 +494,7 @@ func TestJobHandler_UpdateJob_NotFound(t *testing.T) {
 		"source_path": "/src",
 		"target_path": "/dst",
 		"strm_path":   "/strm",
-		"options":     "{}",
+		"options":     map[string]interface{}{},
 	}
 
 	resp := doReq(router, http.MethodPut, "/api/jobs/9999", payload)
@@ -540,7 +519,7 @@ func TestJobHandler_UpdateJob_DuplicateName(t *testing.T) {
 		"source_path": "/src",
 		"target_path": "/dst",
 		"strm_path":   "/strm",
-		"options":     "{}",
+		"options":     map[string]interface{}{},
 	}
 
 	resp := doReq(router, http.MethodPut, fmt.Sprintf("/api/jobs/%d", jobB.ID), payload)
