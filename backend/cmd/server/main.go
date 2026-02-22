@@ -569,10 +569,22 @@ func requestIDMiddleware() gin.HandlerFunc {
 		if id == "" {
 			id = requestid.NewRequestID()
 		}
+		userAction := strings.TrimSpace(c.GetHeader("X-User-Action"))
 		if id != "" {
 			c.Set(requestIDKey, id)
 			c.Writer.Header().Set(requestIDHeader, id)
 		}
+		if userAction != "" {
+			c.Set("user_action", userAction)
+		}
+		ctx := c.Request.Context()
+		if id != "" {
+			ctx = context.WithValue(ctx, requestIDKey, id)
+		}
+		if userAction != "" {
+			ctx = context.WithValue(ctx, "user_action", userAction)
+		}
+		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	}
 }

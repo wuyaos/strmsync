@@ -323,7 +323,7 @@ func (c *clientImpl) do(req *http.Request, expectedStatuses ...int) error {
 		bodyStr = "<empty>"
 	}
 
-	err := fmt.Errorf("mediaserver: unexpected status code %d: %s", resp.StatusCode, bodyStr)
+	err = fmt.Errorf("mediaserver: unexpected status code %d: %s", resp.StatusCode, bodyStr)
 	if isRetryableStatus(resp.StatusCode) {
 		return errutil.Retryable(err)
 	}

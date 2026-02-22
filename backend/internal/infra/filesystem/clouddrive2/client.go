@@ -106,7 +106,7 @@ func (p *cloudDrive2Provider) TestConnection(ctx context.Context) error {
 		return err
 	}
 	defer release()
-	_, err := p.client.GetSystemInfo(ctx)
+	_, err = p.client.GetSystemInfo(ctx)
 	if err != nil {
 		p.logger.Error("CloudDrive2连接失败", zap.Error(err))
 		return fmt.Errorf("filesystem: test connection failed: %w", err)

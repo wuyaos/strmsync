@@ -80,7 +80,7 @@ func (p *openListProvider) TestConnection(ctx context.Context) error {
 		return err
 	}
 	defer release()
-	_, err := p.client.List(ctx, "/")
+	_, err = p.client.List(ctx, "/")
 	if err != nil {
 		p.logger.Error("OpenList连接失败", zap.Error(err))
 		return fmt.Errorf("filesystem: test connection failed: %w", err)

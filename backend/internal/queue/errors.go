@@ -55,8 +55,8 @@ func classifyError(err error) FailureKind {
 		return FailureRetryable
 	}
 
-	// 其他错误视为永久性失败
-	return FailurePermanent
+	// 其他错误默认视为可重试
+	return FailureRetryable
 }
 
 // ClassifyFailureKind 对外暴露错误分类结果

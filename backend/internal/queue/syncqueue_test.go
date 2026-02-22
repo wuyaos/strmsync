@@ -144,7 +144,7 @@ func TestClassifyError(t *testing.T) {
 		{
 			name:     "unknown error",
 			err:      errors.New("something went wrong"),
-			expected: FailurePermanent,
+			expected: FailureRetryable,
 		},
 		{
 			name:     "nil error",

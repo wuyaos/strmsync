@@ -3,12 +3,15 @@
 package logger
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/strmsync/strmsync/internal/domain/model"
 	"go.uber.org/zap"
@@ -18,16 +21,25 @@ import (
 )
 
 var (
-	mu       sync.RWMutex
-	instance *zap.Logger
+	globalLogger atomic.Value
+	globalSugar  atomic.Value
+	initialized  atomic.Bool
 
 	// 数据库日志写入相关
-	logDBMu      sync.Mutex
-	logDBEnabled bool                 // 是否启用数据库写入
-	logDBOnce    sync.Once            // 确保worker只启动一次
-	logDBChan    chan *model.LogEntry // 日志写入缓冲通道
-	logDBBuffer  = 1024               // 默认缓冲区大小
+	logDBMu        sync.Mutex
+	logDBEnabled   bool                 // 是否启用数据库写入
+	logDBOnce      sync.Once            // 确保worker只启动一次
+	logDBChan      chan *model.LogEntry // 日志写入缓冲通道
+	logDBBuffer    = 1024               // 默认缓冲区大小
+	logDBBatchSize = 100                // 默认批量写入大小
+	logDBFlushTick = 1 * time.Second    // 默认批量刷新间隔
 )
+
+func init() {
+	nop := zap.NewNop()
+	globalLogger.Store(nop)
+	globalSugar.Store(nop.Sugar())
+}
 
 // InitLogger 初始化全局日志器
 // level: debug|info|warn|error（不区分大小写）
@@ -59,7 +71,9 @@ func InitLogger(level string, dir string, rotate RotateConfig) error {
 	consoleCfg.TimeKey = "time"
 	consoleCfg.LevelKey = "level"
 	consoleCfg.MessageKey = "message"
-	consoleCfg.CallerKey = ""                                 // 控制台隐藏 caller，避免输出过长
+	consoleCfg.CallerKey = "caller"
+	consoleCfg.FunctionKey = "func"
+	consoleCfg.EncodeCaller = zapcore.ShortCallerEncoder
 	consoleCfg.EncodeLevel = zapcore.CapitalColorLevelEncoder // 带颜色的大写级别
 	consoleCfg.EncodeTime = zapcore.ISO8601TimeEncoder
 
@@ -90,9 +104,10 @@ func InitLogger(level string, dir string, rotate RotateConfig) error {
 		zap.AddStacktrace(zapcore.ErrorLevel),
 	)
 
-	mu.Lock()
-	instance = l
-	mu.Unlock()
+	globalLogger.Store(l)
+	globalSugar.Store(l.Sugar())
+	initialized.Store(true)
+	zap.ReplaceGlobals(l)
 
 	return nil
 }
@@ -150,10 +165,10 @@ func parseLevel(level string) (zapcore.Level, error) {
 
 // L 返回全局日志器。如果未初始化，返回no-op日志器
 func L() *zap.Logger {
-	mu.RLock()
-	defer mu.RUnlock()
-	if instance != nil {
-		return instance
+	if value := globalLogger.Load(); value != nil {
+		if logger, ok := value.(*zap.Logger); ok && logger != nil {
+			return logger
+		}
 	}
 	return zap.NewNop()
 }
@@ -163,35 +178,124 @@ func With(fields ...zap.Field) *zap.Logger {
 	return L().With(fields...)
 }
 
+// WithContext 从 context 中提取 request_id/trace_id/user_action 并注入日志字段
+func WithContext(ctx context.Context) *zap.Logger {
+	if ctx == nil {
+		return L()
+	}
+	fields := []zap.Field{}
+	if requestID, ok := ctx.Value("request_id").(string); ok && strings.TrimSpace(requestID) != "" {
+		fields = append(fields, zap.String("request_id", requestID))
+	}
+	if traceID, ok := ctx.Value("trace_id").(string); ok && strings.TrimSpace(traceID) != "" {
+		fields = append(fields, zap.String("trace_id", traceID))
+	}
+	if userAction, ok := ctx.Value("user_action").(string); ok && strings.TrimSpace(userAction) != "" {
+		fields = append(fields, zap.String("user_action", userAction))
+	}
+	if len(fields) == 0 {
+		return L()
+	}
+	return L().With(fields...)
+}
+
+// WithModule 统一注入模块字段
+func WithModule(module string) *zap.Logger {
+	module = strings.TrimSpace(module)
+	if module == "" {
+		return L()
+	}
+	return L().With(zap.String("module", module))
+}
+
+// WithOperation 注入操作上下文字段
+func WithOperation(module, action string, jobID uint) *zap.Logger {
+	fields := []zap.Field{}
+	if strings.TrimSpace(module) != "" {
+		fields = append(fields, zap.String("module", strings.TrimSpace(module)))
+	}
+	if strings.TrimSpace(action) != "" {
+		fields = append(fields, zap.String("user_action", strings.TrimSpace(action)))
+	}
+	if jobID > 0 {
+		fields = append(fields, zap.Uint("job_id", jobID))
+	}
+	if len(fields) == 0 {
+		return L()
+	}
+	return L().With(fields...)
+}
+
 // Debug 记录debug级别日志
 func Debug(msg string, fields ...zap.Field) {
 	L().Debug(msg, fields...)
 }
 
-// LogInfo 记录info级别日志
-func LogInfo(msg string, fields ...zap.Field) {
+// Info 记录info级别日志
+func Info(msg string, fields ...zap.Field) {
 	L().Info(msg, fields...)
 }
 
-// LogWarn 记录warning级别日志
-func LogWarn(msg string, fields ...zap.Field) {
+// Warn 记录warning级别日志
+func Warn(msg string, fields ...zap.Field) {
 	L().Warn(msg, fields...)
 }
 
-// LogError 记录error级别日志
-func LogError(msg string, fields ...zap.Field) {
+// Error 记录error级别日志
+func Error(msg string, fields ...zap.Field) {
 	L().Error(msg, fields...)
+}
+
+// Debugf 记录debug级别格式化日志
+func Debugf(format string, args ...any) {
+	S().Debugf(format, args...)
+}
+
+// Infof 记录info级别格式化日志
+func Infof(format string, args ...any) {
+	S().Infof(format, args...)
+}
+
+// Warnf 记录warning级别格式化日志
+func Warnf(format string, args ...any) {
+	S().Warnf(format, args...)
+}
+
+// Errorf 记录error级别格式化日志
+func Errorf(format string, args ...any) {
+	S().Errorf(format, args...)
+}
+
+// LogInfo 兼容旧命名
+func LogInfo(msg string, fields ...zap.Field) {
+	Info(msg, fields...)
+}
+
+// LogWarn 兼容旧命名
+func LogWarn(msg string, fields ...zap.Field) {
+	Warn(msg, fields...)
+}
+
+// LogError 兼容旧命名
+func LogError(msg string, fields ...zap.Field) {
+	Error(msg, fields...)
+}
+
+// S 返回全局 SugaredLogger
+func S() *zap.SugaredLogger {
+	if value := globalSugar.Load(); value != nil {
+		if sugar, ok := value.(*zap.SugaredLogger); ok && sugar != nil {
+			return sugar
+		}
+	}
+	return zap.NewNop().Sugar()
 }
 
 // SyncLogger 刷新缓冲的日志条目
 // 可以安全地多次调用
 func SyncLogger() error {
-	mu.RLock()
-	defer mu.RUnlock()
-	if instance == nil {
-		return nil
-	}
-	if err := instance.Sync(); err != nil {
+	logger := L()
+	if err := logger.Sync(); err != nil {
 		// zap在某些平台上同步stdout可能返回错误；视为警告
 		return fmt.Errorf("日志同步失败: %w", err)
 	}
@@ -234,12 +338,36 @@ func WriteLogToDB(db *gorm.DB, entry *model.LogEntry) {
 	logDBOnce.Do(func() {
 		logDBChan = make(chan *model.LogEntry, logDBBuffer)
 		go func() {
-			for e := range logDBChan {
-				if e == nil {
-					continue
+			buffer := make([]*model.LogEntry, 0, logDBBatchSize)
+			ticker := time.NewTicker(logDBFlushTick)
+			defer ticker.Stop()
+
+			flush := func() {
+				if len(buffer) == 0 {
+					return
 				}
-				if err := db.Create(e).Error; err != nil {
+				if err := db.Create(&buffer).Error; err != nil {
 					logDBWarn("写入日志到数据库失败", err)
+				}
+				buffer = buffer[:0]
+			}
+
+			for {
+				select {
+				case e, ok := <-logDBChan:
+					if !ok {
+						flush()
+						return
+					}
+					if e == nil {
+						continue
+					}
+					buffer = append(buffer, e)
+					if len(buffer) >= logDBBatchSize {
+						flush()
+					}
+				case <-ticker.C:
+					flush()
 				}
 			}
 		}()
@@ -264,6 +392,16 @@ func ShutdownLogDBWriter() {
 	if logDBChan != nil {
 		close(logDBChan)
 		logDBChan = nil
+	}
+}
+
+// TraceOperation 追踪操作耗时与结果
+func TraceOperation(operationName string, fields ...zap.Field) func() {
+	start := time.Now()
+	Info("[Start] "+operationName, fields...)
+	return func() {
+		cost := time.Since(start)
+		Info("[End] "+operationName, append(fields, zap.Duration("cost", cost))...)
 	}
 }
 

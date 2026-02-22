@@ -108,15 +108,17 @@ func AttachDBWriter(db *gorm.DB, level string) error {
 		return nil
 	}
 
-	mu.Lock()
-	defer mu.Unlock()
-	if instance == nil {
+	if !initialized.Load() {
 		return errors.New("日志未初始化")
 	}
 
-	instance = instance.WithOptions(zap.WrapCore(func(core zapcore.Core) zapcore.Core {
+	current := L()
+	next := current.WithOptions(zap.WrapCore(func(core zapcore.Core) zapcore.Core {
 		return zapcore.NewTee(core, newDBCore(db, parsed))
 	}))
+	globalLogger.Store(next)
+	globalSugar.Store(next.Sugar())
+	zap.ReplaceGlobals(next)
 	dbCoreAttached = true
 	return nil
 }
