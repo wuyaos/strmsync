@@ -32,12 +32,13 @@ var (
 // InitLogger 初始化全局日志器
 // level: debug|info|warn|error（不区分大小写）
 // dir: 日志文件目录，将创建 app.log 文件
-func InitLogger(level string, dir string) error {
+func InitLogger(level string, dir string, rotate RotateConfig) error {
 	parsed, err := parseLevel(level)
 	if err != nil {
 		return err
 	}
 
+	rotate = normalizeRotateConfig(rotate)
 	logDir, logFile := ResolveLogFilePath(dir)
 	if logDir == "" || logFile == "" {
 		return errors.New("日志目录为空")
@@ -73,10 +74,10 @@ func InitLogger(level string, dir string) error {
 			zapcore.NewJSONEncoder(encoderCfg),
 			zapcore.AddSync(&lumberjack.Logger{
 				Filename:   logFile,
-				MaxSize:    100, // MB
-				MaxBackups: 7,
-				MaxAge:     30, // 天
-				Compress:   true,
+				MaxSize:    rotate.MaxSizeMB,
+				MaxBackups: rotate.MaxBackups,
+				MaxAge:     rotate.MaxAgeDays,
+				Compress:   rotate.Compress,
 			}),
 			parsed,
 		),
@@ -94,6 +95,27 @@ func InitLogger(level string, dir string) error {
 	mu.Unlock()
 
 	return nil
+}
+
+// RotateConfig 日志分割与压缩配置
+type RotateConfig struct {
+	MaxSizeMB  int
+	MaxBackups int
+	MaxAgeDays int
+	Compress   bool
+}
+
+func normalizeRotateConfig(cfg RotateConfig) RotateConfig {
+	if cfg.MaxSizeMB <= 0 {
+		cfg.MaxSizeMB = 10
+	}
+	if cfg.MaxBackups < 0 {
+		cfg.MaxBackups = 0
+	}
+	if cfg.MaxAgeDays < 0 {
+		cfg.MaxAgeDays = 0
+	}
+	return cfg
 }
 
 // ResolveLogFilePath 解析日志路径，支持目录或完整文件路径

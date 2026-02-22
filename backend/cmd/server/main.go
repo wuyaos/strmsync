@@ -59,7 +59,12 @@ func main() {
 	}
 
 	// 初始化日志系统
-	if err := logger.InitLogger(cfg.Log.Level, cfg.Log.Path); err != nil {
+	if err := logger.InitLogger(cfg.Log.Level, cfg.Log.Path, logger.RotateConfig{
+		MaxSizeMB:  cfg.Log.Rotate.MaxSizeMB,
+		MaxBackups: cfg.Log.Rotate.MaxBackups,
+		MaxAgeDays: cfg.Log.Rotate.MaxAgeDays,
+		Compress:   cfg.Log.Rotate.Compress,
+	}); err != nil {
 		fmt.Fprintf(os.Stderr, "日志初始化失败: %v\n", err)
 		os.Exit(1)
 	}

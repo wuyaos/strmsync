@@ -11,6 +11,10 @@ const (
 	DefaultLogToDB                 = true
 	DefaultLogSQL                  = false
 	DefaultLogSQLSlowMs            = 0
+	DefaultLogRotateMaxSizeMB      = 10
+	DefaultLogRotateMaxBackups     = 7
+	DefaultLogRotateMaxAgeDays     = 30
+	DefaultLogRotateCompress       = true
 	DefaultEncryptionKey           = ""
 	DefaultScannerConcurrency      = 20
 	DefaultScannerBatchSize        = 500

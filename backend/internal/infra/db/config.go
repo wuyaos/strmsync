@@ -37,11 +37,20 @@ type DatabaseConfig struct {
 
 // LogConfig 日志设置
 type LogConfig struct {
-	Level     string // 日志级别
-	Path      string // 日志目录
-	ToDB      bool   // 是否写入数据库
-	SQL       bool   // 是否启用SQL日志
-	SQLSlowMs int    // SQL慢查询阈值（毫秒，0表示记录所有）
+	Level     string          // 日志级别
+	Path      string          // 日志目录
+	ToDB      bool            // 是否写入数据库
+	SQL       bool            // 是否启用SQL日志
+	SQLSlowMs int             // SQL慢查询阈值（毫秒，0表示记录所有）
+	Rotate    LogRotateConfig // 日志分割与压缩配置
+}
+
+// LogRotateConfig 日志分割与压缩配置
+type LogRotateConfig struct {
+	MaxSizeMB  int  // 单个日志文件最大大小（MB）
+	MaxBackups int  // 最大保留文件数
+	MaxAgeDays int  // 最大保留天数
+	Compress   bool // 是否压缩旧日志
 }
 
 // SecurityConfig 安全相关设置
@@ -85,6 +94,12 @@ func LoadFromEnv() (*Config, error) {
 			ToDB:      getEnvBool("LOG_TO_DB", appconfig.DefaultLogToDB),
 			SQL:       getEnvBool("LOG_SQL", appconfig.DefaultLogSQL),
 			SQLSlowMs: getEnvInt("LOG_SQL_SLOW_MS", appconfig.DefaultLogSQLSlowMs),
+			Rotate: LogRotateConfig{
+				MaxSizeMB:  getEnvInt("LOG_ROTATE_MAX_SIZE_MB", appconfig.DefaultLogRotateMaxSizeMB),
+				MaxBackups: getEnvInt("LOG_ROTATE_MAX_BACKUPS", appconfig.DefaultLogRotateMaxBackups),
+				MaxAgeDays: getEnvInt("LOG_ROTATE_MAX_AGE_DAYS", appconfig.DefaultLogRotateMaxAgeDays),
+				Compress:   getEnvBool("LOG_ROTATE_COMPRESS", appconfig.DefaultLogRotateCompress),
+			},
 		},
 		Security: SecurityConfig{
 			EncryptionKey: getEnv("ENCRYPTION_KEY", appconfig.DefaultEncryptionKey),
@@ -174,6 +189,15 @@ func Validate(cfg *Config) error {
 	}
 	if cfg.Log.SQLSlowMs < 0 {
 		return fmt.Errorf("SQL 慢查询阈值不能为负数，当前值: %d", cfg.Log.SQLSlowMs)
+	}
+	if cfg.Log.Rotate.MaxSizeMB <= 0 {
+		return fmt.Errorf("日志分割大小必须为正数，当前值: %d", cfg.Log.Rotate.MaxSizeMB)
+	}
+	if cfg.Log.Rotate.MaxBackups < 0 {
+		return fmt.Errorf("日志备份数量不能为负数，当前值: %d", cfg.Log.Rotate.MaxBackups)
+	}
+	if cfg.Log.Rotate.MaxAgeDays < 0 {
+		return fmt.Errorf("日志保留天数不能为负数，当前值: %d", cfg.Log.Rotate.MaxAgeDays)
 	}
 
 	// 安全验证
