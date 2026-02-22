@@ -26,7 +26,15 @@ cleanup() {
   # 停止前端
   if [ -n "${FRONTEND_PID}" ] && kill -0 "${FRONTEND_PID}" 2>/dev/null; then
     kill "${FRONTEND_PID}" 2>/dev/null || true
-    wait "${FRONTEND_PID}" 2>/dev/null || true
+    for _ in {1..10}; do
+      if ! kill -0 "${FRONTEND_PID}" 2>/dev/null; then
+        break
+      fi
+      sleep 0.2
+    done
+    if kill -0 "${FRONTEND_PID}" 2>/dev/null; then
+      kill -9 "${FRONTEND_PID}" 2>/dev/null || true
+    fi
   fi
 
   echo "✓ 前端服务已停止"

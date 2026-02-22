@@ -27,6 +27,7 @@ LOG_DIR="${ROOT_DIR}/tests/logs"
 FRONTEND_LOG="${LOG_DIR}/vite.log"
 
 FRONTEND_PID=""
+TAIL_PID=""
 
 cleanup() {
   echo ""
@@ -35,6 +36,10 @@ cleanup() {
   if [ -n "${FRONTEND_PID}" ] && kill -0 "${FRONTEND_PID}" 2>/dev/null; then
     kill "${FRONTEND_PID}" 2>/dev/null || true
     wait "${FRONTEND_PID}" 2>/dev/null || true
+  fi
+  if [ -n "${TAIL_PID}" ] && kill -0 "${TAIL_PID}" 2>/dev/null; then
+    kill "${TAIL_PID}" 2>/dev/null || true
+    wait "${TAIL_PID}" 2>/dev/null || true
   fi
 
   if command -v lsof >/dev/null 2>&1; then
@@ -99,9 +104,12 @@ echo "╔═══════════════════════�
 echo "║  ✓ 前端服务已启动（后台运行）                              ║"
 echo "╠════════════════════════════════════════════════════════════╣"
 echo "║  前端: http://localhost:${FRONTEND_PORT}                              ║"
+echo "║  PID: ${FRONTEND_PID}                                               ║"
 echo "║  日志: tail -f ${FRONTEND_LOG}                  ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
 echo "==> 按 Ctrl+C 停止前端服务"
 
-tail -f "${FRONTEND_LOG}"
+tail -f "${FRONTEND_LOG}" &
+TAIL_PID=$!
+wait "${TAIL_PID}"
