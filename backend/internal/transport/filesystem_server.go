@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/strmsync/strmsync/internal/domain/model"
 	cd2sdk "github.com/strmsync/strmsync/internal/pkg/sdk/clouddrive2"
+	openlistsdk "github.com/strmsync/strmsync/internal/pkg/sdk/openlist"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -663,73 +664,25 @@ func testCloudDrive2Connection(server model.DataServer, logger *zap.Logger) Conn
 // testOpenListConnection 测试OpenList连接
 func testOpenListConnection(server model.DataServer, logger *zap.Logger) ConnectionTestResult {
 	start := time.Now()
-	apiURL := fmt.Sprintf("http://%s:%d/api/fs/list", server.Host, server.Port)
-
-	reqBody := map[string]interface{}{"path": "/"}
-	bodyBytes, err := json.Marshal(reqBody)
+	apiURL := fmt.Sprintf("http://%s:%d", server.Host, server.Port)
+	client, err := openlistsdk.NewClient(openlistsdk.Config{
+		BaseURL:  apiURL,
+		Username: server.Options.Username,
+		Password: server.Options.Password,
+		Timeout:  10 * time.Second,
+	})
 	if err != nil {
-		logger.Error("序列化OpenList请求失败", zap.Error(err))
+		logger.Error("创建OpenList客户端失败", zap.Error(err), zap.String("url", apiURL))
 		return ConnectionTestResult{
 			Success: false,
 			Message: "创建测试请求失败",
 		}
 	}
-
-	req, err := http.NewRequest("POST", apiURL, bytes.NewReader(bodyBytes))
-	if err != nil {
-		logger.Error("创建OpenList测试请求失败", zap.Error(err))
-		return ConnectionTestResult{
-			Success: false,
-			Message: "创建测试请求失败",
-		}
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	if server.APIKey != "" {
-		req.Header.Set("Authorization", server.APIKey)
-	}
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
+	if _, err := client.List(context.Background(), "/"); err != nil {
 		logger.Warn("OpenList连接失败", zap.Error(err), zap.String("url", apiURL))
 		return ConnectionTestResult{
 			Success: false,
 			Message: "连接失败，请检查服务器地址和网络连接",
-		}
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		logger.Error("读取OpenList响应失败", zap.Error(err))
-		return ConnectionTestResult{
-			Success: false,
-			Message: "读取服务器响应失败",
-		}
-	}
-
-	var apiResp struct {
-		Code int `json:"code"`
-	}
-	if err := json.Unmarshal(body, &apiResp); err != nil {
-		logger.Error("解析OpenList响应失败",
-			zap.Error(err),
-			zap.Int("body_size", len(body)),
-			zap.String("body_preview", truncateString(string(body), 100)))
-		return ConnectionTestResult{
-			Success: false,
-			Message: "服务器响应格式错误",
-		}
-	}
-
-	if apiResp.Code != 0 && apiResp.Code != 200 {
-		logger.Warn("OpenList返回错误码",
-			zap.Int("code", apiResp.Code),
-			zap.Int("http_status", resp.StatusCode))
-		return ConnectionTestResult{
-			Success: false,
-			Message: fmt.Sprintf("服务器返回错误码: %d", apiResp.Code),
 		}
 	}
 
@@ -738,8 +691,7 @@ func testOpenListConnection(server model.DataServer, logger *zap.Logger) Connect
 		Message:   "OpenList连接测试成功",
 		LatencyMs: time.Since(start).Milliseconds(),
 		Details: map[string]interface{}{
-			"http_status": resp.StatusCode,
-			"api_code":    apiResp.Code,
+			"rpc": "list",
 		},
 	}
 }

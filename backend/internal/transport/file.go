@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,6 +17,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/strmsync/strmsync/internal/app/file"
 	"github.com/strmsync/strmsync/internal/app/ports"
+	"github.com/strmsync/strmsync/internal/domain/model"
+	openlistsdk "github.com/strmsync/strmsync/internal/pkg/sdk/openlist"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -47,6 +50,9 @@ func (h *FileHandler) ListDirectories(c *gin.Context) {
 	host := c.Query("host")
 	port := c.Query("port")
 	apiKey := c.Query("apiKey")
+	serverIDStr := c.Query("serverId")
+	username := c.Query("username")
+	password := c.Query("password")
 	limitStr := c.Query("limit")
 	offsetStr := c.Query("offset")
 	limit := 0
@@ -72,7 +78,34 @@ func (h *FileHandler) ListDirectories(c *gin.Context) {
 			h.listCloudDrive2Directories(c, path, host, port, apiKey)
 			return
 		} else if apiType == "openlist" {
-			h.listOpenListDirectories(c, path, host, port)
+			if strings.TrimSpace(serverIDStr) != "" {
+				serverID, err := strconv.ParseUint(serverIDStr, 10, 64)
+				if err != nil || serverID == 0 {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "OpenList serverId 无效"})
+					return
+				}
+				var server model.DataServer
+				if err := h.db.First(&server, serverID).Error; err != nil {
+					c.JSON(http.StatusNotFound, gin.H{"error": "OpenList 服务器不存在"})
+					return
+				}
+				if !server.Enabled {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "OpenList 服务器已禁用"})
+					return
+				}
+				h.listOpenListDirectories(c, path, server)
+				return
+			}
+
+			if strings.TrimSpace(host) == "" || strings.TrimSpace(port) == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "OpenList 需要提供 host/port 或 serverId"})
+				return
+			}
+			if strings.TrimSpace(username) == "" || strings.TrimSpace(password) == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "OpenList 需要提供 username/password"})
+				return
+			}
+			h.listOpenListDirectoriesWithAuth(c, path, host, port, username, password)
 			return
 		}
 	}
@@ -238,94 +271,76 @@ func (h *FileHandler) listCloudDrive2Directories(c *gin.Context, path, host, por
 }
 
 // listOpenListDirectories 通过OpenList API列出目录
-func (h *FileHandler) listOpenListDirectories(c *gin.Context, path, host, port string) {
-	// 获取可选的apiKey参数
-	apiKey := c.Query("apiKey")
-
-	// 构建OpenList API URL
-	baseURL := fmt.Sprintf("http://%s:%s", host, port)
-	apiURL := fmt.Sprintf("%s/api/fs/list", baseURL)
-
-	// 创建请求体
-	reqBody := map[string]interface{}{
-		"path": path,
-	}
-	reqJSON, _ := json.Marshal(reqBody)
-
-	// 创建请求
-	req, err := http.NewRequest("POST", apiURL, strings.NewReader(string(reqJSON)))
+func (h *FileHandler) listOpenListDirectories(c *gin.Context, path string, server model.DataServer) {
+	baseURL := fmt.Sprintf("http://%s:%d", server.Host, server.Port)
+	client, err := openlistsdk.NewClient(openlistsdk.Config{
+		BaseURL:  baseURL,
+		Username: server.Options.Username,
+		Password: server.Options.Password,
+		Timeout:  10 * time.Second,
+	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建请求失败: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "OpenList API客户端初始化失败: " + err.Error()})
 		return
 	}
-	req.Header.Set("Content-Type", "application/json")
 
-	// 添加认证头(如果提供了apiKey)
-	if apiKey != "" {
-		req.Header.Set("Authorization", "Bearer "+apiKey)
-	}
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
 
-	// 发送请求 (设置10秒超时)
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-	resp, err := client.Do(req)
+	files, err := client.List(ctx, path)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "OpenList API请求失败: " + err.Error()})
-		return
-	}
-	defer resp.Body.Close()
-
-	// 读取响应
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "读取响应失败: " + err.Error()})
-		return
-	}
-
-	// 检查HTTP状态码
-	if resp.StatusCode != http.StatusOK {
-		preview := string(body)
-		if len(preview) > 200 {
-			preview = preview[:200] + "..."
-		}
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("OpenList API返回HTTP %d: %s", resp.StatusCode, preview),
-		})
-		return
-	}
-
-	// 检查响应体是否为空
-	if len(body) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "OpenList API返回空响应"})
-		return
-	}
-
-	// 解析响应
-	var apiResp struct {
-		Code int `json:"code"`
-		Data struct {
-			Files []struct {
-				Name  string `json:"name"`
-				IsDir bool   `json:"is_dir"`
-			} `json:"files"`
-		} `json:"data"`
-	}
-
-	if err := json.Unmarshal(body, &apiResp); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "解析响应失败: " + err.Error()})
-		return
-	}
-
-	// 检查业务错误码
-	if apiResp.Code != 0 && apiResp.Code != 200 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("OpenList API返回错误码: %d", apiResp.Code)})
 		return
 	}
 
 	// 筛选出目录
 	var directories []string
-	for _, file := range apiResp.Data.Files {
+	for _, file := range files {
+		if file.IsDir && !strings.HasPrefix(file.Name, ".") {
+			directories = append(directories, file.Name)
+		}
+	}
+
+	sort.Strings(directories)
+
+	c.JSON(http.StatusOK, gin.H{
+		"path":        path,
+		"directories": directories,
+	})
+}
+
+// listOpenListDirectoriesWithAuth 通过OpenList API列出目录（临时用户名密码）
+func (h *FileHandler) listOpenListDirectoriesWithAuth(
+	c *gin.Context,
+	path string,
+	host string,
+	port string,
+	username string,
+	password string,
+) {
+	baseURL := fmt.Sprintf("http://%s:%s", host, port)
+	client, err := openlistsdk.NewClient(openlistsdk.Config{
+		BaseURL:  baseURL,
+		Username: username,
+		Password: password,
+		Timeout:  10 * time.Second,
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "OpenList API客户端初始化失败: " + err.Error()})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	files, err := client.List(ctx, path)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "OpenList API请求失败: " + err.Error()})
+		return
+	}
+
+	var directories []string
+	for _, file := range files {
 		if file.IsDir && !strings.HasPrefix(file.Name, ".") {
 			directories = append(directories, file.Name)
 		}

@@ -88,6 +88,20 @@ export const usePathBrowser = ({ formData, currentServer, isEdit }) => {
     if (!forceApi && (server.type === "local" || isLocalLikePath(path) || String(server.accessPath || "").trim())) {
       return { path, mode: "local", limit, offset }
     }
+    if (server.type === "openlist") {
+      return {
+        path,
+        limit,
+        offset,
+        mode: "api",
+        type: server.type,
+        serverId: server.id || undefined,
+        host: server.host,
+        port: server.port,
+        username: server.username || server.options?.username || server.options?.user,
+        password: server.password || server.options?.password
+      }
+    }
     return {
       path,
       limit,

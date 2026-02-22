@@ -10,14 +10,26 @@ import { DATA_SERVER_TYPES, MEDIA_SERVER_TYPES } from '@/constants/serverTypes'
  * @param {Object} data 服务器数据
  * @returns {Object} 序列化后的数据
  */
+function normalizeOptions(options) {
+  if (!options) return {}
+  if (typeof options === 'object') return options
+  if (typeof options === 'string') {
+    try {
+      const parsed = JSON.parse(options)
+      return parsed && typeof parsed === 'object' ? parsed : {}
+    } catch (error) {
+      return {}
+    }
+  }
+  return {}
+}
+
 function serializeOptions(data) {
   if (!data) return data
 
   return {
     ...data,
-    options: (typeof data.options === 'object' && data.options !== null)
-      ? JSON.stringify(data.options)
-      : data.options
+    options: normalizeOptions(data.options)
   }
 }
 
@@ -213,9 +225,12 @@ export function testServerTemp(data) {
  * @param {string} params.path 目标路径
  * @param {string} [params.mode] 访问模式（local/api）
  * @param {string} [params.type] 服务器类型（clouddrive2/openlist）
- * @param {string} [params.host] 主机地址
- * @param {number|string} [params.port] 端口
- * @param {string} [params.apiKey] API密钥
+ * @param {string} [params.host] 主机地址（clouddrive2）
+ * @param {number|string} [params.port] 端口（clouddrive2）
+ * @param {string} [params.apiKey] API密钥（clouddrive2）
+ * @param {number|string} [params.serverId] 服务器ID（openlist）
+ * @param {string} [params.username] OpenList 用户名（openlist 临时）
+ * @param {string} [params.password] OpenList 密码（openlist 临时）
  * @returns {Promise<{path: string, directories: string[]}>} 目录列表
  */
 export function listDirectories(params) {
