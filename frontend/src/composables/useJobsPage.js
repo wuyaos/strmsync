@@ -831,10 +831,21 @@ export const useJobsPage = () => {
   }
 
   const getServerName = (row, type) => {
-    if (type === 'data') {
-      return row.data_server_name || row.data_server?.name || row.data_server_id || '-'
+    const resolveName = (name, id) => {
+      if (typeof name === 'string') {
+        const trimmed = name.trim()
+        if (trimmed) return trimmed
+      } else if (name) {
+        return name
+      }
+      return id ?? '-'
     }
-    return row.media_server_name || row.media_server?.name || row.media_server_id || '-'
+    if (type === 'data') {
+      const name = row.data_server_name ?? row.data_server?.name
+      return resolveName(name, row.data_server_id)
+    }
+    const name = row.media_server_name ?? row.media_server?.name
+    return resolveName(name, row.media_server_id)
   }
 
   onMounted(() => {

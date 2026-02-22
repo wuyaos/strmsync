@@ -50,6 +50,7 @@ const ensureApp = () => {
 export const confirmDialog = (options = {}) => {
   ensureApp()
   if (state.visible && state.resolve) {
+    console.warn('确认弹窗被并发调用，前一次将被取消')
     state.resolve(false)
   }
   state.title = options.title || '确认操作'

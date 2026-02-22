@@ -273,8 +273,7 @@ export const useServerFormDialog = (props, emit) => {
   }
 
   const flattenFields = (typeDef) => {
-    if (!typeDef?.sections) return []
-    return typeDef.sections.flatMap((section) => section.fields || [])
+    return (typeDef?.sections || []).flatMap((section) => section?.fields || [])
   }
 
   const applyTypeDefaults = (typeDef) => {

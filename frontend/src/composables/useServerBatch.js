@@ -85,118 +85,106 @@ export function useServerBatch() {
     }
   }
 
-  // 批量启用
-  const handleBatchEnable = async (serverList, updateServerFn, refreshListFn) => {
+  const runBatchOperation = async ({
+    serverList,
+    refreshListFn,
+    actionFn,
+    buildArgs,
+    confirmOptions,
+    successText,
+    partialText,
+    errorLabel
+  }) => {
     if (!validateBatchOperation()) return
 
     try {
       const selectedServers = serverList.filter(s => selectedIds.value.has(s.id))
       const confirmed = await confirmDialog({
-        title: '批量启用',
-        message: '将对以下服务器执行“启用”操作：',
-        type: 'info',
-        items: selectedServers.map(s => s.name || `ID:${s.id}`),
-        confirmText: '确认启用',
-        cancelText: '取消'
+        ...confirmOptions,
+        items: selectedServers.map(s => s.name || `ID:${s.id}`)
       })
       if (!confirmed) return
 
       const results = await Promise.allSettled(
-        selectedServers.map(server => updateServerFn(server.id, buildTogglePayload(server, true)))
+        selectedServers.map(server => actionFn(...buildArgs(server)))
       )
 
       const successCount = results.filter(r => r.status === 'fulfilled').length
       const failCount = results.filter(r => r.status === 'rejected').length
 
       if (failCount === 0) {
-        ElMessage.success(`成功启用 ${successCount} 个服务器`)
+        ElMessage.success(successText(successCount))
       } else {
-        ElMessage.warning(`启用完成：成功 ${successCount} 个，失败 ${failCount} 个`)
+        ElMessage.warning(partialText(successCount, failCount))
       }
 
       clearSelection()
       await refreshListFn()
     } catch (error) {
       if (error !== 'cancel') {
-        console.error('批量启用失败:', error)
+        console.error(errorLabel, error)
       }
     }
+  }
+
+  // 批量启用
+  const handleBatchEnable = async (serverList, updateServerFn, refreshListFn) => {
+    await runBatchOperation({
+      serverList,
+      refreshListFn,
+      actionFn: updateServerFn,
+      buildArgs: (server) => [server.id, buildTogglePayload(server, true)],
+      confirmOptions: {
+        title: '批量启用',
+        message: '将对以下服务器执行“启用”操作：',
+        type: 'info',
+        confirmText: '确认启用',
+        cancelText: '取消'
+      },
+      successText: (count) => `成功启用 ${count} 个服务器`,
+      partialText: (successCount, failCount) => `启用完成：成功 ${successCount} 个，失败 ${failCount} 个`,
+      errorLabel: '批量启用失败:'
+    })
   }
 
   // 批量禁用
   const handleBatchDisable = async (serverList, updateServerFn, refreshListFn) => {
-    if (!validateBatchOperation()) return
-
-    try {
-      const selectedServers = serverList.filter(s => selectedIds.value.has(s.id))
-      const confirmed = await confirmDialog({
+    await runBatchOperation({
+      serverList,
+      refreshListFn,
+      actionFn: updateServerFn,
+      buildArgs: (server) => [server.id, buildTogglePayload(server, false)],
+      confirmOptions: {
         title: '批量禁用',
         message: '将对以下服务器执行“禁用”操作：',
         type: 'warning',
-        items: selectedServers.map(s => s.name || `ID:${s.id}`),
         confirmText: '确认禁用',
         cancelText: '取消'
-      })
-      if (!confirmed) return
-
-      const results = await Promise.allSettled(
-        selectedServers.map(server => updateServerFn(server.id, buildTogglePayload(server, false)))
-      )
-
-      const successCount = results.filter(r => r.status === 'fulfilled').length
-      const failCount = results.filter(r => r.status === 'rejected').length
-
-      if (failCount === 0) {
-        ElMessage.success(`成功禁用 ${successCount} 个服务器`)
-      } else {
-        ElMessage.warning(`禁用完成：成功 ${successCount} 个，失败 ${failCount} 个`)
-      }
-
-      clearSelection()
-      await refreshListFn()
-    } catch (error) {
-      if (error !== 'cancel') {
-        console.error('批量禁用失败:', error)
-      }
-    }
+      },
+      successText: (count) => `成功禁用 ${count} 个服务器`,
+      partialText: (successCount, failCount) => `禁用完成：成功 ${successCount} 个，失败 ${failCount} 个`,
+      errorLabel: '批量禁用失败:'
+    })
   }
 
   // 批量删除
   const handleBatchDelete = async (serverList, deleteServerFn, refreshListFn) => {
-    if (!validateBatchOperation()) return
-
-    try {
-      const selectedServers = serverList.filter(s => selectedIds.value.has(s.id))
-      const confirmed = await confirmDialog({
+    await runBatchOperation({
+      serverList,
+      refreshListFn,
+      actionFn: deleteServerFn,
+      buildArgs: (server) => [server.id, server.type],
+      confirmOptions: {
         title: '批量删除',
         message: '该操作不可恢复，将删除以下服务器：',
         type: 'error',
-        items: selectedServers.map(s => s.name || `ID:${s.id}`),
         confirmText: '确认删除',
         cancelText: '取消'
-      })
-      if (!confirmed) return
-
-      const results = await Promise.allSettled(
-        selectedServers.map(server => deleteServerFn(server.id, server.type))
-      )
-
-      const successCount = results.filter(r => r.status === 'fulfilled').length
-      const failCount = results.filter(r => r.status === 'rejected').length
-
-      if (failCount === 0) {
-        ElMessage.success(`成功删除 ${successCount} 个服务器`)
-      } else {
-        ElMessage.warning(`删除完成：成功 ${successCount} 个，失败 ${failCount} 个`)
-      }
-
-      clearSelection()
-      await refreshListFn()
-    } catch (error) {
-      if (error !== 'cancel') {
-        console.error('批量删除失败:', error)
-      }
-    }
+      },
+      successText: (count) => `成功删除 ${count} 个服务器`,
+      partialText: (successCount, failCount) => `删除完成：成功 ${successCount} 个，失败 ${failCount} 个`,
+      errorLabel: '批量删除失败:'
+    })
   }
 
   return {

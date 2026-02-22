@@ -55,23 +55,24 @@ request.interceptors.response.use(
     let message = '请求失败'
     if (error.response) {
       const data = error.response.data
+      const isObject = typeof data === 'object' && data !== null
       switch (error.response.status) {
         case 400:
         case 422:
           message =
             formatValidationErrors(data) ||
-            data?.message ||
-            data?.error ||
+            (isObject ? data?.message : '') ||
+            (isObject ? data?.error : '') ||
             '请求参数错误'
           break
         case 404:
           message = '请求的资源不存在'
           break
         case 500:
-          message = data?.message || data?.error || '服务器错误'
+          message = (isObject ? data?.message : '') || (isObject ? data?.error : '') || '服务器错误'
           break
         default:
-          message = data?.message || data?.error || '请求失败'
+          message = (isObject ? data?.message : '') || (isObject ? data?.error : '') || '请求失败'
       }
     } else if (error.request) {
       message = '网络连接失败'

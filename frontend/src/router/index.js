@@ -100,6 +100,16 @@ router.beforeEach((to, from, next) => {
   next()
 })
 
+router.afterEach(() => {
+  if (typeof window === 'undefined') return
+  try {
+    sessionStorage.removeItem('route_chunk_reload_once')
+  } catch (error) {}
+  try {
+    delete window.__route_chunk_reload_once__
+  } catch (error) {}
+})
+
 router.isReady().then(() => {
   schedulePrefetch()
 })
@@ -111,8 +121,17 @@ router.onError((error) => {
     || message.includes('Importing a module script failed')
   if (isChunkError && typeof window !== 'undefined') {
     const cacheKey = 'route_chunk_reload_once'
-    if (!sessionStorage.getItem(cacheKey)) {
-      sessionStorage.setItem(cacheKey, '1')
+    let storageReady = true
+    try {
+      if (!sessionStorage.getItem(cacheKey)) {
+        sessionStorage.setItem(cacheKey, '1')
+        window.location.reload()
+      }
+    } catch (error) {
+      storageReady = false
+    }
+    if (!storageReady && !window.__route_chunk_reload_once__) {
+      window.__route_chunk_reload_once__ = true
       window.location.reload()
     }
   }
