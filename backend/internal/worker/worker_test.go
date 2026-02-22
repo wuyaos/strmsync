@@ -21,11 +21,7 @@ func TestBuildEngineOptions_Basic(t *testing.T) {
 		TargetPath: "/output/strm",
 	}
 
-	extra, err := parseJobOptions(job.Options)
-	if err != nil {
-		t.Fatalf("parse job options: %v", err)
-	}
-	opts, err := buildEngineOptions(job, extra)
+	opts, err := buildEngineOptions(job, job.Options)
 	if err != nil {
 		t.Fatalf("build engine options: %v", err)
 	}
@@ -40,11 +36,7 @@ func TestBuildEngineOptions_EmptyTargetPath(t *testing.T) {
 		TargetPath: "",
 	}
 
-	extra, err := parseJobOptions(job.Options)
-	if err != nil {
-		t.Fatalf("parse job options: %v", err)
-	}
-	_, err = buildEngineOptions(job, extra)
+	_, err := buildEngineOptions(job, job.Options)
 	if err == nil {
 		t.Fatal("expected error for empty target_path")
 	}
@@ -54,14 +46,17 @@ func TestBuildEngineOptions_WithOptions(t *testing.T) {
 	job := model.Job{
 		ID:         1,
 		TargetPath: "/output",
-		Options:    `{"max_concurrency":8,"media_exts":[".mkv",".mp4"],"min_file_size":10,"dry_run":true,"force_update":false,"mod_time_epsilon_seconds":5}`,
+		Options: model.JobOptions{
+			MaxConcurrency:        8,
+			MediaExts:             []string{".mkv", ".mp4"},
+			MinFileSize:           10,
+			DryRun:                true,
+			ForceUpdate:           false,
+			ModTimeEpsilonSeconds: 5,
+		},
 	}
 
-	extra, err := parseJobOptions(job.Options)
-	if err != nil {
-		t.Fatalf("parse job options: %v", err)
-	}
-	opts, err := buildEngineOptions(job, extra)
+	opts, err := buildEngineOptions(job, job.Options)
 	if err != nil {
 		t.Fatalf("build engine options: %v", err)
 	}
@@ -82,19 +77,6 @@ func TestBuildEngineOptions_WithOptions(t *testing.T) {
 	}
 	if opts.MinFileSize != 10*1024*1024 {
 		t.Errorf("MinFileSize: expected 10MB, got %d", opts.MinFileSize)
-	}
-}
-
-func TestBuildEngineOptions_InvalidJSON(t *testing.T) {
-	job := model.Job{
-		ID:         1,
-		TargetPath: "/output",
-		Options:    `{invalid json`,
-	}
-
-	_, err := parseJobOptions(job.Options)
-	if err == nil {
-		t.Fatal("expected error for invalid JSON")
 	}
 }
 
@@ -340,12 +322,19 @@ func TestBuildFilesystemConfig_CloudDrive2(t *testing.T) {
 
 func TestBuildFilesystemConfig_WithOptions(t *testing.T) {
 	server := model.DataServer{
-		ID:      1,
-		Name:    "test-with-opts",
-		Type:    "openlist",
-		Host:    "localhost",
-		Port:    5244,
-		Options: `{"base_url":"http://custom:8080","username":"admin","password":"secret","strm_mode":"mount","mount_path":"/mnt/data","timeout_seconds":30}`,
+		ID:   1,
+		Name: "test-with-opts",
+		Type: "openlist",
+		Host: "localhost",
+		Port: 5244,
+		Options: model.DataServerOptions{
+			BaseURL:        "http://custom:8080",
+			Username:       "admin",
+			Password:       "secret",
+			STRMMode:       "mount",
+			MountPath:      "/mnt/data",
+			TimeoutSeconds: 30,
+		},
 	}
 
 	cfg, err := buildFilesystemConfig(server)
@@ -398,12 +387,14 @@ func TestBuildFilesystemConfig_EmptyType(t *testing.T) {
 
 func TestBuildFilesystemConfig_InvalidSTRMMode(t *testing.T) {
 	server := model.DataServer{
-		ID:      1,
-		Name:    "bad-strm-mode",
-		Type:    "clouddrive2",
-		Host:    "localhost",
-		Port:    19798,
-		Options: `{"strm_mode":"invalid_mode"}`,
+		ID:   1,
+		Name: "bad-strm-mode",
+		Type: "clouddrive2",
+		Host: "localhost",
+		Port: 19798,
+		Options: model.DataServerOptions{
+			STRMMode: "invalid_mode",
+		},
 	}
 
 	_, err := buildFilesystemConfig(server)

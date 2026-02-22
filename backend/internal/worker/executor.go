@@ -3,7 +3,6 @@ package worker
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -155,9 +154,10 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 		zap.Int("port", server.Port),
 		zap.Bool("enabled", server.Enabled))
 
-	extra, err := parseJobOptions(job.Options)
-	if err != nil {
-		return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("parse job options: %w", err))
+	extra := job.Options
+	if extra.SyncOpts.FullResync {
+		extra.ForceUpdate = true
+		extra.SkipExisting = false
 	}
 	execLog.Info("解析任务选项完成",
 		zap.Int("max_concurrency", extra.MaxConcurrency),
@@ -321,7 +321,7 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 
 // buildEngineOptions 将 Job 配置转换为 EngineOptions
 //
-// 从 Job.Options (JSON) 解析可选配置：
+// 从 Job.Options 读取可选配置：
 // - MaxConcurrency: 最大并发数
 // - MediaExts: 媒体文件扩展名过滤
 // - MinFileSize: 媒体文件最小大小（MB）
@@ -332,7 +332,7 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 // - EnableOrphanCleanup: 启用孤儿文件清理
 // - OrphanCleanupDryRun: 孤儿清理干运行模式
 // - StrmReplaceRules: STRM 替换规则
-func buildEngineOptions(job model.Job, extra jobOptions) (syncengine.EngineOptions, error) {
+func buildEngineOptions(job model.Job, extra model.JobOptions) (syncengine.EngineOptions, error) {
 	if strings.TrimSpace(job.TargetPath) == "" {
 		return syncengine.EngineOptions{}, fmt.Errorf("job %d target_path is empty", job.ID)
 	}
@@ -374,12 +374,7 @@ func resolveEngineRemotePath(job model.Job, server model.DataServer) (string, er
 		return remotePath, nil
 	}
 
-	opts := dataServerOptions{}
-	if strings.TrimSpace(server.Options) != "" {
-		if err := json.Unmarshal([]byte(server.Options), &opts); err != nil {
-			return "", fmt.Errorf("parse data server options: %w", err)
-		}
-	}
+	opts := server.Options
 
 	accessPath := strings.TrimSpace(opts.AccessPath)
 	if accessPath == "" || remotePath == "" {
@@ -410,7 +405,7 @@ func resolveEngineRemotePath(job model.Job, server model.DataServer) (string, er
 	return "", fmt.Errorf("source_path %s must be under access_path %s", remotePath, accessPath)
 }
 
-func shouldUseLocalStrmDriver(server model.DataServer, extra jobOptions) bool {
+func shouldUseLocalStrmDriver(server model.DataServer, extra model.JobOptions) bool {
 	if !isRemoteServerType(server.Type) {
 		return false
 	}
@@ -447,18 +442,14 @@ func buildLocalDriverServer(job model.Job, server model.DataServer) (model.DataS
 		mountPath = accessPath
 	}
 
-	opts := dataServerOptions{
+	opts := model.DataServerOptions{
 		AccessPath: accessPath,
 		MountPath:  mountPath,
 		STRMMode:   filesystem.STRMModeMount.String(),
 	}
-	encoded, err := json.Marshal(opts)
-	if err != nil {
-		return model.DataServer{}, fmt.Errorf("encode local driver options: %w", err)
-	}
 	return model.DataServer{
 		Type:    filesystem.TypeLocal.String(),
-		Options: string(encoded),
+		Options: opts,
 	}, nil
 }
 
@@ -466,12 +457,7 @@ func resolveRemoteListRoot(job model.Job, server model.DataServer) (string, erro
 	if strings.TrimSpace(job.RemoteRoot) != "" {
 		return normalizeRemoteRoot(job.RemoteRoot), nil
 	}
-	opts := dataServerOptions{}
-	if strings.TrimSpace(server.Options) != "" {
-		if err := json.Unmarshal([]byte(server.Options), &opts); err != nil {
-			return "", fmt.Errorf("parse data server options: %w", err)
-		}
-	}
+	opts := server.Options
 	accessPath := strings.TrimSpace(opts.AccessPath)
 	sourcePath := strings.TrimSpace(job.SourcePath)
 	if sourcePath == "" {
@@ -510,25 +496,11 @@ func resolveRemoteListRoot(job model.Job, server model.DataServer) (string, erro
 }
 
 func getAccessPathFromServer(server model.DataServer) string {
-	if strings.TrimSpace(server.Options) == "" {
-		return ""
-	}
-	opts := dataServerOptions{}
-	if err := json.Unmarshal([]byte(server.Options), &opts); err != nil {
-		return ""
-	}
-	return strings.TrimSpace(opts.AccessPath)
+	return strings.TrimSpace(server.Options.AccessPath)
 }
 
 func getMountPathFromServer(server model.DataServer) string {
-	if strings.TrimSpace(server.Options) == "" {
-		return ""
-	}
-	opts := dataServerOptions{}
-	if err := json.Unmarshal([]byte(server.Options), &opts); err != nil {
-		return ""
-	}
-	return strings.TrimSpace(opts.MountPath)
+	return strings.TrimSpace(server.Options.MountPath)
 }
 
 func hasAccessPath(server model.DataServer) bool {
@@ -614,38 +586,7 @@ func mapRemoteEntriesToLocal(root string, entries []syncengine.RemoteEntry) []sy
 	return mapped
 }
 
-// jobOptions 表示从 Job.Options 解析的引擎参数
-type jobOptions struct {
-	MaxConcurrency        int               `json:"max_concurrency"`
-	MediaExts             []string          `json:"media_exts"`
-	MetaExts              []string          `json:"meta_exts"`
-	ExcludeDirs           []string          `json:"exclude_dirs"`
-	MinFileSize           int64             `json:"min_file_size"`
-	PreferRemoteList      bool              `json:"prefer_remote_list"`
-	DryRun                bool              `json:"dry_run"`
-	ForceUpdate           bool              `json:"force_update"`
-	SkipExisting          bool              `json:"skip_existing"`
-	ModTimeEpsilonSeconds int               `json:"mod_time_epsilon_seconds"`
-	EnableOrphanCleanup   bool              `json:"enable_orphan_cleanup"`
-	OrphanCleanupDryRun   bool              `json:"orphan_cleanup_dry_run"`
-	MetadataMode          string            `json:"metadata_mode"`
-	SyncOpts              syncOpts          `json:"sync_opts"`
-	STRMMode              string            `json:"strm_mode"`
-	StrmReplaceRules      []strmReplaceRule `json:"strm_replace_rules"`
-}
-
-type syncOpts struct {
-	FullResync    bool `json:"full_resync"`
-	UpdateMeta    bool `json:"update_meta"`
-	OverwriteMeta bool `json:"overwrite_meta"`
-	SkipMeta      bool `json:"skip_meta"`
-}
-
-type strmReplaceRule struct {
-	From string `json:"from"`
-	To   string `json:"to"`
-}
-
+// model.JobOptions 表示 Job.Options 的引擎参数
 type metadataStats struct {
 	Total     int64
 	Created   int64
@@ -673,21 +614,6 @@ func (s metaStrategy) String() string {
 	default:
 		return "unknown"
 	}
-}
-
-func parseJobOptions(raw string) (jobOptions, error) {
-	var opts jobOptions
-	if strings.TrimSpace(raw) == "" {
-		return opts, nil
-	}
-	if err := json.Unmarshal([]byte(raw), &opts); err != nil {
-		return jobOptions{}, err
-	}
-	if opts.SyncOpts.FullResync {
-		opts.ForceUpdate = true
-		opts.SkipExisting = false
-	}
-	return opts, nil
 }
 
 func normalizeExtensions(exts []string, fallback []string) []string {
@@ -718,7 +644,7 @@ func normalizeMinFileSize(value int64) int64 {
 	return value * 1024 * 1024
 }
 
-func normalizeStrmReplaceRules(rules []strmReplaceRule) []syncengine.StrmReplaceRule {
+func normalizeStrmReplaceRules(rules []model.StrmReplaceRule) []syncengine.StrmReplaceRule {
 	if len(rules) == 0 {
 		return nil
 	}
@@ -737,7 +663,7 @@ func normalizeStrmReplaceRules(rules []strmReplaceRule) []syncengine.StrmReplace
 	return normalized
 }
 
-func resolveMetaStrategy(opts syncOpts) metaStrategy {
+func resolveMetaStrategy(opts model.SyncOpts) metaStrategy {
 	if opts.OverwriteMeta {
 		return metaStrategyOverwrite
 	}
@@ -774,7 +700,7 @@ func metaFileSame(info os.FileInfo, entry syncengine.RemoteEntry, epsilon time.D
 	return true
 }
 
-func applyJobStrmMode(server model.DataServer, extra jobOptions) (model.DataServer, error) {
+func applyJobStrmMode(server model.DataServer, extra model.JobOptions) (model.DataServer, error) {
 	mode := strings.ToLower(strings.TrimSpace(extra.STRMMode))
 	if mode == "" {
 		return server, nil
@@ -785,16 +711,10 @@ func applyJobStrmMode(server model.DataServer, extra jobOptions) (model.DataServ
 		return server, fmt.Errorf("invalid server type: %s", server.Type)
 	}
 
-	options := map[string]interface{}{}
-	if strings.TrimSpace(server.Options) != "" {
-		if err := json.Unmarshal([]byte(server.Options), &options); err != nil {
-			return server, fmt.Errorf("parse data server options: %w", err)
-		}
-	}
-
-	mountPath := strings.TrimSpace(getOptionString(options, "mount_path"))
+	options := server.Options
+	mountPath := strings.TrimSpace(options.MountPath)
 	if mountPath == "" {
-		mountPath = strings.TrimSpace(getOptionString(options, "access_path"))
+		mountPath = strings.TrimSpace(options.AccessPath)
 	}
 
 	var strmMode filesystem.STRMMode
@@ -813,30 +733,9 @@ func applyJobStrmMode(server model.DataServer, extra jobOptions) (model.DataServ
 		strmMode = filesystem.STRMModeHTTP
 	}
 
-	options["strm_mode"] = strmMode.String()
-	encoded, err := json.Marshal(options)
-	if err != nil {
-		return server, fmt.Errorf("encode data server options: %w", err)
-	}
-
-	server.Options = string(encoded)
+	options.STRMMode = strmMode.String()
+	server.Options = options
 	return server, nil
-}
-
-func getOptionString(options map[string]interface{}, key string) string {
-	if options == nil {
-		return ""
-	}
-	raw, ok := options[key]
-	if !ok || raw == nil {
-		return ""
-	}
-	switch v := raw.(type) {
-	case string:
-		return v
-	default:
-		return ""
-	}
 }
 
 func buildMetadataClient(server model.DataServer, log *zap.Logger) (filesystem.Client, error) {
@@ -869,7 +768,7 @@ func buildLocalMetadataClient(job model.Job, log *zap.Logger) (filesystem.Client
 	return filesystem.NewClient(cfg, filesystem.WithLogger(log))
 }
 
-func (e *Executor) syncMetadata(ctx context.Context, job model.Job, server model.DataServer, driver syncengine.Driver, extra jobOptions, remotePath string, eventSink *taskRunEventSink) (metadataStats, error) {
+func (e *Executor) syncMetadata(ctx context.Context, job model.Job, server model.DataServer, driver syncengine.Driver, extra model.JobOptions, remotePath string, eventSink *taskRunEventSink) (metadataStats, error) {
 	metaExts := normalizeExtensions(extra.MetaExts, appconfig.DefaultMetaExtensions())
 	if len(metaExts) == 0 {
 		return metadataStats{}, nil
@@ -1239,7 +1138,7 @@ func (f DefaultWriterFactory) Build(ctx context.Context, job model.Job) (synceng
 
 // buildFilesystemConfig 将 DataServer 转换为 filesystem.Config
 //
-// 从 DataServer.Options (JSON) 解析可选配置：
+// 从 DataServer.Options 读取可选配置：
 // - BaseURL: 服务器基础 URL
 // - STRMMode: STRM 模式（http/mount）
 // - MountPath: 挂载路径
@@ -1247,13 +1146,7 @@ func (f DefaultWriterFactory) Build(ctx context.Context, job model.Job) (synceng
 // - Username: 用户名
 // - Password: 密码
 func buildFilesystemConfig(server model.DataServer) (filesystem.Config, error) {
-	// 解析 Options JSON
-	opts := dataServerOptions{}
-	if strings.TrimSpace(server.Options) != "" {
-		if err := json.Unmarshal([]byte(server.Options), &opts); err != nil {
-			return filesystem.Config{}, fmt.Errorf("parse data server options: %w", err)
-		}
-	}
+	opts := server.Options
 
 	// 验证服务器类型
 	serverType := filesystem.Type(strings.TrimSpace(server.Type))
@@ -1318,17 +1211,6 @@ func buildFilesystemConfig(server model.DataServer) (filesystem.Config, error) {
 		StrmMountPath: strmMount,
 		Timeout:       timeout,
 	}, nil
-}
-
-// dataServerOptions 表示 DataServer.Options 的可选字段
-type dataServerOptions struct {
-	BaseURL        string `json:"base_url"`
-	AccessPath     string `json:"access_path"`
-	STRMMode       string `json:"strm_mode"`
-	MountPath      string `json:"mount_path"`
-	TimeoutSeconds int    `json:"timeout_seconds"`
-	Username       string `json:"username"`
-	Password       string `json:"password"`
 }
 
 // GormTaskRunRepository 是基于 GORM 的 TaskRunRepository 实现
