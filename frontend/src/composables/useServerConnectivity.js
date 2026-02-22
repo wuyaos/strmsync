@@ -1,4 +1,4 @@
-import { onActivated, onDeactivated, onMounted, onUnmounted, reactive, unref, watch } from 'vue'
+import { isRef, onActivated, onDeactivated, onMounted, onUnmounted, reactive, unref, watch } from 'vue'
 import { testServerSilent } from '@/api/servers'
 
 const STATUS = { DISABLED: 'disabled', SUCCESS: 'success', UNKNOWN: 'unknown', ERROR: 'error' }
@@ -10,9 +10,12 @@ export const useServerConnectivity = (options) => {
   const maxConcurrentTests = options?.maxConcurrentTests ?? 3
   const requestTimeoutMs = options?.requestTimeoutMs ?? 8000
   const autoStart = options?.autoStart !== false
+  const activeRef = options?.isActive
 
   const connectionStatusMap = reactive({})
   const lastTestAtMap = {}
+  const nextAllowedAtMap = {}
+  const failureCountMap = {}
   const activeServerKeys = new Set()
 
   let pollingTimer = null
@@ -24,6 +27,16 @@ export const useServerConnectivity = (options) => {
   const inFlightControllers = new Set()
 
   const getSafeId = (id) => String(id ?? '')
+  const resolveActive = () => {
+    if (!activeRef) return true
+    if (typeof activeRef === 'function') {
+      return activeRef()
+    }
+    if (isRef(activeRef)) {
+      return Boolean(activeRef.value)
+    }
+    return Boolean(activeRef)
+  }
 
   // 同步当前活跃的服务器 ID，并清理掉已删除或已禁用的状态缓存
   const syncActiveKeys = (list) => {
@@ -37,6 +50,8 @@ export const useServerConnectivity = (options) => {
         activeServerKeys.add(key)
       } else {
         delete connectionStatusMap[key]
+        delete nextAllowedAtMap[key]
+        delete failureCountMap[key]
       }
     }
     // 清理已经不存在于列表中的服务器状态
@@ -44,6 +59,8 @@ export const useServerConnectivity = (options) => {
       if (!validKeys.has(key)) {
         delete connectionStatusMap[key]
         delete lastTestAtMap[key]
+        delete nextAllowedAtMap[key]
+        delete failureCountMap[key]
       }
     }
   }
@@ -67,17 +84,32 @@ export const useServerConnectivity = (options) => {
 
     try {
       const result = await testServerSilent(server.id, server.type, { signal: controller.signal })
-      return result === true || result?.success === true
+      return { success: result === true || result?.success === true }
     } catch (error) {
-      return false
+      return { success: false, error }
     } finally {
       clearTimeout(timeoutId)
       inFlightControllers.delete(controller)
     }
   }
 
+  const resolveBackoffMs = (error, failureCount) => {
+    const status = Number(error?.status)
+    if (status === 429) {
+      return 10 * 60 * 1000
+    }
+    if (Number.isFinite(status) && status >= 400 && status < 500) {
+      return 2 * 60 * 1000
+    }
+    const base = 10 * 1000
+    const max = 5 * 60 * 1000
+    const exponent = Math.min(Math.max(failureCount - 1, 0), 6)
+    return Math.min(base * Math.pow(2, exponent), max)
+  }
+
   const refreshConnectionStatus = async (force = false) => {
     if (isUnmounted || isPaused || isTesting) return
+    if (!resolveActive()) return
     isTesting = true
 
     try {
@@ -87,6 +119,8 @@ export const useServerConnectivity = (options) => {
         if (!s.enabled || s.type === localServerType) return false
         const key = getSafeId(s.id)
         if (!key) return false
+        const nextAllowedAt = nextAllowedAtMap[key] || 0
+        if (!force && now < nextAllowedAt) return false
         // 除非强制刷新，否则在轮询间隔内的不再重复测试
         if (!force && (now - (lastTestAtMap[key] || 0) < intervalMs - 500)) return false
         return true
@@ -97,10 +131,20 @@ export const useServerConnectivity = (options) => {
       for (const server of targets) {
         if (isUnmounted) break
         const key = getSafeId(server.id)
-        const p = runTest(server).then(success => {
+        const p = runTest(server).then(result => {
           if (isUnmounted || !activeServerKeys.has(key)) return
-          connectionStatusMap[key] = success ? STATUS.SUCCESS : STATUS.ERROR
+          if (result?.success) {
+            connectionStatusMap[key] = STATUS.SUCCESS
+            lastTestAtMap[key] = Date.now()
+            failureCountMap[key] = 0
+            nextAllowedAtMap[key] = 0
+            return
+          }
+          connectionStatusMap[key] = STATUS.ERROR
           lastTestAtMap[key] = Date.now()
+          const nextCount = (failureCountMap[key] || 0) + 1
+          failureCountMap[key] = nextCount
+          nextAllowedAtMap[key] = Date.now() + resolveBackoffMs(result?.error, nextCount)
         }).finally(() => executing.delete(p))
 
         executing.add(p)
@@ -145,6 +189,7 @@ export const useServerConnectivity = (options) => {
 
   const start = () => {
     if (isUnmounted) return
+    if (!resolveActive()) return
     isPaused = false
     if (!serverListRef) return
     syncActiveKeys(unref(serverListRef) || [])
@@ -173,6 +218,21 @@ export const useServerConnectivity = (options) => {
   onDeactivated(() => {
     pause()
   })
+
+  if (activeRef) {
+    watch(
+      () => resolveActive(),
+      (active) => {
+        if (!autoStart) return
+        if (active) {
+          start()
+        } else {
+          pause()
+        }
+      },
+      { immediate: true }
+    )
+  }
 
   const stop = () => {
     isUnmounted = true

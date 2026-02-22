@@ -16,6 +16,7 @@ dayjs.locale("zh-cn")
 
 export const useServersPage = (options = {}) => {
   const enableConnectivity = options?.enableConnectivity === true
+  const activeConnectivity = options?.isActive
   const {
     selectedIds,
     batchMode,
@@ -49,7 +50,8 @@ export const useServersPage = (options = {}) => {
     serverList,
     intervalMs: 10000,
     maxConcurrentTests: 3,
-    autoStart: enableConnectivity
+    autoStart: enableConnectivity,
+    isActive: activeConnectivity
   })
 
   const dialogVisible = ref(false)

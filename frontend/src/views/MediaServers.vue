@@ -55,6 +55,11 @@
 import { useServersPage } from '@/composables/useServersPage'
 import ServerFormDialog from '@/components/servers/ServerFormDialog.vue'
 import ServerListPanel from '@/components/servers/ServerListPanel.vue'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+const isActive = computed(() => route.name === 'MediaServers')
 
 const {
   activeTab,
@@ -91,7 +96,7 @@ const {
   getConnectionStatus,
   handleCardClick,
   handleToggleEnabled
-} = useServersPage({ enableConnectivity: true })
+} = useServersPage({ enableConnectivity: true, isActive })
 
 activeTab.value = 'media'
 
