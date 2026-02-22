@@ -3,7 +3,6 @@ package job
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -251,18 +250,46 @@ func (s *jobService) loadAndValidateJob(ctx context.Context, jobID ports.JobID) 
 		return nil, fmt.Errorf("job is disabled: id=%d", jobID)
 	}
 
-	// 3. 解析Options
-	var options map[string]interface{}
-	if job.Options != "" {
-		if err := json.Unmarshal([]byte(job.Options), &options); err != nil {
-			return nil, fmt.Errorf("parse options: %w", err)
-		}
-	}
+	// 3. 读取Options（已强类型化）
+	options := job.Options
 
 	// 4. 构建JobConfig
-	strmMode := ports.STRMMode(getStringOption(options, "strm_mode", string(ports.STRMModeLocal)))
+	strmMode := ports.STRMMode(strings.TrimSpace(options.STRMMode))
+	if strmMode == "" {
+		strmMode = ports.STRMModeLocal
+	}
 	if !strmMode.IsValid() {
 		strmMode = ports.STRMModeLocal
+	}
+	recursive := true
+	if options.Recursive != nil {
+		recursive = *options.Recursive
+	}
+	interval := 300
+	if options.Interval != nil {
+		interval = *options.Interval
+	}
+	autoScanLibrary := false
+	if options.AutoScanLibrary != nil {
+		autoScanLibrary = *options.AutoScanLibrary
+	}
+	mediaExts := options.MediaExts
+	if len(mediaExts) == 0 {
+		mediaExts = appconfig.DefaultMediaExtensions()
+	}
+	metaExts := options.MetaExts
+	if len(metaExts) == 0 {
+		metaExts = appconfig.DefaultMetaExtensions()
+	}
+	replaceRules := make([]ports.STRMReplaceRule, 0, len(options.StrmReplaceRules))
+	for _, rule := range options.StrmReplaceRules {
+		if rule.From == "" && rule.To == "" {
+			continue
+		}
+		replaceRules = append(replaceRules, ports.STRMReplaceRule{
+			From: rule.From,
+			To:   rule.To,
+		})
 	}
 	config := &ports.JobConfig{
 		ID:               job.ID,
@@ -272,13 +299,13 @@ func (s *jobService) loadAndValidateJob(ctx context.Context, jobID ports.JobID) 
 		SourcePath:       job.SourcePath,
 		TargetPath:       job.TargetPath,
 		Enabled:          job.Enabled,
-		Recursive:        getBoolOption(options, "recursive", true),
-		MediaExtensions:  getStringSliceOption(options, "media_exts", appconfig.DefaultMediaExtensions()),
-		MetaExtensions:   getStringSliceOption(options, "meta_exts", appconfig.DefaultMetaExtensions()),
-		ExcludeDirs:      getStringSliceOption(options, "exclude_dirs", nil),
-		Interval:         getIntOption(options, "interval", 300),
-		AutoScanLibrary:  getBoolOption(options, "auto_scan_library", false),
-		STRMReplaceRules: getStrmReplaceRulesOption(options),
+		Recursive:        recursive,
+		MediaExtensions:  mediaExts,
+		MetaExtensions:   metaExts,
+		ExcludeDirs:      options.ExcludeDirs,
+		Interval:         interval,
+		AutoScanLibrary:  autoScanLibrary,
+		STRMReplaceRules: replaceRules,
 	}
 	if job.DataServerID != nil {
 		config.DataServerID = *job.DataServerID
@@ -341,119 +368,12 @@ func (s *jobService) updateJobStatus(ctx context.Context, jobID ports.JobID, sta
 	return nil
 }
 
-// 辅助函数：从options中获取值
-
-func getBoolOption(options map[string]interface{}, key string, defaultValue bool) bool {
-	if options == nil {
-		return defaultValue
-	}
-	if v, ok := options[key]; ok {
-		if b, ok := v.(bool); ok {
-			return b
-		}
-	}
-	return defaultValue
-}
-
-func getIntOption(options map[string]interface{}, key string, defaultValue int) int {
-	if options == nil {
-		return defaultValue
-	}
-	if v, ok := options[key]; ok {
-		switch val := v.(type) {
-		case int:
-			return val
-		case float64:
-			return int(val)
-		}
-	}
-	return defaultValue
-}
-
-func getStringSliceOption(options map[string]interface{}, key string, defaultValue []string) []string {
-	if options == nil {
-		return defaultValue
-	}
-	if v, ok := options[key]; ok {
-		if slice, ok := v.([]interface{}); ok {
-			result := make([]string, 0, len(slice))
-			for _, item := range slice {
-				if str, ok := item.(string); ok {
-					result = append(result, str)
-				}
-			}
-			if len(result) > 0 {
-				return result
-			}
-		}
-	}
-	return defaultValue
-}
-
-func getStringOption(options map[string]interface{}, key string, defaultValue string) string {
-	if options == nil {
-		return defaultValue
-	}
-	if v, ok := options[key]; ok {
-		if s, ok := v.(string); ok {
-			trimmed := strings.TrimSpace(s)
-			if trimmed != "" {
-				return trimmed
-			}
-		}
-	}
-	return defaultValue
-}
-
-func getStrmReplaceRulesOption(options map[string]interface{}) []ports.STRMReplaceRule {
-	if options == nil {
-		return nil
-	}
-	raw, ok := options["strm_replace_rules"]
-	if !ok {
-		return nil
-	}
-	rules, ok := raw.([]interface{})
-	if !ok {
-		return nil
-	}
-	result := make([]ports.STRMReplaceRule, 0, len(rules))
-	for _, item := range rules {
-		obj, ok := item.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		from, _ := obj["from"].(string)
-		to, _ := obj["to"].(string)
-		if strings.TrimSpace(from) == "" && strings.TrimSpace(to) == "" {
-			continue
-		}
-		result = append(result, ports.STRMReplaceRule{
-			From: from,
-			To:   to,
-		})
-	}
-	return result
-}
-
-type dataServerOptions struct {
-	AccessPath string `json:"access_path"`
-	MountPath  string `json:"mount_path"`
-	BaseURL    string `json:"base_url"`
-}
-
 func applyDataServerConfig(config *ports.JobConfig, server model.DataServer) {
 	if config == nil {
 		return
 	}
 
-	opts := dataServerOptions{}
-	if strings.TrimSpace(server.Options) != "" {
-		if err := json.Unmarshal([]byte(server.Options), &opts); err != nil {
-			return
-		}
-	}
-
+	opts := server.Options
 	config.AccessPath = strings.TrimSpace(opts.AccessPath)
 	config.MountPath = strings.TrimSpace(opts.MountPath)
 	if config.MountPath == "" {

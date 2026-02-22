@@ -130,7 +130,7 @@ func createJob(t *testing.T, db *gorm.DB, mutate func(job *model.Job)) model.Job
 		SourcePath: "/source",
 		TargetPath: "/target",
 		STRMPath:   "/strm",
-		Options:    "{}",
+		Options:    model.JobOptions{},
 	}
 
 	if mutate != nil {
@@ -138,10 +138,14 @@ func createJob(t *testing.T, db *gorm.DB, mutate func(job *model.Job)) model.Job
 	}
 
 	// 使用 raw SQL 确保所有字段（包括 bool/string 零值）都被正确插入
+	optionsValue, err := job.Options.Value()
+	if err != nil {
+		t.Fatalf("build options value: %v", err)
+	}
 	res := db.Exec(
 		`INSERT INTO jobs (name, enabled, watch_mode, source_path, target_path, strm_path, options, status)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		job.Name, job.Enabled, job.WatchMode, job.SourcePath, job.TargetPath, job.STRMPath, job.Options, job.Status,
+		job.Name, job.Enabled, job.WatchMode, job.SourcePath, job.TargetPath, job.STRMPath, optionsValue, job.Status,
 	)
 	if res.Error != nil {
 		t.Fatalf("create job: %v", res.Error)
@@ -177,7 +181,7 @@ func createDataServer(t *testing.T, db *gorm.DB) model.DataServer {
 		Host:    "localhost",
 		Port:    8080,
 		Enabled: true,
-		Options: "{}",
+		Options: model.DataServerOptions{},
 	}
 
 	if err := db.Create(&server).Error; err != nil {

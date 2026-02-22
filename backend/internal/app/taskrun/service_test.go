@@ -40,7 +40,7 @@ func createJob(t *testing.T, db *gorm.DB) model.Job {
 		SourcePath: "/source",
 		TargetPath: "/target",
 		STRMPath:   "/strm",
-		Options:    "{}",
+		Options:    model.JobOptions{},
 	}
 
 	if err := db.Create(&job).Error; err != nil {

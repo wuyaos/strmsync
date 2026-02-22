@@ -3,7 +3,6 @@ package file
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -25,17 +24,6 @@ const (
 	defaultListMaxDepth = 5  // 默认最大递归深度
 	maxListMaxDepth     = 50 // 最大允许的递归深度
 )
-
-// DataServerOptions DataServer的Options字段结构
-type DataServerOptions struct {
-	Username       string `json:"username"`
-	Password       string `json:"password"`
-	AccessPath     string `json:"access_path"`
-	MountPath      string `json:"mount_path"`
-	STRMMode       string `json:"strm_mode"`
-	TimeoutSeconds int    `json:"timeout_seconds"`
-	BaseURL        string `json:"base_url"`
-}
 
 type fileService struct {
 	db     *gorm.DB
@@ -68,13 +56,7 @@ func (s *fileService) List(ctx context.Context, req ports.FileListRequest) ([]po
 		return nil, fmt.Errorf("%w: id=%d", ErrDataServerDisabled, req.ServerID)
 	}
 
-	// 解析Options
-	var options DataServerOptions
-	if strings.TrimSpace(server.Options) != "" {
-		if err := json.Unmarshal([]byte(server.Options), &options); err != nil {
-			return nil, fmt.Errorf("parse data server options: %w", err)
-		}
-	}
+	options := server.Options
 
 	// 构建filesystem.Config
 	cfg := filesystem.Config{
