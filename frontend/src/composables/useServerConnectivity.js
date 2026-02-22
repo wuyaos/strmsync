@@ -73,11 +73,15 @@ export const useServerConnectivity = (options) => {
     for (const id in connectionStatusMap) {
       if (!validIds.has(String(id))) {
         delete connectionStatusMap[id]
+        delete lastTestAtMap[id]
+        delete inFlightKeyMap[id]
       }
     }
     for (const server of newList) {
       if (!server.enabled || server.type === 'local') {
         delete connectionStatusMap[server.id]
+        delete lastTestAtMap[server.id]
+        delete inFlightKeyMap[server.id]
       }
     }
   }

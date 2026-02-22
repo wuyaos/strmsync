@@ -14,6 +14,7 @@
 - Normalize server id comparison to preserve connectivity status entries when ids mix string and number types.
 - Make server list watching resilient to undefined sources and non-ref inputs.
 - Avoid grouping connectivity checks by host/port to prevent credential-specific misclassification.
+- Clear connectivity caches when servers are removed to avoid stale growth.
 
 ### Changed
 
