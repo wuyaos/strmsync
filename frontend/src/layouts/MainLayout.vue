@@ -75,7 +75,6 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSystemInfo } from '@/composables/useSystemInfo'
 import logoSvg from '@/assets/icons/logo.svg'
-import githubSvg from '@/assets/icons/github.svg'
 import Clock from '~icons/ep/clock'
 import Connection from '~icons/ep/connection'
 import DataAnalysis from '~icons/ep/data-analysis'
@@ -93,6 +92,8 @@ import Sunny from '~icons/ep/sunny'
 const route = useRoute()
 const router = useRouter()
 const { frontendVersion, loadSystemInfo } = useSystemInfo()
+const githubSvg = '/icons/github.svg'
+
 const displayVersion = computed(() => {
   const version = frontendVersion.value || 'unknown'
   return `STRMSync v${version}`
