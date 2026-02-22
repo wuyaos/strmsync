@@ -312,6 +312,12 @@ type WorkerConfig struct {
 	// 单个任务的最大执行时间。0 表示无限制。
 	RunTimeout time.Duration
 
+	// GracePeriod 优雅停机等待时长（可选）
+	//
+	// Stop 时先停止领取新任务，等待在途任务完成。
+	// 超过该时长后会强制取消执行上下文。
+	GracePeriod time.Duration
+
 	// WorkerID Worker 标识（可选，自动生成）
 	//
 	// 用于追踪任务执行的 Worker。

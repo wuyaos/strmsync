@@ -25,6 +25,9 @@ const (
 
 	// defaultClaimTimeout 默认领取超时
 	defaultClaimTimeout = 5 * time.Second
+
+	// defaultGracePeriod 默认优雅停机等待
+	defaultGracePeriod = 10 * time.Second
 )
 
 // WorkerPool 是固定大小的 Worker 执行池
@@ -47,11 +50,14 @@ type WorkerPool struct {
 
 	executor *Executor
 
-	ctx    context.Context
-	cancel context.CancelFunc
-	wg     sync.WaitGroup
+	runCtx      context.Context
+	runCancel   context.CancelFunc
+	claimCtx    context.Context
+	claimCancel context.CancelFunc
+	wg          sync.WaitGroup
 
-	running atomic.Bool
+	running  atomic.Bool
+	stopping atomic.Bool
 }
 
 // NewWorker 创建 WorkerPool
@@ -88,6 +94,12 @@ func NewWorker(cfg WorkerConfig) (*WorkerPool, error) {
 	}
 	if cfg.ClaimTimeout <= 0 {
 		cfg.ClaimTimeout = defaultClaimTimeout
+	}
+	if cfg.GracePeriod < 0 {
+		cfg.GracePeriod = 0
+	}
+	if cfg.GracePeriod == 0 {
+		cfg.GracePeriod = defaultGracePeriod
 	}
 	if cfg.WorkerID == "" {
 		cfg.WorkerID = "worker-" + requestid.NewRequestID()
@@ -130,7 +142,9 @@ func (w *WorkerPool) Start(ctx context.Context) error {
 		ctx = context.Background()
 	}
 
-	w.ctx, w.cancel = context.WithCancel(ctx)
+	w.runCtx, w.runCancel = context.WithCancel(ctx)
+	w.claimCtx, w.claimCancel = context.WithCancel(w.runCtx)
+	w.stopping.Store(false)
 
 	// 启动 Worker goroutines
 	for i := 0; i < w.cfg.Concurrency; i++ {
@@ -159,9 +173,10 @@ func (w *WorkerPool) Stop(ctx context.Context) error {
 		ctx = context.Background()
 	}
 
-	// 取消所有 goroutine
-	if w.cancel != nil {
-		w.cancel()
+	w.stopping.Store(true)
+	// 停止领取新任务
+	if w.claimCancel != nil {
+		w.claimCancel()
 	}
 
 	// 等待所有 goroutine 退出
@@ -171,10 +186,31 @@ func (w *WorkerPool) Stop(ctx context.Context) error {
 		close(waitCh)
 	}()
 
+	graceTimer := (*time.Timer)(nil)
+	if w.cfg.GracePeriod > 0 {
+		graceTimer = time.NewTimer(w.cfg.GracePeriod)
+		defer graceTimer.Stop()
+	}
+
 	select {
 	case <-waitCh:
 	case <-ctx.Done():
+		if w.runCancel != nil {
+			w.runCancel()
+		}
 		return fmt.Errorf("worker: stop cancelled: %w", ctx.Err())
+	case <-graceTimer.C:
+		if w.runCancel != nil {
+			w.runCancel()
+		}
+	}
+
+	if w.stopping.Load() {
+		select {
+		case <-waitCh:
+		case <-ctx.Done():
+			return fmt.Errorf("worker: stop cancelled: %w", ctx.Err())
+		}
 	}
 
 	w.log.Info("任务执行器停止")
@@ -196,20 +232,30 @@ func (w *WorkerPool) runLoop(index int) {
 	for {
 		// 检查 context 是否取消
 		select {
-		case <-w.ctx.Done():
+		case <-w.runCtx.Done():
 			return
 		default:
 		}
 
 		// 领取任务
+		if w.stopping.Load() {
+			return
+		}
+
 		task, err := w.claimNext()
 		if err != nil {
+			if w.stopping.Load() {
+				return
+			}
 			log.Warn("claim next failed", zap.Error(err))
 			w.sleepWithContext(w.cfg.PollInterval)
 			continue
 		}
 		if task == nil {
 			// 没有可用任务，等待后重试
+			if w.stopping.Load() {
+				return
+			}
 			w.sleepWithContext(w.cfg.PollInterval)
 			continue
 		}
@@ -223,6 +269,9 @@ func (w *WorkerPool) runLoop(index int) {
 				zap.String("job_name", jobName),
 				zap.Error(err))
 		}
+		if w.stopping.Load() {
+			return
+		}
 	}
 }
 
@@ -230,10 +279,10 @@ func (w *WorkerPool) runLoop(index int) {
 //
 // 使用 ClaimTimeout 控制超时。
 func (w *WorkerPool) claimNext() (*model.TaskRun, error) {
-	claimCtx := w.ctx
+	claimCtx := w.claimCtx
 	var cancel context.CancelFunc
 	if w.cfg.ClaimTimeout > 0 {
-		claimCtx, cancel = context.WithTimeout(w.ctx, w.cfg.ClaimTimeout)
+		claimCtx, cancel = context.WithTimeout(w.claimCtx, w.cfg.ClaimTimeout)
 	}
 	if cancel != nil {
 		defer cancel()
@@ -260,10 +309,10 @@ func (w *WorkerPool) executeTask(log *zap.Logger, task *model.TaskRun) error {
 		zap.String("job_name", jobName),
 	)
 
-	execCtx := w.ctx
+	execCtx := w.runCtx
 	var cancel context.CancelFunc
 	if w.cfg.RunTimeout > 0 {
-		execCtx, cancel = context.WithTimeout(w.ctx, w.cfg.RunTimeout)
+		execCtx, cancel = context.WithTimeout(w.runCtx, w.cfg.RunTimeout)
 	}
 	if cancel != nil {
 		defer cancel()
@@ -332,7 +381,7 @@ func (w *WorkerPool) sleepWithContext(d time.Duration) {
 	timer := time.NewTimer(d)
 	defer timer.Stop()
 	select {
-	case <-w.ctx.Done():
+	case <-w.runCtx.Done():
 	case <-timer.C:
 	}
 }
