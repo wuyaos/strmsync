@@ -91,7 +91,7 @@ export const useServerConnectivity = (options) => {
       if (Array.isArray(newList)) {
         handleListChange(newList)
       }
-    })
+    }, { deep: true })
   }
 
   onMounted(() => {

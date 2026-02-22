@@ -17,6 +17,7 @@
 - Clear connectivity caches when servers are removed to avoid stale growth.
 - Trigger connectivity checks immediately on mount to avoid initial unknown state.
 - Add a small tolerance window to avoid interval jitter skipping checks.
+- Watch server list deeply to react to in-place mutations.
 
 ### Changed
 
