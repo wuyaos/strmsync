@@ -24,6 +24,10 @@
 - Reduce reactive overhead for internal connectivity caches.
 - Ensure in-flight markers are cleared even during unmount short-circuit.
 - Remove redundant per-server in-flight tracking under global polling lock.
+- Mark local servers as always reachable in connectivity status.
+- Queue a pending refresh when list changes while polling is in-flight.
+- Switch polling to recursive timeouts for accurate spacing.
+- Extract polling tolerance into a named constant.
 
 ### Changed
 

@@ -11,10 +11,13 @@ export const useServerConnectivity = (options) => {
   const pollingInFlight = ref(false)
   const lastTestAtMap = {}
   const isUnmounted = ref(false)
+  const pendingRefresh = ref(false)
   const localServerType = 'local'
+  const pollToleranceMs = 500
 
   const getConnectionStatus = (server) => {
     if (!server?.enabled) return 'status-disabled'
+    if (server?.type === localServerType) return 'status-success'
     const cached = connectionStatusMap[server.id]
     if (cached) return 'status-' + cached
     return 'status-unknown'
@@ -26,7 +29,10 @@ export const useServerConnectivity = (options) => {
   }
 
   const refreshConnectionStatus = async () => {
-    if (pollingInFlight.value) return
+    if (pollingInFlight.value) {
+      pendingRefresh.value = true
+      return
+    }
     const list = unref(serverListRef) || []
     const targets = list.filter(server => server.enabled && server.type !== localServerType)
     if (targets.length === 0) return
@@ -40,42 +46,50 @@ export const useServerConnectivity = (options) => {
         const key = String(server.id ?? '')
         if (!key) continue
         const lastAt = lastTestAtMap[key] || 0
-        if (now - lastAt < intervalMs - 500) continue
+        if (now - lastAt < intervalMs - pollToleranceMs) continue
         queue.push({ key, server })
       }
 
       const workerCount = Math.min(maxConcurrentTests, queue.length)
       const workers = Array.from({ length: workerCount }, async () => {
-        while (queue.length > 0) {
-          if (isUnmounted.value) break
-          const item = queue.shift()
-          if (!item) return
-          try {
-            const result = await testServerSilent(item.server.id, item.server.type)
-            const ok = result === true
-            const status = ok ? 'success' : 'error'
-            if (!isUnmounted.value) {
-              connectionStatusMap[item.key] = status
-            }
-          } catch (error) {
-            if (!isUnmounted.value) {
-              connectionStatusMap[item.key] = 'error'
-              if (import.meta?.env?.DEV) {
-                console.debug('服务器连通性检测失败:', error)
+        try {
+          while (queue.length > 0) {
+            if (isUnmounted.value) break
+            const item = queue.shift()
+            if (!item) return
+            try {
+              const result = await testServerSilent(item.server.id, item.server.type)
+              const ok = result === true
+              const status = ok ? 'success' : 'error'
+              if (!isUnmounted.value) {
+                connectionStatusMap[item.key] = status
+              }
+            } catch (error) {
+              if (!isUnmounted.value) {
+                connectionStatusMap[item.key] = 'error'
+                if (import.meta?.env?.DEV) {
+                  console.debug('服务器连通性检测失败:', error)
+                }
+              }
+            } finally {
+              if (!isUnmounted.value) {
+                lastTestAtMap[item.key] = Date.now()
               }
             }
-          } finally {
-            if (!isUnmounted.value) {
-              lastTestAtMap[item.key] = Date.now()
-            }
+            if (isUnmounted.value) break
           }
-          if (isUnmounted.value) break
+        } catch (error) {
+          console.error('服务器连通性检测任务异常:', error)
         }
       })
 
       await Promise.all(workers)
     } finally {
       pollingInFlight.value = false
+      if (pendingRefresh.value && !isUnmounted.value) {
+        pendingRefresh.value = false
+        refreshConnectionStatus()
+      }
     }
   }
 
@@ -106,17 +120,23 @@ export const useServerConnectivity = (options) => {
     }, { deep: true })
   }
 
+  const scheduleNext = () => {
+    if (isUnmounted.value) return
+    pollingTimer.value = setTimeout(async () => {
+      await refreshConnectionStatus()
+      scheduleNext()
+    }, intervalMs)
+  }
+
   onMounted(() => {
     refreshConnectionStatus()
-    pollingTimer.value = setInterval(() => {
-      refreshConnectionStatus()
-    }, intervalMs)
+    scheduleNext()
   })
 
   onUnmounted(() => {
     isUnmounted.value = true
     if (pollingTimer.value) {
-      clearInterval(pollingTimer.value)
+      clearTimeout(pollingTimer.value)
       pollingTimer.value = null
     }
   })
