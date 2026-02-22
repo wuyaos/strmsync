@@ -9,8 +9,8 @@ export const useServerConnectivity = (options) => {
   const connectionStatusMap = reactive({})
   const pollingTimer = ref(null)
   const pollingInFlight = ref(false)
-  const lastTestAtMap = reactive({})
-  const inFlightKeyMap = reactive({})
+  const lastTestAtMap = {}
+  const inFlightKeyMap = {}
   const isUnmounted = ref(false)
   const localServerType = 'local'
 
@@ -49,26 +49,31 @@ export const useServerConnectivity = (options) => {
       const workerCount = Math.min(maxConcurrentTests, queue.length)
       const workers = Array.from({ length: workerCount }, async () => {
         while (queue.length > 0) {
-          if (isUnmounted.value) return
+          if (isUnmounted.value) break
           const item = queue.shift()
           if (!item) return
           inFlightKeyMap[item.key] = true
           try {
             const result = await testServerSilent(item.server.id, item.server.type)
-            if (isUnmounted.value) return
             const ok = result === true
             const status = ok ? 'success' : 'error'
-            connectionStatusMap[item.key] = status
+            if (!isUnmounted.value) {
+              connectionStatusMap[item.key] = status
+            }
           } catch (error) {
-            if (isUnmounted.value) return
-            connectionStatusMap[item.key] = 'error'
-            if (import.meta?.env?.DEV) {
-              console.debug('服务器连通性检测失败:', error)
+            if (!isUnmounted.value) {
+              connectionStatusMap[item.key] = 'error'
+              if (import.meta?.env?.DEV) {
+                console.debug('服务器连通性检测失败:', error)
+              }
             }
           } finally {
-            lastTestAtMap[item.key] = Date.now()
+            if (!isUnmounted.value) {
+              lastTestAtMap[item.key] = Date.now()
+            }
             delete inFlightKeyMap[item.key]
           }
+          if (isUnmounted.value) break
         }
       })
 
@@ -102,6 +107,7 @@ export const useServerConnectivity = (options) => {
     watch(() => unref(serverListRef), (newList) => {
       if (Array.isArray(newList)) {
         handleListChange(newList)
+        refreshConnectionStatus()
       }
     }, { deep: true })
   }

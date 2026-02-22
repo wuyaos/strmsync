@@ -20,6 +20,9 @@
 - Watch server list deeply to react to in-place mutations.
 - Tighten connectivity success criteria and standardize id keys; add dev-only failure logs.
 - Stop updating connectivity state after unmount and avoid excess workers when queue is small.
+- Trigger connectivity checks after list mutations to avoid stale unknown states.
+- Reduce reactive overhead for internal connectivity caches.
+- Ensure in-flight markers are cleared even during unmount short-circuit.
 
 ### Changed
 
