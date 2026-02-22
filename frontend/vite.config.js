@@ -58,7 +58,23 @@ export default defineConfig({
     // 生成 manifest.json 用于资源映射
     manifest: false,
     // 开启代码压缩
-    minify: 'esbuild'
+    minify: 'esbuild',
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (id.includes('node_modules/echarts')) return 'echarts'
+          if (id.includes('node_modules/element-plus') || id.includes('node_modules/@element-plus')) {
+            return 'element-plus'
+          }
+          if (id.includes('node_modules/dayjs')) return 'dayjs'
+          if (id.includes('node_modules/vue') || id.includes('node_modules/pinia') || id.includes('node_modules/vue-router')) {
+            return 'vue'
+          }
+          return 'vendor'
+        }
+      }
+    }
   },
   server: {
     port: frontendPort,
