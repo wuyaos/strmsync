@@ -339,7 +339,8 @@ func (h *JobHandler) CreateJob(c *gin.Context) {
 	}
 
 	logPayload := buildJobLogPayload(req)
-	h.logger.Debug(fmt.Sprintf("创建任务请求：%s", strings.TrimSpace(req.Name)),
+	h.logger.Info("创建任务请求",
+		zap.String("name", strings.TrimSpace(req.Name)),
 		zap.Any("payload", logPayload))
 
 	job := model.Job{
@@ -363,7 +364,8 @@ func (h *JobHandler) CreateJob(c *gin.Context) {
 			respondError(c, http.StatusConflict, "duplicate_name", "任务名称已存在", nil)
 			return
 		}
-		h.logger.Error(fmt.Sprintf("创建任务「%s」失败", job.Name),
+		h.logger.Error("创建任务失败",
+			zap.String("name", job.Name),
 			zap.Error(err),
 			zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
 				"name":       job.Name,
@@ -375,7 +377,7 @@ func (h *JobHandler) CreateJob(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info(fmt.Sprintf("创建任务「%s」成功", job.Name),
+	h.logger.Info("创建任务成功",
 		zap.Uint("id", job.ID),
 		zap.String("name", job.Name),
 		zap.String("watch_mode", job.WatchMode),
@@ -589,8 +591,9 @@ func (h *JobHandler) UpdateJob(c *gin.Context) {
 	}
 
 	logPayload := buildJobLogPayload(req)
-	h.logger.Debug(fmt.Sprintf("更新任务请求：%s", newName),
+	h.logger.Info("更新任务请求",
 		zap.Uint("id", job.ID),
+		zap.String("name", newName),
 		zap.Any("payload", logPayload))
 
 	// 更新字段
@@ -614,7 +617,8 @@ func (h *JobHandler) UpdateJob(c *gin.Context) {
 			respondError(c, http.StatusConflict, "duplicate_name", "任务名称已存在", nil)
 			return
 		}
-		h.logger.Error(fmt.Sprintf("更新任务「%s」失败", job.Name),
+		h.logger.Error("更新任务失败",
+			zap.String("name", job.Name),
 			zap.Error(err),
 			zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
 				"id":         job.ID,
@@ -625,7 +629,7 @@ func (h *JobHandler) UpdateJob(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info(fmt.Sprintf("更新任务「%s」成功", job.Name),
+	h.logger.Info("更新任务成功",
 		zap.Uint("id", job.ID),
 		zap.String("name", job.Name),
 		zap.String("watch_mode", job.WatchMode),
@@ -681,11 +685,16 @@ func (h *JobHandler) DeleteJob(c *gin.Context) {
 		return
 	}
 
-	h.logger.Debug(fmt.Sprintf("删除任务请求：%s", job.Name), zap.Uint64("id", id))
+	h.logger.Info("删除任务请求",
+		zap.String("name", job.Name),
+		zap.Uint64("id", id))
 
 	result := h.db.Delete(&job)
 	if result.Error != nil {
-		h.logger.Error(fmt.Sprintf("删除任务「%s」失败", job.Name), zap.Error(result.Error), zap.Uint64("id", id))
+		h.logger.Error("删除任务失败",
+			zap.String("name", job.Name),
+			zap.Error(result.Error),
+			zap.Uint64("id", id))
 		respondError(c, http.StatusInternalServerError, "db_error", "删除失败", nil)
 		return
 	}
@@ -694,7 +703,9 @@ func (h *JobHandler) DeleteJob(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info(fmt.Sprintf("删除任务「%s」成功", job.Name), zap.Uint64("id", id))
+	h.logger.Info("删除任务成功",
+		zap.String("name", job.Name),
+		zap.Uint64("id", id))
 
 	// 通知调度器
 	if h.scheduler != nil {
@@ -738,7 +749,7 @@ func (h *JobHandler) RunJob(c *gin.Context) {
 	}
 
 	optionsLog := buildOptionsLog(job.Options)
-	h.logger.Debug(fmt.Sprintf("手动触发任务执行请求：%s", job.Name),
+	h.logger.Info("手动触发任务执行请求",
 		zap.Uint("job_id", job.ID),
 		zap.String("name", job.Name),
 		zap.String("watch_mode", job.WatchMode),
@@ -780,10 +791,13 @@ func (h *JobHandler) RunJob(c *gin.Context) {
 		"last_run_at": &now,
 		"status":      string(JobStatusRunning),
 	}).Error; err != nil {
-		h.logger.Warn(fmt.Sprintf("更新任务状态失败：%s", job.Name), zap.Error(err), zap.Uint("job_id", job.ID))
+		h.logger.Warn("更新任务状态失败",
+			zap.String("name", job.Name),
+			zap.Error(err),
+			zap.Uint("job_id", job.ID))
 	}
 
-	h.logger.Info(fmt.Sprintf("触发任务运行成功：%s", job.Name),
+	h.logger.Info("触发任务运行成功",
 		zap.Uint("job_id", job.ID),
 		zap.Uint("task_run_id", taskRun.ID),
 		zap.String("name", job.Name),
@@ -861,10 +875,13 @@ func (h *JobHandler) StopJob(c *gin.Context) {
 
 	// 更新Job状态为idle
 	if err := h.db.Model(&job).Update("status", string(JobStatusIdle)).Error; err != nil {
-		h.logger.Warn(fmt.Sprintf("更新任务状态失败：%s", job.Name), zap.Error(err), zap.Uint("job_id", job.ID))
+		h.logger.Warn("更新任务状态失败",
+			zap.String("name", job.Name),
+			zap.Error(err),
+			zap.Uint("job_id", job.ID))
 	}
 
-	h.logger.Info(fmt.Sprintf("停止任务成功：%s", job.Name),
+	h.logger.Info("停止任务成功",
 		zap.Uint("job_id", job.ID),
 		zap.String("name", job.Name),
 		zap.Int("cancelled_count", len(cancelledTasks)))
@@ -902,13 +919,16 @@ func (h *JobHandler) EnableJob(c *gin.Context) {
 	}
 
 	if err := h.db.Model(&job).Update("enabled", true).Error; err != nil {
-		h.logger.Error(fmt.Sprintf("启用任务「%s」失败", job.Name), zap.Error(err), zap.Uint("job_id", job.ID))
+		h.logger.Error("启用任务失败",
+			zap.String("name", job.Name),
+			zap.Error(err),
+			zap.Uint("job_id", job.ID))
 		respondError(c, http.StatusInternalServerError, "db_error", "更新失败", nil)
 		return
 	}
 	job.Enabled = true
 
-	h.logger.Info(fmt.Sprintf("启用任务「%s」成功", job.Name),
+	h.logger.Info("启用任务成功",
 		zap.Uint("job_id", job.ID),
 		zap.String("name", job.Name))
 
@@ -950,13 +970,16 @@ func (h *JobHandler) DisableJob(c *gin.Context) {
 	}
 
 	if err := h.db.Model(&job).Update("enabled", false).Error; err != nil {
-		h.logger.Error(fmt.Sprintf("禁用任务「%s」失败", job.Name), zap.Error(err), zap.Uint("job_id", job.ID))
+		h.logger.Error("禁用任务失败",
+			zap.String("name", job.Name),
+			zap.Error(err),
+			zap.Uint("job_id", job.ID))
 		respondError(c, http.StatusInternalServerError, "db_error", "更新失败", nil)
 		return
 	}
 	job.Enabled = false
 
-	h.logger.Info(fmt.Sprintf("禁用任务「%s」成功", job.Name),
+	h.logger.Info("禁用任务成功",
 		zap.Uint("job_id", job.ID),
 		zap.String("name", job.Name))
 

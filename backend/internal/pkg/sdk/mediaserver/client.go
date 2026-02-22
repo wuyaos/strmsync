@@ -122,7 +122,7 @@ func NewClient(config Config, opts ...Option) (Client, error) {
 		apiKey:     strings.TrimSpace(config.APIKey),
 		timeout:    timeout,
 		httpClient: &http.Client{Timeout: timeout},
-		logger:     logger.L(), // 默认使用全局logger
+		logger:     logger.WithModule("mediaserver"), // 默认使用全局logger
 		adapter:    adapter,
 	}
 
@@ -136,7 +136,7 @@ func NewClient(config Config, opts ...Option) (Client, error) {
 		client.httpClient = &http.Client{Timeout: timeout}
 	}
 	if client.logger == nil {
-		client.logger = logger.L()
+		client.logger = logger.WithModule("mediaserver")
 	}
 
 	return client, nil

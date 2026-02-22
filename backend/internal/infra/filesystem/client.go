@@ -140,7 +140,7 @@ func NewClient(config Config, opts ...Option) (Client, error) {
 		Config:     config,
 		BaseURL:    parsedURL,
 		HTTPClient: &http.Client{Timeout: timeout},
-		Logger:     logger.L(),
+		Logger:     logger.WithModule("filesystem"),
 	}
 
 	// 应用可选配置
@@ -153,7 +153,7 @@ func NewClient(config Config, opts ...Option) (Client, error) {
 		client.HTTPClient = &http.Client{Timeout: timeout}
 	}
 	if client.Logger == nil {
-		client.Logger = logger.L()
+		client.Logger = logger.WithModule("filesystem")
 	}
 
 	// 创建 Provider

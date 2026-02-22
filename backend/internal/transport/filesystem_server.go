@@ -128,7 +128,8 @@ func (h *DataServerHandler) CreateDataServer(c *gin.Context) {
 		server.Port = 0
 	}
 
-	h.logger.Debug(fmt.Sprintf("创建数据服务器请求：%s", server.Name),
+	h.logger.Info("创建数据服务器请求",
+		zap.String("name", server.Name),
 		zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
 			"name":                   server.Name,
 			"type":                   server.Type,
@@ -155,8 +156,9 @@ func (h *DataServerHandler) CreateDataServer(c *gin.Context) {
 			respondError(c, http.StatusConflict, "duplicate_name", "服务器名称已存在", nil)
 			return
 		}
-		h.logger.Error(fmt.Sprintf("创建数据服务器「%s」失败", server.Name),
-			zap.Error(err),
+	h.logger.Error("创建数据服务器失败",
+		zap.String("name", server.Name),
+		zap.Error(err),
 			zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
 				"name":    server.Name,
 				"type":    server.Type,
@@ -168,7 +170,7 @@ func (h *DataServerHandler) CreateDataServer(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info(fmt.Sprintf("创建数据服务器「%s」成功", server.Name),
+	h.logger.Info("创建数据服务器成功",
 		zap.Uint("id", server.ID),
 		zap.String("name", server.Name),
 		zap.String("type", server.Type),
@@ -338,8 +340,9 @@ func (h *DataServerHandler) UpdateDataServer(c *gin.Context) {
 		server.Port = 0
 	}
 
-	h.logger.Debug(fmt.Sprintf("更新数据服务器请求：%s", server.Name),
+	h.logger.Info("更新数据服务器请求",
 		zap.Uint("id", server.ID),
+		zap.String("name", server.Name),
 		zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
 			"name":                   server.Name,
 			"type":                   server.Type,
@@ -366,7 +369,8 @@ func (h *DataServerHandler) UpdateDataServer(c *gin.Context) {
 			respondError(c, http.StatusConflict, "duplicate_name", "服务器名称已存在", nil)
 			return
 		}
-		h.logger.Error(fmt.Sprintf("更新数据服务器「%s」失败", server.Name),
+		h.logger.Error("更新数据服务器失败",
+			zap.String("name", server.Name),
 			zap.Error(err),
 			zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
 				"id":      server.ID,
@@ -380,7 +384,7 @@ func (h *DataServerHandler) UpdateDataServer(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info(fmt.Sprintf("更新数据服务器「%s」成功", server.Name),
+	h.logger.Info("更新数据服务器成功",
 		zap.Uint("id", server.ID),
 		zap.String("name", server.Name),
 		zap.String("type", server.Type),
@@ -389,7 +393,7 @@ func (h *DataServerHandler) UpdateDataServer(c *gin.Context) {
 		zap.Bool("enabled", server.Enabled))
 
 	if previousEnabled != server.Enabled {
-		h.logger.Info(fmt.Sprintf("数据服务器状态变更：%s", server.Name),
+		h.logger.Info("数据服务器状态变更",
 			zap.Uint("id", server.ID),
 			zap.String("name", server.Name),
 			zap.Bool("enabled", server.Enabled))
@@ -434,10 +438,15 @@ func (h *DataServerHandler) DeleteDataServer(c *gin.Context) {
 	}
 
 	// 执行删除
-	h.logger.Debug(fmt.Sprintf("删除数据服务器请求：%s", server.Name), zap.Uint64("id", id))
+	h.logger.Info("删除数据服务器请求",
+		zap.String("name", server.Name),
+		zap.Uint64("id", id))
 	result := h.db.Delete(&server)
 	if result.Error != nil {
-		h.logger.Error(fmt.Sprintf("删除数据服务器「%s」失败", server.Name), zap.Error(result.Error), zap.Uint64("id", id))
+		h.logger.Error("删除数据服务器失败",
+			zap.String("name", server.Name),
+			zap.Error(result.Error),
+			zap.Uint64("id", id))
 		respondError(c, http.StatusInternalServerError, "db_error", "删除失败", nil)
 		return
 	}
@@ -447,7 +456,9 @@ func (h *DataServerHandler) DeleteDataServer(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info(fmt.Sprintf("删除数据服务器「%s」成功", server.Name), zap.Uint64("id", id))
+	h.logger.Info("删除数据服务器成功",
+		zap.String("name", server.Name),
+		zap.Uint64("id", id))
 	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
 }
 
@@ -473,7 +484,7 @@ func (h *DataServerHandler) TestDataServerConnection(c *gin.Context) {
 
 	// 检查是否已启用
 	if !server.Enabled {
-		h.logger.Debug(fmt.Sprintf("尝试测试已禁用的数据服务器：%s", server.Name),
+		h.logger.Debug("尝试测试已禁用的数据服务器",
 			zap.Uint("id", server.ID),
 			zap.String("name", server.Name))
 		c.JSON(http.StatusOK, ConnectionTestResult{
@@ -503,7 +514,7 @@ func (h *DataServerHandler) TestDataServerConnection(c *gin.Context) {
 			zap.Int("port", server.Port))
 	}
 
-	h.logger.Debug(fmt.Sprintf("开始测试数据服务器连接：%s", server.Name),
+	h.logger.Debug("开始测试数据服务器连接",
 		zap.Uint("id", server.ID),
 		zap.String("name", server.Name),
 		zap.String("type", server.Type),
@@ -521,8 +532,9 @@ func (h *DataServerHandler) TestDataServerConnection(c *gin.Context) {
 		return
 	}
 
-	h.logger.Debug(fmt.Sprintf("测试数据服务器连接完成：%s", server.Name),
+	h.logger.Debug("测试数据服务器连接完成",
 		zap.Uint("id", server.ID),
+		zap.String("name", server.Name),
 		zap.String("type", server.Type),
 		zap.Bool("success", result.Success),
 		zap.Int64("latency_ms", result.LatencyMs))
@@ -563,7 +575,8 @@ func (h *DataServerHandler) TestDataServerTemp(c *gin.Context) {
 		server.Port = 0
 	}
 
-	h.logger.Debug(fmt.Sprintf("临时测试数据服务器连接请求：%s", server.Name),
+	h.logger.Debug("临时测试数据服务器连接请求",
+		zap.String("name", server.Name),
 		zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
 			"name":    server.Name,
 			"type":    server.Type,
@@ -590,7 +603,8 @@ func (h *DataServerHandler) TestDataServerTemp(c *gin.Context) {
 		return
 	}
 
-	h.logger.Debug(fmt.Sprintf("临时测试数据服务器连接完成：%s", server.Name),
+	h.logger.Debug("临时测试数据服务器连接完成",
+		zap.String("name", server.Name),
 		zap.String("type", server.Type),
 		zap.Bool("success", result.Success),
 		zap.Int64("latency_ms", result.LatencyMs))

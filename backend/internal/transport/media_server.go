@@ -117,7 +117,8 @@ func (h *MediaServerHandler) CreateMediaServer(c *gin.Context) {
 		APIRetryIntervalSec: apiRetryIntervalSec,
 	}
 
-	h.logger.Debug(fmt.Sprintf("创建媒体服务器请求：%s", server.Name),
+	h.logger.Info("创建媒体服务器请求",
+		zap.String("name", server.Name),
 		zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
 			"name":                   server.Name,
 			"type":                   server.Type,
@@ -139,7 +140,8 @@ func (h *MediaServerHandler) CreateMediaServer(c *gin.Context) {
 			respondError(c, http.StatusConflict, "duplicate_name", "服务器名称已存在", nil)
 			return
 		}
-		h.logger.Error(fmt.Sprintf("创建媒体服务器「%s」失败", server.Name),
+		h.logger.Error("创建媒体服务器失败",
+			zap.String("name", server.Name),
 			zap.Error(err),
 			zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
 				"name":    server.Name,
@@ -152,7 +154,7 @@ func (h *MediaServerHandler) CreateMediaServer(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info(fmt.Sprintf("创建媒体服务器「%s」成功", server.Name),
+	h.logger.Info("创建媒体服务器成功",
 		zap.Uint("id", server.ID),
 		zap.String("name", server.Name),
 		zap.String("type", server.Type),
@@ -330,8 +332,9 @@ func (h *MediaServerHandler) UpdateMediaServer(c *gin.Context) {
 		server.APIRetryIntervalSec = *req.APIRetryIntervalSec
 	}
 
-	h.logger.Debug(fmt.Sprintf("更新媒体服务器请求：%s", server.Name),
+	h.logger.Info("更新媒体服务器请求",
 		zap.Uint("id", server.ID),
+		zap.String("name", server.Name),
 		zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
 			"name":                   server.Name,
 			"type":                   server.Type,
@@ -353,7 +356,8 @@ func (h *MediaServerHandler) UpdateMediaServer(c *gin.Context) {
 			respondError(c, http.StatusConflict, "duplicate_name", "服务器名称已存在", nil)
 			return
 		}
-		h.logger.Error(fmt.Sprintf("更新媒体服务器「%s」失败", server.Name),
+		h.logger.Error("更新媒体服务器失败",
+			zap.String("name", server.Name),
 			zap.Error(err),
 			zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
 				"id":      server.ID,
@@ -367,7 +371,7 @@ func (h *MediaServerHandler) UpdateMediaServer(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info(fmt.Sprintf("更新媒体服务器「%s」成功", server.Name),
+	h.logger.Info("更新媒体服务器成功",
 		zap.Uint("id", server.ID),
 		zap.String("name", server.Name),
 		zap.String("type", server.Type),
@@ -376,7 +380,7 @@ func (h *MediaServerHandler) UpdateMediaServer(c *gin.Context) {
 		zap.Bool("enabled", server.Enabled))
 
 	if previousEnabled != server.Enabled {
-		h.logger.Info(fmt.Sprintf("媒体服务器状态变更：%s", server.Name),
+		h.logger.Info("媒体服务器状态变更",
 			zap.Uint("id", server.ID),
 			zap.String("name", server.Name),
 			zap.Bool("enabled", server.Enabled))
@@ -421,10 +425,15 @@ func (h *MediaServerHandler) DeleteMediaServer(c *gin.Context) {
 	}
 
 	// 执行删除
-	h.logger.Debug(fmt.Sprintf("删除媒体服务器请求：%s", server.Name), zap.Uint64("id", id))
+	h.logger.Info("删除媒体服务器请求",
+		zap.String("name", server.Name),
+		zap.Uint64("id", id))
 	result := h.db.Delete(&server)
 	if result.Error != nil {
-		h.logger.Error(fmt.Sprintf("删除媒体服务器「%s」失败", server.Name), zap.Error(result.Error), zap.Uint64("id", id))
+		h.logger.Error("删除媒体服务器失败",
+			zap.String("name", server.Name),
+			zap.Error(result.Error),
+			zap.Uint64("id", id))
 		respondError(c, http.StatusInternalServerError, "db_error", "删除失败", nil)
 		return
 	}
@@ -434,7 +443,9 @@ func (h *MediaServerHandler) DeleteMediaServer(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info(fmt.Sprintf("删除媒体服务器「%s」成功", server.Name), zap.Uint64("id", id))
+	h.logger.Info("删除媒体服务器成功",
+		zap.String("name", server.Name),
+		zap.Uint64("id", id))
 	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
 }
 
@@ -460,7 +471,7 @@ func (h *MediaServerHandler) TestMediaServerConnection(c *gin.Context) {
 
 	// 检查是否已启用
 	if !server.Enabled {
-		h.logger.Debug(fmt.Sprintf("尝试测试已禁用的媒体服务器：%s", server.Name),
+		h.logger.Debug("尝试测试已禁用的媒体服务器",
 			zap.Uint("id", server.ID),
 			zap.String("name", server.Name))
 		c.JSON(http.StatusOK, ConnectionTestResult{
@@ -483,14 +494,14 @@ func (h *MediaServerHandler) TestMediaServerConnection(c *gin.Context) {
 
 	// 如果是内网地址，记录警告但允许访问
 	if isPrivate {
-		h.logger.Debug("测试内网地址（SSRF风险）",
+		h.logger.Info("测试内网地址（SSRF风险）",
 			zap.Uint("id", server.ID),
 			zap.String("name", server.Name),
 			zap.String("host", server.Host),
 			zap.Int("port", server.Port))
 	}
 
-	h.logger.Debug(fmt.Sprintf("开始测试媒体服务器连接：%s", server.Name),
+	h.logger.Debug("开始测试媒体服务器连接",
 		zap.Uint("id", server.ID),
 		zap.String("name", server.Name),
 		zap.String("type", server.Type),
@@ -510,8 +521,9 @@ func (h *MediaServerHandler) TestMediaServerConnection(c *gin.Context) {
 		return
 	}
 
-	h.logger.Debug(fmt.Sprintf("测试媒体服务器连接完成：%s", server.Name),
+	h.logger.Debug("测试媒体服务器连接完成",
 		zap.Uint("id", server.ID),
+		zap.String("name", server.Name),
 		zap.String("type", server.Type),
 		zap.Bool("success", result.Success),
 		zap.Int64("latency_ms", result.LatencyMs))
@@ -740,7 +752,8 @@ func (h *MediaServerHandler) TestMediaServerTemp(c *gin.Context) {
 		Options: req.Options,
 	}
 
-	h.logger.Debug(fmt.Sprintf("临时测试媒体服务器连接请求：%s", server.Name),
+	h.logger.Debug("临时测试媒体服务器连接请求",
+		zap.String("name", server.Name),
 		zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
 			"name":    server.Name,
 			"type":    server.Type,
@@ -762,7 +775,7 @@ func (h *MediaServerHandler) TestMediaServerTemp(c *gin.Context) {
 
 	// 如果是内网地址，记录警告但允许访问
 	if isPrivate {
-		h.logger.Debug("测试内网地址（SSRF风险）",
+		h.logger.Info("测试内网地址（SSRF风险）",
 			zap.String("host", server.Host),
 			zap.Int("port", server.Port))
 	}
@@ -780,7 +793,8 @@ func (h *MediaServerHandler) TestMediaServerTemp(c *gin.Context) {
 		return
 	}
 
-	h.logger.Debug(fmt.Sprintf("临时测试媒体服务器连接完成：%s", server.Name),
+	h.logger.Debug("临时测试媒体服务器连接完成",
+		zap.String("name", server.Name),
 		zap.String("type", server.Type),
 		zap.Bool("success", result.Success),
 		zap.Int64("latency_ms", result.LatencyMs))
