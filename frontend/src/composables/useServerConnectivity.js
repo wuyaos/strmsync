@@ -10,7 +10,6 @@ export const useServerConnectivity = (options) => {
   const pollingTimer = ref(null)
   const pollingInFlight = ref(false)
   const lastTestAtMap = {}
-  const inFlightKeyMap = {}
   const isUnmounted = ref(false)
   const localServerType = 'local'
 
@@ -42,7 +41,6 @@ export const useServerConnectivity = (options) => {
         if (!key) continue
         const lastAt = lastTestAtMap[key] || 0
         if (now - lastAt < intervalMs - 500) continue
-        if (inFlightKeyMap[key]) continue
         queue.push({ key, server })
       }
 
@@ -52,7 +50,6 @@ export const useServerConnectivity = (options) => {
           if (isUnmounted.value) break
           const item = queue.shift()
           if (!item) return
-          inFlightKeyMap[item.key] = true
           try {
             const result = await testServerSilent(item.server.id, item.server.type)
             const ok = result === true
@@ -71,7 +68,6 @@ export const useServerConnectivity = (options) => {
             if (!isUnmounted.value) {
               lastTestAtMap[item.key] = Date.now()
             }
-            delete inFlightKeyMap[item.key]
           }
           if (isUnmounted.value) break
         }
@@ -89,7 +85,6 @@ export const useServerConnectivity = (options) => {
       if (!validIds.has(String(id))) {
         delete connectionStatusMap[id]
         delete lastTestAtMap[id]
-        delete inFlightKeyMap[id]
       }
     }
     for (const server of newList) {
@@ -98,7 +93,6 @@ export const useServerConnectivity = (options) => {
         if (!key) continue
         delete connectionStatusMap[key]
         delete lastTestAtMap[key]
-        delete inFlightKeyMap[key]
       }
     }
   }

@@ -23,6 +23,7 @@
 - Trigger connectivity checks after list mutations to avoid stale unknown states.
 - Reduce reactive overhead for internal connectivity caches.
 - Ensure in-flight markers are cleared even during unmount short-circuit.
+- Remove redundant per-server in-flight tracking under global polling lock.
 
 ### Changed
 
