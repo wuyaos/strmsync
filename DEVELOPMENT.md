@@ -118,6 +118,18 @@ make dev
 
 开发环境默认读取 `tests/.env.test`，日志与数据库目录位于 `tests/` 下。
 
+### Git Hooks 设置（必需）
+
+为保证 README 版本徽章与 `VERSION` 同步，请在首次克隆后执行一次：
+
+```bash
+./scripts/setup-hooks.sh
+```
+
+该脚本会：
+- 设置 `git config core.hooksPath .githooks`
+- 确保 `.githooks/pre-commit` 可执行
+
 ### 合并部署构建
 
 ```bash

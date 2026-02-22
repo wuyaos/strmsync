@@ -12,5 +12,10 @@ if ! grep -q "Version-" README.md; then
   exit 0
 fi
 
-sed -i "s/Version-[0-9.]*-fb7299/Version-${ver}-fb7299/g" README.md
+if ! command -v perl >/dev/null 2>&1; then
+  echo "错误: 未找到 perl 命令，无法更新徽章。请安装 perl 或联系维护者。"
+  exit 1
+fi
+
+perl -pi -e "s/Version-[0-9A-Za-z.-]+-fb7299/Version-${ver}-fb7299/g" README.md
 git add README.md
