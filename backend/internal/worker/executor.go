@@ -1032,7 +1032,7 @@ func clampInt64(v int64) int {
 // 错误分类：
 // - context.Canceled / DeadlineExceeded -> Cancelled
 // - syncengine.ErrInvalidInput / ErrNotSupported -> Permanent
-// - 其他错误 -> Retryable
+// - 其他错误 -> 交由 syncqueue.ClassifyFailureKind 判断
 func wrapTaskError(err error) error {
 	if err == nil {
 		return nil
@@ -1054,8 +1054,8 @@ func wrapTaskError(err error) error {
 		return &syncqueue.TaskError{Kind: syncqueue.FailurePermanent, Err: err}
 	}
 
-	// 默认为可重试
-	return &syncqueue.TaskError{Kind: syncqueue.FailureRetryable, Err: err}
+	kind := syncqueue.ClassifyFailureKind(err)
+	return &syncqueue.TaskError{Kind: kind, Err: err}
 }
 
 // permanentTaskError 创建永久失败的 TaskError

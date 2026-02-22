@@ -59,6 +59,12 @@ func classifyError(err error) FailureKind {
 	return FailurePermanent
 }
 
+// ClassifyFailureKind 对外暴露错误分类结果
+// 用于在上层统一复用队列的错误语义判断
+func ClassifyFailureKind(err error) FailureKind {
+	return classifyError(err)
+}
+
 // RetryableError 表示可显式标注重试语义的错误
 //
 // 驱动层应通过实现该接口来声明错误是否可重试。

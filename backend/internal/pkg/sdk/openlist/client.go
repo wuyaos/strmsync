@@ -22,6 +22,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/strmsync/strmsync/internal/pkg/errutil"
 )
 
 const maxResponseBodyLen = 4096 // 4KB，用于错误消息读取
@@ -163,7 +165,11 @@ func (c *Client) List(ctx context.Context, listPath string) ([]FileItem, error) 
 		}
 		// 其他错误：读取错误消息
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodyLen))
-		return nil, fmt.Errorf("http status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		err := fmt.Errorf("http status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		if isRetryableStatus(resp.StatusCode) {
+			return nil, errutil.Retryable(err)
+		}
+		return nil, err
 	}
 
 	// 解析响应
@@ -172,7 +178,11 @@ func (c *Client) List(ctx context.Context, listPath string) ([]FileItem, error) 
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 	if out.Code != http.StatusOK {
-		return nil, fmt.Errorf("api error: code=%d message=%s", out.Code, out.Message)
+		err := fmt.Errorf("api error: code=%d message=%s", out.Code, out.Message)
+		if isRetryableStatus(out.Code) {
+			return nil, errutil.Retryable(err)
+		}
+		return nil, err
 	}
 
 	// 转换为 FileItem
@@ -246,7 +256,11 @@ func (c *Client) Download(ctx context.Context, filePath string, w io.Writer) err
 		}
 		// 其他错误：读取错误消息
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodyLen))
-		return fmt.Errorf("download status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		err := fmt.Errorf("download status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		if isRetryableStatus(resp.StatusCode) {
+			return errutil.Retryable(err)
+		}
+		return err
 	}
 
 	// 将响应写入writer
@@ -306,7 +320,11 @@ func (c *Client) ensureToken(ctx context.Context) error {
 		}
 		// 其他错误
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodyLen))
-		return fmt.Errorf("login http status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		err := fmt.Errorf("login http status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		if isRetryableStatus(resp.StatusCode) {
+			return errutil.Retryable(err)
+		}
+		return err
 	}
 
 	// 解析登录响应
@@ -326,6 +344,16 @@ func (c *Client) ensureToken(ctx context.Context) error {
 	c.mu.Unlock()
 
 	return nil
+}
+
+func isRetryableStatus(code int) bool {
+	if code == http.StatusRequestTimeout || code == http.StatusTooManyRequests {
+		return true
+	}
+	if code >= 500 && code <= 599 {
+		return true
+	}
+	return false
 }
 
 // clearToken 清空认证 token

@@ -2,7 +2,6 @@
 package mediaserver
 
 import (
-	"github.com/strmsync/strmsync/internal/pkg/logger"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/strmsync/strmsync/internal/pkg/errutil"
+	"github.com/strmsync/strmsync/internal/pkg/logger"
 	"go.uber.org/zap"
 )
 
@@ -322,7 +323,21 @@ func (c *clientImpl) do(req *http.Request, expectedStatuses ...int) error {
 		bodyStr = "<empty>"
 	}
 
-	return fmt.Errorf("mediaserver: unexpected status code %d: %s", resp.StatusCode, bodyStr)
+	err := fmt.Errorf("mediaserver: unexpected status code %d: %s", resp.StatusCode, bodyStr)
+	if isRetryableStatus(resp.StatusCode) {
+		return errutil.Retryable(err)
+	}
+	return err
+}
+
+func isRetryableStatus(code int) bool {
+	if code == http.StatusRequestTimeout || code == http.StatusTooManyRequests {
+		return true
+	}
+	if code >= 500 && code <= 599 {
+		return true
+	}
+	return false
 }
 
 // isExpectedStatus 检查状态码是否在预期列表中

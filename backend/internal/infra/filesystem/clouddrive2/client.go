@@ -5,7 +5,8 @@
 // imported for side effects (provider registration).
 //
 // Usage:
-//   import _ "github.com/strmsync/strmsync/internal/infra/filesystem/clouddrive2"
+//
+//	import _ "github.com/strmsync/strmsync/internal/infra/filesystem/clouddrive2"
 //
 // The CloudDrive2 provider uses gRPC to communicate with CloudDrive2 server.
 // It supports both streaming and HTTP STRM modes.
@@ -14,7 +15,8 @@
 //   - NewCloudDrive2Provider: Creates a Provider implementation (used by registration)
 //
 // Note: The gRPC client is available in a separate subpackage:
-//   github.com/strmsync/strmsync/internal/infra/filesystem/clouddrive2/grpc
+//
+//	github.com/strmsync/strmsync/internal/infra/filesystem/clouddrive2/grpc
 package filesystem
 
 import (
@@ -29,6 +31,7 @@ import (
 
 	syncengine "github.com/strmsync/strmsync/internal/engine"
 	"github.com/strmsync/strmsync/internal/infra/filesystem"
+	"github.com/strmsync/strmsync/internal/pkg/errutil"
 	cd2sdk "github.com/strmsync/strmsync/internal/pkg/sdk/clouddrive2"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -163,7 +166,11 @@ func (p *cloudDrive2Provider) Download(ctx context.Context, remotePath string, w
 
 	// 检查响应状态
 	if resp.StatusCode/100 != 2 {
-		return fmt.Errorf("clouddrive2: download status %d", resp.StatusCode)
+		err := fmt.Errorf("clouddrive2: download status %d", resp.StatusCode)
+		if resp.StatusCode == http.StatusRequestTimeout || resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500 {
+			return errutil.Retryable(err)
+		}
+		return err
 	}
 
 	// 将响应写入writer
