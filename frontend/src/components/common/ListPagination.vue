@@ -1,5 +1,13 @@
 <template>
-  <div v-if="shouldShow" :class="['list-pagination', { 'page-pagination': sticky }]">
+  <div
+    v-if="shouldShow"
+    :class="[
+      'list-pagination',
+      'flex',
+      'justify-end',
+      affix ? 'is-affix' : (sticky ? 'is-sticky' : 'is-normal')
+    ]"
+  >
     <el-pagination
       :current-page="page"
       :page-size="pageSize"
@@ -41,6 +49,10 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  affix: {
+    type: Boolean,
+    default: false
+  },
   hideOnSinglePage: {
     type: Boolean,
     default: false
@@ -74,11 +86,28 @@ const handleSizeChange = (newSize) => {
 
 <style scoped lang="scss">
 .list-pagination {
-  display: flex;
-  justify-content: flex-end;
-}
+  margin-top: auto;
 
-.list-pagination:not(.page-pagination) {
-  margin-top: var(--space-16);
+  &.is-normal {
+    margin-top: 16px;
+  }
+
+  &.is-sticky {
+    padding-top: 16px;
+    padding-bottom: 24px;
+    position: sticky;
+    bottom: 0;
+    background: var(--el-bg-color-page);
+    z-index: 2;
+  }
+
+  &.is-affix {
+    padding-top: 16px;
+    padding-bottom: 24px;
+    position: sticky;
+    bottom: 0;
+    background: var(--el-bg-color-page);
+    z-index: 3;
+  }
 }
 </style>

@@ -1,15 +1,12 @@
 <template>
   <div class="filter-toolbar">
     <!-- 左侧筛选区 -->
-    <div v-if="$slots.filters" class="toolbar-filters">
+    <div v-if="$slots.filters" class="filters">
       <slot name="filters" />
     </div>
 
-    <!-- 中间占位 -->
-    <div class="flex-1" />
-
     <!-- 右侧操作区 -->
-    <div v-if="$slots.actions" class="toolbar-actions">
+    <div v-if="$slots.actions" class="actions">
       <slot name="actions" />
     </div>
 
@@ -39,24 +36,32 @@ defineEmits(['search', 'reset'])
 
 <style scoped lang="scss">
 .filter-toolbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) auto;
+  column-gap: 12px;
+  row-gap: 12px;
   align-items: center;
-  gap: var(--toolbar-gap);
-  margin-bottom: var(--space-16);
-  padding: var(--space-16);
+  margin-bottom: 16px;
+  padding: 16px;
   background: var(--el-bg-color);
-  border-radius: var(--card-radius);
+  border-radius: 4px;
 
-  .toolbar-filters {
+  .filters {
     display: flex;
     align-items: center;
-    gap: var(--toolbar-gap);
+    gap: 12px;
+    min-width: 0;
+
+    :deep(.toolbar-search) {
+      flex: 1;
+      min-width: 50%;
+    }
   }
 
-  .toolbar-actions {
+  .actions {
     display: flex;
     align-items: center;
-    gap: var(--toolbar-gap);
+    gap: 12px;
   }
 }
 </style>

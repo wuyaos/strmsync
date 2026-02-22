@@ -23,15 +23,23 @@ function serializeOptions(data) {
 /**
  * 获取服务器列表
  * @param {Object} params 查询参数
- * @param {string} [params.type] 服务器类型（data/media）
+ * @param {string} [params.category] 服务器分类（data/media）
+ * @param {string} [params.type] 服务器分类（data/media）或类型（local/clouddrive2/emby等）
+ * @param {string} [params.serverType] 服务器类型过滤（local/clouddrive2/emby等）
  * @param {string} [params.keyword] 搜索关键词
  * @param {number} [params.page] 页码
  * @param {number} [params.pageSize] 每页数量
  * @returns {Promise<{data: Array, meta: Object}>} 服务器列表及分页信息
  */
 export function getServerList(params) {
-  const { type, ...restParams } = params || {}
-  const url = type ? `/servers/${type}` : '/servers/data'
+  const { category, serverType, type, ...restParams } = params || {}
+  const endpointCategory = category || (type === 'data' || type === 'media' ? type : 'data')
+  const url = `/servers/${endpointCategory}`
+  if (serverType) {
+    restParams.type = serverType
+  } else if (category && type && type !== 'data' && type !== 'media') {
+    restParams.type = type
+  }
 
   return request({
     url,

@@ -16,9 +16,19 @@ const routes = [
       },
       {
         path: '/servers',
-        name: 'Servers',
-        component: () => import('@/views/Servers.vue'),
-        meta: { title: '服务器管理', icon: 'Connection' }
+        redirect: '/data-servers'
+      },
+      {
+        path: '/data-servers',
+        name: 'DataServers',
+        component: () => import('@/views/DataServers.vue'),
+        meta: { title: '网盘管理', icon: 'FolderOpened' }
+      },
+      {
+        path: '/media-servers',
+        name: 'MediaServers',
+        component: () => import('@/views/MediaServers.vue'),
+        meta: { title: '媒体服务器', icon: 'Film' }
       },
       {
         path: '/jobs',
@@ -42,7 +52,7 @@ const routes = [
         path: '/logs',
         name: 'Logs',
         component: LogsView,
-        meta: { title: '日志', icon: 'Document' }
+        meta: { title: '系统日志', icon: 'Document' }
       },
       {
         path: '/settings',
@@ -59,6 +69,28 @@ const router = createRouter({
   routes
 })
 
+const prefetchRouteChunks = () => {
+  const children = routes[0]?.children || []
+  children.forEach((route) => {
+    if (typeof route.component === 'function') {
+      try {
+        route.component()
+      } catch (error) {
+        // ignore prefetch errors
+      }
+    }
+  })
+}
+
+const schedulePrefetch = () => {
+  if (typeof window === 'undefined') return
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(prefetchRouteChunks, { timeout: 2000 })
+    return
+  }
+  window.setTimeout(prefetchRouteChunks, 800)
+}
+
 // 路由守卫
 router.beforeEach((to, from, next) => {
   // 设置页面标题
@@ -66,6 +98,24 @@ router.beforeEach((to, from, next) => {
     document.title = `${to.meta.title} - STRMSync`
   }
   next()
+})
+
+router.isReady().then(() => {
+  schedulePrefetch()
+})
+
+router.onError((error) => {
+  const message = String(error?.message || '')
+  const isChunkError = message.includes('Loading chunk')
+    || message.includes('Failed to fetch dynamically imported module')
+    || message.includes('Importing a module script failed')
+  if (isChunkError && typeof window !== 'undefined') {
+    const cacheKey = 'route_chunk_reload_once'
+    if (!sessionStorage.getItem(cacheKey)) {
+      sessionStorage.setItem(cacheKey, '1')
+      window.location.reload()
+    }
+  }
 })
 
 export default router

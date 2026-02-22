@@ -4,7 +4,10 @@
     <el-aside :width="isCollapse ? '64px' : '200px'" class="sidebar">
       <div class="logo" :class="{ collapse: isCollapse }">
         <img :src="logoSvg" alt="STRMSync Logo" class="logo-icon" />
-        <span v-if="!isCollapse">STRMSync</span>
+        <div v-if="!isCollapse" class="logo-text">
+          <span>STRMSync</span>
+          <span class="logo-version">v{{ frontendVersion || 'unknown' }}</span>
+        </div>
       </div>
 
       <el-menu
@@ -18,7 +21,7 @@
           :key="route.path"
           :index="route.path"
         >
-          <el-icon><component :is="route.meta.icon" /></el-icon>
+          <el-icon><component :is="route.meta.iconComponent || route.meta.icon" /></el-icon>
           <template #title>{{ route.meta.title }}</template>
         </el-menu-item>
       </el-menu>
@@ -46,7 +49,6 @@
             <img :src="githubSvg" alt="GitHub" class="header-link-icon" />
             主页
           </a>
-          <div class="version-info">{{ displayVersion }}</div>
           <!-- 暗色模式切换 -->
           <el-tooltip :content="isDark ? '切换到亮色模式' : '切换到暗色模式'">
             <el-icon :size="20" @click="toggleTheme" class="theme-toggle">
@@ -55,21 +57,13 @@
             </el-icon>
           </el-tooltip>
 
-          <!-- 刷新 -->
-          <el-tooltip content="刷新数据">
-            <el-icon :size="20" @click="handleRefresh" class="refresh-icon">
-              <Refresh />
-            </el-icon>
-          </el-tooltip>
         </div>
       </el-header>
 
       <!-- 页面内容 -->
       <el-main class="main-content">
         <router-view v-slot="{ Component }">
-          <transition name="fade" mode="out-in">
-            <component :is="Component" />
-          </transition>
+          <component :is="Component" />
         </router-view>
       </el-main>
     </el-container>
@@ -82,11 +76,19 @@ import { useRoute, useRouter } from 'vue-router'
 import { useSystemInfo } from '@/composables/useSystemInfo'
 import logoSvg from '@/assets/icons/logo.svg'
 import githubSvg from '@/assets/icons/github.svg'
+import Clock from '~icons/ep/clock'
+import Connection from '~icons/ep/connection'
+import DataAnalysis from '~icons/ep/data-analysis'
+import Document from '~icons/ep/document'
+import Film from '~icons/ep/film'
+import FolderOpened from '~icons/ep/folder-opened'
+import List from '~icons/ep/list'
+import Setting from '~icons/ep/setting'
+import Tools from '~icons/ep/tools'
 import Expand from '~icons/ep/expand'
 import Fold from '~icons/ep/fold'
 import Moon from '~icons/ep/moon'
 import Sunny from '~icons/ep/sunny'
-import Refresh from '~icons/ep/refresh'
 
 const route = useRoute()
 const router = useRouter()
@@ -101,11 +103,31 @@ const isCollapse = ref(false)
 // 暗色模式
 const isDark = ref(false)
 
+const iconMap = {
+  Clock,
+  Connection,
+  DataAnalysis,
+  Document,
+  Film,
+  FolderOpened,
+  List,
+  Setting,
+  Tools
+}
+
 // 菜单路由
 const routes = computed(() => {
   const allRoutes = router.options.routes[0].children || []
   // 过滤掉重定向路由，只显示有meta.title的路由
-  return allRoutes.filter(route => route.meta && route.meta.title)
+  return allRoutes
+    .filter(route => route.meta && route.meta.title)
+    .map(route => ({
+      ...route,
+      meta: {
+        ...route.meta,
+        iconComponent: iconMap[route.meta.icon] || route.meta.icon
+      }
+    }))
 })
 
 // 当前激活的菜单
@@ -126,11 +148,6 @@ const toggleTheme = () => {
     document.documentElement.classList.remove('dark')
     localStorage.setItem('theme', 'light')
   }
-}
-
-// 刷新数据
-const handleRefresh = () => {
-  window.location.reload()
 }
 
 // 初始化主题
@@ -175,22 +192,29 @@ onMounted(() => {
       width: 32px;
       height: 32px;
       object-fit: contain;
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+
+    .logo-version {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      font-weight: 500;
     }
 
     &.collapse {
       justify-content: center;
-
-      .logo-icon {
-        width: 28px;
-        height: 28px;
-      }
     }
   }
 
   .sidebar-menu {
     border-right: none;
   }
-
 }
 
 .header {
@@ -234,11 +258,11 @@ onMounted(() => {
       width: 16px;
       height: 16px;
       display: inline-block;
-    }
 
-    .version-info {
-      font-size: 12px;
-      color: var(--el-text-color-secondary);
+      // 暗色模式适配
+      html.dark & {
+        filter: invert(1) brightness(0.9);
+      }
     }
 
     .el-icon {

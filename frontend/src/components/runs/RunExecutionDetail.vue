@@ -1,12 +1,12 @@
 <template>
-  <div class="run-events">
-    <div class="run-events__filters">
+  <div class="execution-detail">
+    <div class="execution-filters">
       <el-select
         v-model="filters.kind"
         placeholder="类型"
         clearable
         size="small"
-        style="width: 110px"
+        class="w-[110px]"
         @change="reload"
       >
         <el-option label="STRM" value="strm" />
@@ -17,7 +17,7 @@
         placeholder="操作"
         clearable
         size="small"
-        style="width: 110px"
+        class="w-[110px]"
         @change="reload"
       >
         <el-option label="生成" value="create" />
@@ -31,7 +31,7 @@
         placeholder="状态"
         clearable
         size="small"
-        style="width: 110px"
+        class="w-[110px]"
         @change="reload"
       >
         <el-option label="成功" value="success" />
@@ -42,25 +42,33 @@
         刷新
       </el-button>
     </div>
-    <div v-if="loading" class="run-events__loading">加载中...</div>
-    <div v-else-if="events.length === 0" class="run-events__empty">暂无详细执行日志</div>
-    <div v-else class="run-events__list">
-      <div v-for="event in events" :key="event.id" class="run-events__item">
-        <el-tag :type="getStatusType(event.status)" size="small">
-          {{ getOpText(event.op) }}
-        </el-tag>
-        <span class="run-events__kind">{{ getKindText(event.kind) }}</span>
-        <span class="run-events__path">
-          {{ event.source_path || '-' }}
-          <span v-if="event.target_path" class="run-events__arrow">=> </span>
-          {{ event.target_path || '-' }}
-        </span>
-        <span v-if="event.error_message" class="run-events__error">
-          {{ event.error_message }}
-        </span>
+    <div v-if="loading" class="text-12 text-[var(--el-text-color-secondary)]">加载中...</div>
+    <div v-else-if="events.length === 0" class="text-12 text-[var(--el-text-color-secondary)]">暂无详细执行日志</div>
+    <div v-else class="execution-list">
+      <div
+        v-for="event in events"
+        :key="event.id"
+        class="execution-item"
+      >
+        <div class="execution-head">
+          <el-tag :type="getStatusType(event.status)" size="small">
+            {{ getOpText(event.op) }}
+          </el-tag>
+          <span class="kind">{{ getKindText(event.kind) }}</span>
+        </div>
+        <div class="execution-path">
+          <span class="font-mono break-all">
+            {{ event.source_path || '-' }}
+            <span v-if="event.target_path" class="arrow">→</span>
+            {{ event.target_path || '-' }}
+          </span>
+          <span v-if="event.error_message" class="error-message">
+            {{ event.error_message }}
+          </span>
+        </div>
       </div>
     </div>
-    <div v-if="hasMore" class="run-events__more">
+    <div v-if="hasMore" class="mt-8">
       <el-button text size="small" :loading="loadingMore" @click="loadMore">
         加载更多
       </el-button>
@@ -178,57 +186,60 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.run-events {
-  .run-events__loading,
-  .run-events__empty {
-    color: var(--el-text-color-secondary);
-    font-size: 12px;
-  }
+.execution-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
-  .run-events__filters {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    margin-bottom: 8px;
-    flex-wrap: wrap;
-  }
+.execution-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
 
-  .run-events__list {
-    display: grid;
-    row-gap: 6px;
-  }
+.execution-list {
+  display: grid;
+  gap: 10px;
+}
 
-  .run-events__item {
-    display: grid;
-    grid-template-columns: 70px 60px 1fr;
-    column-gap: 8px;
-    align-items: start;
-    font-size: 12px;
-  }
+.execution-item {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 8px 12px;
+  align-items: start;
+  padding: 8px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  background: var(--el-fill-color-blank);
+  font-size: 12px;
+}
 
-  .run-events__kind {
-    color: var(--el-text-color-secondary);
-  }
+.execution-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
-  .run-events__path {
-    font-family: var(--el-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace);
-    word-break: break-all;
-  }
+.kind {
+  color: var(--el-text-color-secondary);
+}
 
-  .run-events__arrow {
-    margin: 0 4px;
-    color: var(--el-text-color-secondary);
-  }
+.execution-path {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 
-  .run-events__error {
-    grid-column: 3 / 4;
-    color: var(--el-color-danger);
-    font-size: 12px;
-    word-break: break-all;
-  }
+.arrow {
+  margin: 0 6px;
+  color: var(--el-text-color-secondary);
+}
 
-  .run-events__more {
-    margin-top: 6px;
-  }
+.error-message {
+  color: var(--el-color-danger);
+  font-size: 12px;
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="server-config-page">
+  <div class="server-config-page flex flex-col gap-16">
     <!-- 数据服务器配置 -->
     <div class="section">
       <div class="content-header">
@@ -130,9 +130,9 @@
 
           <el-form-item label="通知范围">
             <el-radio-group v-model="mediaServerConfig.scope">
-              <el-radio-button label="global">全局刷新</el-radio-button>
-              <el-radio-button label="library">库级刷新</el-radio-button>
-              <el-radio-button label="path">路径级刷新</el-radio-button>
+              <el-radio-button value="global">全局刷新</el-radio-button>
+              <el-radio-button value="library">库级刷新</el-radio-button>
+              <el-radio-button value="path">路径级刷新</el-radio-button>
             </el-radio-group>
             <div class="form-help">
               <p>• 全局刷新：刷新整个媒体库</p>

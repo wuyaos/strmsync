@@ -36,6 +36,18 @@ export function getRun(id) {
 }
 
 /**
+ * 删除运行记录
+ * @param {string|number} id 运行记录ID
+ * @returns {Promise<void>}
+ */
+export function deleteRun(id) {
+  return request({
+    url: `/runs/${id}`,
+    method: 'delete'
+  })
+}
+
+/**
  * 获取运行记录事件明细
  * @param {string|number} id 运行记录ID
  * @param {Object} params 查询参数
@@ -63,6 +75,19 @@ export function cancelRun(id) {
   return request({
     url: `/runs/${id}/cancel`,
     method: 'post'
+  })
+}
+
+/**
+ * 批量删除运行记录
+ * @param {Array<number>} ids 运行记录ID列表
+ * @returns {Promise<{deleted: number}>} 删除结果
+ */
+export function batchDeleteRuns(ids) {
+  return request({
+    url: '/runs/batch-delete',
+    method: 'post',
+    data: { ids }
   })
 }
 

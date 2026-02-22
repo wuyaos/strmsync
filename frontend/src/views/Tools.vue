@@ -1,5 +1,5 @@
 <template>
-  <div class="tools-page">
+  <div class="tools-page flex flex-col gap-16 p-20">
     <div class="page-header">
       <div>
         <h1 class="page-title">小工具</h1>
@@ -69,8 +69,6 @@ const handleToolClick = (tool) => {
 
 <style scoped lang="scss">
 .tools-page {
-  padding: 20px;
-
   .tools-grid {
     :deep(.el-col) {
       display: flex;

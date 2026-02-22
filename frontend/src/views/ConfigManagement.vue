@@ -1,5 +1,5 @@
 <template>
-  <div class="config-management-page">
+  <div class="config-management-page flex flex-col gap-16">
     <div class="page-header">
       <h1 class="page-title">配置管理</h1>
       <div class="page-description">
@@ -16,7 +16,7 @@
             数据源配置
           </span>
         </template>
-        <Servers />
+        <DataServers />
       </el-tab-pane>
 
       <!-- 服务器配置 -->
@@ -27,7 +27,7 @@
             服务器配置
           </span>
         </template>
-        <ServerConfig />
+        <MediaServers />
       </el-tab-pane>
     </el-tabs>
   </div>
@@ -37,8 +37,8 @@
 import { ref } from 'vue'
 import FolderOpened from '~icons/ep/folder-opened'
 import Monitor from '~icons/ep/monitor'
-import Servers from '@/views/Servers.vue'
-import ServerConfig from '@/views/ServerConfig.vue'
+import DataServers from '@/views/DataServers.vue'
+import MediaServers from '@/views/MediaServers.vue'
 
 // 当前激活的标签页
 const activeTab = ref('sources')

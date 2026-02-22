@@ -7,17 +7,17 @@
     </el-tabs>
 
     <!-- 工具栏 -->
-    <div class="toolbar">
+    <div class="flex items-center gap-12 my-12 mb-16 px-16 py-12 bg-[var(--el-bg-color)] rounded-4">
       <el-input
         :model-value="keyword"
         placeholder="搜索名称/主机"
         :prefix-icon="Search"
         clearable
-        style="width: 320px"
+        class="w-320"
         @update:model-value="$emit('update:keyword', $event)"
         @keyup.enter="$emit('search')"
       />
-      <div style="flex: 1"></div>
+      <div class="flex-1"></div>
       <el-button
         :type="batchMode ? 'warning' : 'default'"
         @click="$emit('toggle-batch', !batchMode)"
@@ -30,7 +30,10 @@
     </div>
 
     <!-- 批量操作工具栏 -->
-    <div v-show="batchMode" class="batch-toolbar">
+    <div
+      v-show="batchMode"
+      class="flex items-center gap-12 mb-16 px-16 py-12 bg-[var(--el-color-warning-light-9)] border border-[var(--el-color-warning-light-7)] rounded-4"
+    >
       <el-checkbox
         :model-value="allSelected"
         :indeterminate="selectedCount > 0 && !allSelected"
@@ -38,8 +41,8 @@
       >
         全选
       </el-checkbox>
-      <span class="selected-count">已选择 {{ selectedCount }} 项</span>
-      <div style="flex: 1"></div>
+      <span class="text-14 text-[var(--el-text-color-regular)] font-medium">已选择 {{ selectedCount }} 项</span>
+      <div class="flex-1"></div>
       <el-button
         :disabled="selectedCount === 0"
         @click="$emit('batch-enable')"
@@ -106,34 +109,3 @@ defineEmits([
   'batch-delete'
 ])
 </script>
-
-<style scoped lang="scss">
-.server-toolbar-wrapper {
-  .toolbar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 12px 0 16px;
-    padding: 12px 16px;
-    background: var(--el-bg-color);
-    border-radius: 4px;
-  }
-
-  .batch-toolbar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-    padding: 12px 16px;
-    background: var(--el-color-warning-light-9);
-    border: 1px solid var(--el-color-warning-light-7);
-    border-radius: 4px;
-
-    .selected-count {
-      font-size: 14px;
-      color: var(--el-text-color-regular);
-      font-weight: 500;
-    }
-  }
-}
-</style>

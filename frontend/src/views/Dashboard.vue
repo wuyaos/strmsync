@@ -3,51 +3,17 @@
     <!-- 页面标题 -->
     <div class="page-header">
       <h1 class="page-title">仪表盘</h1>
-      <div class="page-actions">
-        <el-button :icon="Refresh" @click="loadData">刷新</el-button>
-      </div>
     </div>
 
     <!-- KPI 统计卡片 -->
-    <el-row :gutter="16" class="kpi-row">
-      <el-col :xs="24" :sm="12" :md="6">
-        <el-card shadow="hover" class="stat-card stat-card--split">
-          <div class="stat-title">服务器数量</div>
-          <div class="stat-value">{{ stats.serverTotal }}</div>
-          <div class="stat-split">
-            <span class="stat-item success">启用 {{ stats.serverEnabled }}</span>
-            <span class="stat-item muted">禁用 {{ stats.serverDisabled }}</span>
-          </div>
-        </el-card>
-      </el-col>
-
-      <el-col :xs="24" :sm="12" :md="6">
-        <el-card shadow="hover" class="stat-card stat-card--split">
-          <div class="stat-title">任务配置数量</div>
-          <div class="stat-value">{{ stats.jobTotal }}</div>
-          <div class="stat-split">
-            <span class="stat-item success">启用 {{ stats.jobEnabled }}</span>
-            <span class="stat-item muted">禁用 {{ stats.jobDisabled }}</span>
-          </div>
-        </el-card>
-      </el-col>
-
-      <el-col :xs="24" :sm="12" :md="6">
-        <el-card shadow="hover" class="stat-card">
-          <el-statistic title="最近1小时运行" :value="stats.recentRuns" />
-        </el-card>
-      </el-col>
-
-      <el-col :xs="24" :sm="12" :md="6">
-        <el-card shadow="hover" class="stat-card">
-          <el-statistic title="失败任务(24h)" :value="stats.failedRuns" />
-        </el-card>
-      </el-col>
-    </el-row>
+    <div class="dashboard-section">
+      <DashboardKpiRow :stats="stats" />
+    </div>
 
     <!-- 图表区 -->
-    <el-row :gutter="16" style="margin-top: 16px">
-      <el-col :xs="24" :md="12">
+    <div class="dashboard-section">
+      <el-row :gutter="32" class="dashboard-row">
+        <el-col :xs="24" :md="12">
         <el-card shadow="hover" class="chart-card">
           <template #header>
             <div class="card-header">
@@ -57,7 +23,7 @@
           <div ref="runTrendRef" class="chart-container"></div>
         </el-card>
       </el-col>
-      <el-col :xs="24" :md="12">
+        <el-col :xs="24" :md="12">
         <el-card shadow="hover" class="chart-card">
           <template #header>
             <div class="card-header">
@@ -66,49 +32,25 @@
           </template>
           <div ref="durationDistRef" class="chart-container"></div>
         </el-card>
-      </el-col>
-    </el-row>
+        </el-col>
+      </el-row>
+    </div>
 
     <!-- 最近运行记录 -->
-    <el-row :gutter="16" style="margin-top: 16px">
-      <el-col :xs="24" :md="24">
-        <el-card shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span>最近运行记录</span>
-              <el-button text @click="$router.push('/runs')">
-                查看全部 <el-icon><ArrowRight /></el-icon>
-              </el-button>
-            </div>
-          </template>
-
-          <el-empty v-if="runList.length === 0" description="暂无运行记录" />
-
-          <el-timeline v-else>
-            <el-timeline-item
-              v-for="run in runList"
-              :key="run.id"
-              :type="getRunType(run.status)"
-            >
-              <div class="task-item">
-                <div class="task-name">{{ run.job_name || run.job?.name || '未命名任务' }}</div>
-                <div class="task-meta">
-                  {{ formatTime(run.started_at || run.created_at) }}
-                </div>
-              </div>
-            </el-timeline-item>
-          </el-timeline>
-        </el-card>
-      </el-col>
-    </el-row>
+    <div class="dashboard-section">
+      <DashboardRecentRuns
+        :run-list="runList"
+        :get-run-type="getRunType"
+        :format-time="formatTime"
+      />
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import * as echarts from 'echarts'
-import Refresh from '~icons/ep/refresh'
-import ArrowRight from '~icons/ep/arrow-right'
+import DashboardKpiRow from '@/components/dashboard/DashboardKpiRow.vue'
+import DashboardRecentRuns from '@/components/dashboard/DashboardRecentRuns.vue'
 import { getServerList } from '@/api/servers'
 import { getJobList } from '@/api/jobs'
 import { getRunList } from '@/api/runs'
@@ -138,6 +80,7 @@ const runTrendRef = ref(null)
 const durationDistRef = ref(null)
 let runTrendChart = null
 let durationDistChart = null
+let echartsModule = null
 
 let refreshTimer = null
 let resizeHandler = null
@@ -192,12 +135,9 @@ const loadData = async () => {
 
     runList.value = runsResult.list.slice(0, 10)
 
-    stats.value.serverTotal = (dataServersTotal.total || dataServersTotal.list.length)
-      + (mediaServersTotal.total || mediaServersTotal.list.length)
-    stats.value.serverEnabled = (dataServersEnabled.total || dataServersEnabled.list.length)
-      + (mediaServersEnabled.total || mediaServersEnabled.list.length)
-    stats.value.serverDisabled = (dataServersDisabled.total || dataServersDisabled.list.length)
-      + (mediaServersDisabled.total || mediaServersDisabled.list.length)
+    stats.value.serverTotal = dataServersTotal.total || dataServersTotal.list.length
+    stats.value.serverEnabled = dataServersEnabled.total || dataServersEnabled.list.length
+    stats.value.serverDisabled = dataServersDisabled.total || dataServersDisabled.list.length
     stats.value.jobTotal = jobsTotal.total || jobsTotal.list.length
     stats.value.jobEnabled = jobsEnabled.total || jobsEnabled.list.length
     stats.value.jobDisabled = jobsDisabled.total || jobsDisabled.list.length
@@ -205,7 +145,7 @@ const loadData = async () => {
     stats.value.failedRuns = failedRunsResult.total || failedRunsResult.list.length
 
     await nextTick()
-    renderCharts(runsResult.list)
+    await renderCharts(runsResult.list)
   } catch (error) {
     console.error('加载数据失败:', error)
   }
@@ -252,7 +192,15 @@ const buildDurationBuckets = (runs) => {
   return { labels: buckets.map(b => b.label), counts }
 }
 
-const renderCharts = (runs) => {
+const ensureEcharts = async () => {
+  if (echartsModule) return echartsModule
+  const module = await import('echarts')
+  echartsModule = module
+  return module
+}
+
+const renderCharts = async (runs) => {
+  const echarts = await ensureEcharts()
   if (runTrendRef.value && !runTrendChart) {
     runTrendChart = echarts.init(runTrendRef.value)
   }
@@ -326,6 +274,7 @@ onUnmounted(() => {
   durationDistChart?.dispose()
   runTrendChart = null
   durationDistChart = null
+  echartsModule = null
   if (resizeHandler) {
     window.removeEventListener('resize', resizeHandler)
     resizeHandler = null
@@ -335,59 +284,21 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .dashboard-page {
-  .kpi-row {
-    margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .dashboard-section {
+    width: 100%;
   }
 
-  .stat-card {
-    height: 120px;
-    :deep(.el-card__body) {
-      padding: 20px;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-
-    .stat-title {
-      font-size: 14px;
-      color: var(--el-text-color-secondary);
-      margin-bottom: 6px;
-    }
-
-    .stat-value {
-      font-size: 28px;
-      font-weight: 600;
-      color: var(--el-text-color-primary);
-    }
-
-    .stat-split {
-      margin-top: 6px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 12px;
-    }
-
-    .stat-item.success {
-      color: var(--el-color-success);
-    }
-
-    .stat-item.muted {
-      color: var(--el-text-color-secondary);
-    }
+  .dashboard-row {
+    row-gap: 12px;
   }
 
-  .stat-card--split {
-    :deep(.el-card__body) {
-      overflow: hidden;
-      height: 120px;
-    }
-  }
 
   .chart-card {
     :deep(.el-card__body) {
-      padding: 12px 16px 16px;
       overflow: hidden;
     }
   }
@@ -398,16 +309,5 @@ onUnmounted(() => {
     overflow: hidden;
   }
 
-  .task-item {
-    .task-name {
-      font-weight: 500;
-      margin-bottom: 4px;
-    }
-
-    .task-meta {
-      font-size: 12px;
-      color: var(--el-text-color-secondary);
-    }
-  }
 }
 </style>

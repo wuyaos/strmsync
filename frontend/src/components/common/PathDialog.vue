@@ -6,12 +6,12 @@
     destroy-on-close
     :close-on-click-modal="false"
   >
-    <div v-loading="loading" class="path-dialog">
-      <div class="path-header">
-        <span class="path-label">当前路径</span>
+    <div v-loading="loading">
+      <div class="flex items-center gap-8 py-8">
+        <span class="text-13 text-[var(--el-text-color-secondary)] whitespace-nowrap">当前路径</span>
         <el-input
           v-model="pathInput"
-          class="path-input"
+          class="flex-1 font-mono"
           placeholder="/"
           @keyup.enter="handleJump"
         />
@@ -36,8 +36,18 @@
         </el-table-column>
         <el-table-column label="目录名称" prop="name">
           <template #default="{ row }">
-            <div class="dir-name" :class="{ 'is-selected': isRowSelected(row.name) }">
-              <el-icon><FolderOpened /></el-icon>
+            <div
+              class="flex items-center gap-8 cursor-pointer"
+              :class="isRowSelected(row.name) ? 'font-semibold text-[var(--el-color-primary)]' : ''"
+            >
+              <el-icon
+                :class="[
+                  'text-[18px]',
+                  isRowSelected(row.name) ? 'text-[var(--el-color-primary)]' : 'text-[var(--el-color-warning)]'
+                ]"
+              >
+                <FolderOpened />
+              </el-icon>
               <span>{{ row.name }}</span>
             </div>
           </template>
@@ -49,12 +59,12 @@
         </el-table-column>
       </el-table>
 
-      <div v-if="rows.length === 0" class="empty-hint">
+      <div v-if="rows.length === 0" class="text-center text-14 text-[var(--el-text-color-secondary)] py-24">
         当前目录下没有子目录
       </div>
 
-      <div class="path-actions">
-        <div class="path-actions-left">
+      <div class="flex items-center justify-between gap-8 pt-12">
+        <div class="flex items-center gap-8">
           <el-button :icon="ArrowLeft" :disabled="atRoot" @click="emit('up')">
             返回上级
           </el-button>
@@ -159,67 +169,3 @@ const handleJump = () => {
   emit('jump', pathInput.value)
 }
 </script>
-
-<style scoped lang="scss">
-.path-dialog {
-  .path-header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-8);
-    padding: var(--space-8) 0;
-  }
-
-  .path-label {
-    color: var(--el-text-color-secondary);
-    font-size: var(--font-13);
-    white-space: nowrap;
-  }
-
-  .path-input {
-    flex: 1;
-    font-family: 'Courier New', monospace;
-  }
-
-  .dir-name {
-    display: flex;
-    align-items: center;
-    gap: var(--space-8);
-    cursor: pointer;
-
-    .el-icon {
-      color: var(--el-color-warning);
-      font-size: 18px;
-    }
-
-    &.is-selected {
-      font-weight: 600;
-      color: var(--el-color-primary);
-
-      .el-icon {
-        color: var(--el-color-primary);
-      }
-    }
-  }
-
-  .empty-hint {
-    text-align: center;
-    color: var(--el-text-color-secondary);
-    padding: 32px 0;
-    font-size: var(--font-14);
-  }
-
-  .path-actions {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-8);
-    padding-top: var(--space-12);
-  }
-
-  .path-actions-left {
-    display: flex;
-    align-items: center;
-    gap: var(--space-8);
-  }
-}
-</style>

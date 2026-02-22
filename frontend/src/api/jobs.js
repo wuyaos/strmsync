@@ -8,7 +8,9 @@ import request from './request'
  * 获取任务列表
  * @param {Object} params 查询参数
  * @param {string} [params.status] 任务状态过滤
- * @param {string} [params.keyword] 搜索关键词
+ * @param {string} [params.name] 任务名称搜索
+ * @param {string|number} [params.data_server_id] 数据服务器ID过滤
+ * @param {string} [params.strm_mode] STRM模式过滤（local/url）
  * @param {number} [params.page] 页码
  * @param {number} [params.pageSize] 每页数量
  * @returns {Promise<{data: Array, meta: Object}>} 任务列表及分页信息

@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { confirmDialog } from '@/composables/useConfirmDialog'
 
 /**
  * 服务器批量操作 Composable
@@ -67,20 +68,41 @@ export function useServerBatch() {
     return true
   }
 
+  const buildTogglePayload = (server, enabled) => {
+    const options = server.options ?? '{}'
+    return {
+      name: server.name ?? '',
+      type: server.type ?? '',
+      host: server.host ?? '',
+      port: server.port ?? 0,
+      api_key: server.api_key ?? server.apiKey ?? '',
+      options,
+      enabled,
+      download_rate_per_sec: server.download_rate_per_sec ?? server.downloadRatePerSec,
+      api_rate: server.api_rate ?? server.apiRate,
+      api_retry_max: server.api_retry_max ?? server.apiRetryMax,
+      api_retry_interval_sec: server.api_retry_interval_sec ?? server.apiRetryIntervalSec
+    }
+  }
+
   // 批量启用
   const handleBatchEnable = async (serverList, updateServerFn, refreshListFn) => {
     if (!validateBatchOperation()) return
 
     try {
-      await ElMessageBox.confirm(
-        `确认启用选中的 ${selectedIds.value.size} 个服务器吗？`,
-        '批量启用',
-        { type: 'info' }
-      )
-
       const selectedServers = serverList.filter(s => selectedIds.value.has(s.id))
+      const confirmed = await confirmDialog({
+        title: '批量启用',
+        message: '将对以下服务器执行“启用”操作：',
+        type: 'info',
+        items: selectedServers.map(s => s.name || `ID:${s.id}`),
+        confirmText: '确认启用',
+        cancelText: '取消'
+      })
+      if (!confirmed) return
+
       const results = await Promise.allSettled(
-        selectedServers.map(server => updateServerFn(server.id, { enabled: true, type: server.type }))
+        selectedServers.map(server => updateServerFn(server.id, buildTogglePayload(server, true)))
       )
 
       const successCount = results.filter(r => r.status === 'fulfilled').length
@@ -106,15 +128,19 @@ export function useServerBatch() {
     if (!validateBatchOperation()) return
 
     try {
-      await ElMessageBox.confirm(
-        `确认禁用选中的 ${selectedIds.value.size} 个服务器吗？`,
-        '批量禁用',
-        { type: 'warning' }
-      )
-
       const selectedServers = serverList.filter(s => selectedIds.value.has(s.id))
+      const confirmed = await confirmDialog({
+        title: '批量禁用',
+        message: '将对以下服务器执行“禁用”操作：',
+        type: 'warning',
+        items: selectedServers.map(s => s.name || `ID:${s.id}`),
+        confirmText: '确认禁用',
+        cancelText: '取消'
+      })
+      if (!confirmed) return
+
       const results = await Promise.allSettled(
-        selectedServers.map(server => updateServerFn(server.id, { enabled: false, type: server.type }))
+        selectedServers.map(server => updateServerFn(server.id, buildTogglePayload(server, false)))
       )
 
       const successCount = results.filter(r => r.status === 'fulfilled').length
@@ -140,13 +166,17 @@ export function useServerBatch() {
     if (!validateBatchOperation()) return
 
     try {
-      await ElMessageBox.confirm(
-        `确认删除选中的 ${selectedIds.value.size} 个服务器吗？此操作不可恢复！`,
-        '批量删除',
-        { type: 'error', confirmButtonText: '确认删除', cancelButtonText: '取消' }
-      )
-
       const selectedServers = serverList.filter(s => selectedIds.value.has(s.id))
+      const confirmed = await confirmDialog({
+        title: '批量删除',
+        message: '该操作不可恢复，将删除以下服务器：',
+        type: 'error',
+        items: selectedServers.map(s => s.name || `ID:${s.id}`),
+        confirmText: '确认删除',
+        cancelText: '取消'
+      })
+      if (!confirmed) return
+
       const results = await Promise.allSettled(
         selectedServers.map(server => deleteServerFn(server.id, server.type))
       )

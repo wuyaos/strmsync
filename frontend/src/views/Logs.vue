@@ -1,21 +1,12 @@
 <template>
-  <div class="logs-page page-with-pagination">
+  <div class="logs-page flex flex-col min-h-[calc(100vh-80px)] p-20">
     <div class="page-header">
       <div>
         <h1 class="page-title">系统日志</h1>
         <p class="page-description">按级别和关键词筛选系统运行日志</p>
       </div>
     </div>
-
     <div class="log-panel">
-      <div class="log-panel-header">
-        <div class="log-panel-title">日志查看器</div>
-        <div class="log-panel-actions">
-          <el-button @click="loadLogs">刷新</el-button>
-          <el-button @click="handleCleanup" type="danger">清理日志</el-button>
-        </div>
-      </div>
-
       <div class="log-panel-toolbar">
         <el-input
           v-model="searchText"
@@ -30,6 +21,7 @@
           clearable
           class="toolbar-level"
         >
+          <el-option label="标准" value="standard" />
           <el-option label="全部" value="" />
           <el-option label="DEBUG" value="debug" />
           <el-option label="INFO" value="info" />
@@ -73,7 +65,7 @@
 
       <div class="log-panel-footer">
         <div class="log-status">当前显示 {{ filteredLogs.length }} 条 / 总计 {{ total }} 条</div>
-        <div v-if="total > 0" class="page-pagination">
+        <div v-if="total > 0" class="flex justify-end">
           <el-pagination
             v-model:current-page="currentPage"
             v-model:page-size="pageSize"
@@ -91,13 +83,13 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getLogList, cleanupLogs } from '@/api/log'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { getLogList } from '@/api/log'
+import { ElMessage } from 'element-plus'
 import Loading from '~icons/ep/loading'
 import dayjs from 'dayjs'
 
 const searchText = ref('')
-const levelFilter = ref('')
+const levelFilter = ref('standard')
 const taskFilter = ref('')
 const logs = ref([])
 const loading = ref(false)
@@ -113,11 +105,14 @@ const getLogTime = (log) => {
 
 const filteredLogs = computed(() => {
   const list = logs.value.filter(log => {
+    const level = String(log.level || 'info').toLowerCase()
     if (searchText.value && !(log.message || '').includes(searchText.value)) {
       return false
     }
-    if (levelFilter.value && log.level !== levelFilter.value) {
-      return false
+    if (levelFilter.value === 'standard') {
+      if (!['info', 'warn', 'error'].includes(level)) return false
+    } else if (levelFilter.value) {
+      if (level !== levelFilter.value) return false
     }
     if (taskFilter.value && log.job_id !== parseInt(taskFilter.value, 10)) {
       return false
@@ -134,7 +129,7 @@ const loadLogs = async () => {
       page: currentPage.value,
       page_size: pageSize.value
     }
-    if (levelFilter.value) params.level = levelFilter.value
+    if (levelFilter.value && levelFilter.value !== 'standard') params.level = levelFilter.value
     if (taskFilter.value) params.job_id = taskFilter.value
     if (searchText.value) params.search = searchText.value
 
@@ -149,28 +144,6 @@ const loadLogs = async () => {
   }
 }
 
-const handleCleanup = async () => {
-  try {
-    await ElMessageBox.confirm(
-      '将清理7天前的日志，是否继续？',
-      '清理日志',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-
-    await cleanupLogs({ days: 7 })
-    ElMessage.success('日志清理成功')
-    loadLogs()
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('清理日志失败:', error)
-      ElMessage.error('清理日志失败')
-    }
-  }
-}
 
 const formatTime = (time) => {
   if (!time) return '-'
@@ -186,40 +159,14 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .logs-page {
-  padding: 20px;
-  height: calc(100vh - 80px);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-
   .log-panel {
     flex: 1;
     background: var(--el-bg-color);
     border: 1px solid var(--el-border-color-light);
-    border-radius: 8px;
+    border-radius: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-
-    .log-panel-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--el-border-color-lighter);
-      background: var(--el-fill-color-blank);
-
-      .log-panel-title {
-        font-size: 16px;
-        font-weight: 600;
-        color: var(--el-text-color-primary);
-      }
-
-      .log-panel-actions {
-        display: flex;
-        gap: 8px;
-      }
-    }
 
     .log-panel-toolbar {
       display: flex;
@@ -254,7 +201,7 @@ onMounted(() => {
       min-height: 0;
       background: var(--el-fill-color-blank);
       border: 1px solid var(--el-border-color-lighter);
-      border-radius: 6px;
+      border-radius: 0;
       padding: 6px 0;
       overflow-y: auto;
 
@@ -294,7 +241,7 @@ onMounted(() => {
         .log-level-badge {
           min-width: 56px;
           padding: 2px 8px;
-          border-radius: 10px;
+          border-radius: 0;
           font-size: 12px;
           font-weight: 600;
           text-align: center;
