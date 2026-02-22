@@ -38,7 +38,7 @@ export const useServerConnectivity = (options) => {
         const key = String(server.id ?? '')
         if (!key) continue
         const lastAt = lastTestAtMap[key] || 0
-        if (now - lastAt < intervalMs) continue
+        if (now - lastAt < intervalMs - 500) continue
         if (inFlightKeyMap[key]) continue
         queue.push({ key, server })
       }

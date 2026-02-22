@@ -16,6 +16,7 @@
 - Avoid grouping connectivity checks by host/port to prevent credential-specific misclassification.
 - Clear connectivity caches when servers are removed to avoid stale growth.
 - Trigger connectivity checks immediately on mount to avoid initial unknown state.
+- Add a small tolerance window to avoid interval jitter skipping checks.
 
 ### Changed
 
