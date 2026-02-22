@@ -15,6 +15,7 @@
 - Make server list watching resilient to undefined sources and non-ref inputs.
 - Avoid grouping connectivity checks by host/port to prevent credential-specific misclassification.
 - Clear connectivity caches when servers are removed to avoid stale growth.
+- Trigger connectivity checks immediately on mount to avoid initial unknown state.
 
 ### Changed
 

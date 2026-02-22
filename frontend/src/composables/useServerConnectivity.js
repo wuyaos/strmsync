@@ -95,6 +95,7 @@ export const useServerConnectivity = (options) => {
   }
 
   onMounted(() => {
+    refreshConnectionStatus()
     pollingTimer.value = setInterval(() => {
       refreshConnectionStatus()
     }, intervalMs)
