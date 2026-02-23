@@ -163,6 +163,19 @@ func (q *SyncQueue) ClaimNext(ctx context.Context, workerID string) (*model.Task
 		return nil, fmt.Errorf("claim next select: %w", err)
 	}
 
+	// 二次校验：同一 Job 是否已有运行中任务（避免竞态）
+	var runningCount int64
+	if err := tx.Model(&model.TaskRun{}).
+		Where("job_id = ? AND status = ?", task.JobID, string(TaskRunning)).
+		Count(&runningCount).Error; err != nil {
+		_ = tx.Rollback().Error
+		return nil, fmt.Errorf("claim next check running: %w", err)
+	}
+	if runningCount > 0 {
+		_ = tx.Rollback().Error
+		return nil, nil
+	}
+
 	// 检查状态转移的合法性
 	if !TaskStatus(task.Status).CanTransitionTo(TaskRunning) {
 		_ = tx.Rollback().Error
