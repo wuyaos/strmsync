@@ -156,9 +156,9 @@ func (h *DataServerHandler) CreateDataServer(c *gin.Context) {
 			respondError(c, http.StatusConflict, "duplicate_name", "服务器名称已存在", nil)
 			return
 		}
-	h.logger.Error("创建数据服务器失败",
-		zap.String("name", server.Name),
-		zap.Error(err),
+		h.logger.Error("创建数据服务器失败",
+			zap.String("name", server.Name),
+			zap.Error(err),
 			zap.Any("payload", sanitizeMapForLog(map[string]interface{}{
 				"name":    server.Name,
 				"type":    server.Type,
@@ -700,6 +700,7 @@ func testOpenListConnection(server model.DataServer, logger *zap.Logger) Connect
 			Message: "创建测试请求失败",
 		}
 	}
+	// 使用 OpenList API 的目录列出能力进行连通性测试
 	if _, err := client.List(context.Background(), "/"); err != nil {
 		logger.Warn("OpenList连接失败", zap.Error(err), zap.String("url", apiURL))
 		return ConnectionTestResult{

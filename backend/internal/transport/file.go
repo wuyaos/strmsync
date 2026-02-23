@@ -270,7 +270,7 @@ func (h *FileHandler) listCloudDrive2Directories(c *gin.Context, path, host, por
 	})
 }
 
-// listOpenListDirectories 通过OpenList API列出目录
+// listOpenListDirectories 通过 OpenList API 列出目录（目录选择用途，非同步扫描）
 func (h *FileHandler) listOpenListDirectories(c *gin.Context, path string, server model.DataServer) {
 	baseURL := fmt.Sprintf("http://%s:%d", server.Host, server.Port)
 	client, err := openlistsdk.NewClient(openlistsdk.Config{
@@ -309,7 +309,7 @@ func (h *FileHandler) listOpenListDirectories(c *gin.Context, path string, serve
 	})
 }
 
-// listOpenListDirectoriesWithAuth 通过OpenList API列出目录（临时用户名密码）
+// listOpenListDirectoriesWithAuth 通过 OpenList API 列出目录（临时用户名密码，目录选择用途）
 func (h *FileHandler) listOpenListDirectoriesWithAuth(
 	c *gin.Context,
 	path string,
