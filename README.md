@@ -5,7 +5,7 @@
   <span style="font-size: 32px; font-weight: 700; margin-left: 10px; vertical-align: middle;">STRMSync</span>
 </div>
 
-[![Version](https://img.shields.io/badge/Version-1.1.0-fb7299?style=flat-square)](VERSION) [![Go Version](https://img.shields.io/badge/Go-1.24-00ADD8?style=flat-square&logo=go&logoColor=white)](https://golang.org) [![Node Version](https://img.shields.io/badge/Node-18+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org) [![Vue Version](https://img.shields.io/badge/Vue-3.x-42b883?style=flat-square&logo=vue.js&logoColor=white)](https://vuejs.org) [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square&logo=opensourceinitiative&logoColor=white)](LICENSE) [![Last Commit](https://img.shields.io/github/last-commit/wuyaos/strmsync?style=flat-square)](https://github.com/wuyaos/strmsync)
+[![Version](https://img.shields.io/badge/Version-1.1.1-fb7299?style=flat-square)](VERSION) [![Go Version](https://img.shields.io/badge/Go-1.24-00ADD8?style=flat-square&logo=go&logoColor=white)](https://golang.org) [![Node Version](https://img.shields.io/badge/Node-18+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org) [![Vue Version](https://img.shields.io/badge/Vue-3.x-42b883?style=flat-square&logo=vue.js&logoColor=white)](https://vuejs.org) [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square&logo=opensourceinitiative&logoColor=white)](LICENSE) [![Last Commit](https://img.shields.io/github/last-commit/wuyaos/strmsync?style=flat-square)](https://github.com/wuyaos/strmsync)
 
 STRMSync 是一款面向媒体库的自动化同步工具，支持从本地或云盘数据源生成 STRM 文件与元数据，统一管理任务、调度与运行状态。
 
@@ -50,18 +50,24 @@ make build
 ## ✅ TODO List
 
 - [ ] OpenList / CloudDrive2 未完全适配
+- [ ] CloudDrive2 文件变更通知
 - [ ] Plex 适配
+- [ ] Web 页面响应式布局
 - [ ] Docker 部署
 - [ ] GitHub Actions 自动编译发布
-- [ ] 更详细的使用说明
+- [ ] 优化文字显示
 
 ## 🧩 依赖
 
-- Element Plus
-- Vite
+后端核心：
+- Gin
+- GORM
+- gRPC
+
+前端核心：
 - Vue.js
-- ECharts
-- Day.js
+- Vite
+- Element Plus
 
 ## 📣 声明
 
