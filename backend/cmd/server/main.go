@@ -504,6 +504,7 @@ func setupRouter(db *gorm.DB, logDir string, scheduler httphandlers.JobScheduler
 			runs.DELETE("/:id", taskRunHandler.DeleteTaskRun)
 			runs.GET("/stats", taskRunHandler.GetRunStats)
 		}
+
 	}
 
 	// 前端静态文件服务（使用 StaticFS）

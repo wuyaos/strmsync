@@ -142,6 +142,21 @@ func (q *SyncQueue) ClaimNext(ctx context.Context, workerID string) (*model.Task
 		return nil, fmt.Errorf("claim next begin transaction: %w", tx.Error)
 	}
 
+	// 全局串行：若已有运行中任务，则不领取新任务
+	var runningTotal int64
+	if err := tx.Model(&model.TaskRun{}).
+		Where("status = ?", string(TaskRunning)).
+		Count(&runningTotal).Error; err != nil {
+		_ = tx.Rollback().Error
+		return nil, fmt.Errorf("claim next check global running: %w", err)
+	}
+	if runningTotal > 0 {
+		if commitErr := tx.Commit().Error; commitErr != nil {
+			return nil, fmt.Errorf("claim next commit global running: %w", commitErr)
+		}
+		return nil, nil
+	}
+
 	// 查询一个待执行任务（同一 Job 严格串行）
 	var task model.TaskRun
 	if err := tx.Where("status = ? AND available_at <= ?", string(TaskPending), now).

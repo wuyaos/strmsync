@@ -359,6 +359,43 @@ func TestClaimNext_MissingWorkerID(t *testing.T) {
 	}
 }
 
+func TestClaimNext_GlobalSerial(t *testing.T) {
+	db := newTestDB(t)
+	q, err := NewSyncQueue(db)
+	if err != nil {
+		t.Fatalf("new queue: %v", err)
+	}
+
+	running := &model.TaskRun{
+		JobID:     1,
+		Status:    string(TaskRunning),
+		Priority:  int(TaskPriorityNormal),
+		DedupKey:  "running-1",
+		StartedAt: time.Now().Add(-time.Second),
+	}
+	if err := db.Create(running).Error; err != nil {
+		t.Fatalf("create running task: %v", err)
+	}
+
+	pending := &model.TaskRun{
+		JobID:       2,
+		Priority:    int(TaskPriorityHigh),
+		AvailableAt: time.Now().Add(-time.Second),
+		DedupKey:    "pending-1",
+	}
+	if err := q.Enqueue(context.Background(), pending); err != nil {
+		t.Fatalf("enqueue pending: %v", err)
+	}
+
+	claimed, err := q.ClaimNext(context.Background(), "worker-1")
+	if err != nil {
+		t.Fatalf("claim next: %v", err)
+	}
+	if claimed != nil {
+		t.Fatalf("expected nil due to global running, got %+v", claimed)
+	}
+}
+
 // =============================================================
 // Complete 测试
 // =============================================================

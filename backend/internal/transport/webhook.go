@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// WebhookHandler 处理外部网盘事件的接入入口（占位，后续实现）
+// WebhookHandler 处理外部网盘事件的接入入口（占位）
 type WebhookHandler struct{}
 
 // NewWebhookHandler 创建 WebhookHandler
