@@ -65,7 +65,7 @@ func TestFileService_List_ServerIDRequired(t *testing.T) {
 	db := newTestDB(t)
 	svc := NewFileService(db, newNopLogger())
 
-	_, err := svc.List(context.Background(), ports.FileListRequest{
+	_, err := svc.Scan(context.Background(), ports.FileListRequest{
 		ServerID: 0,
 	})
 
@@ -78,7 +78,7 @@ func TestFileService_List_DataServerNotFound(t *testing.T) {
 	db := newTestDB(t)
 	svc := NewFileService(db, newNopLogger())
 
-	_, err := svc.List(context.Background(), ports.FileListRequest{
+	_, err := svc.Scan(context.Background(), ports.FileListRequest{
 		ServerID: 999,
 	})
 
@@ -87,14 +87,15 @@ func TestFileService_List_DataServerNotFound(t *testing.T) {
 	}
 	if !errors.Is(err, ErrDataServerNotFound) {
 		t.Errorf("expected ErrDataServerNotFound, got: %v", err)
-	}}
+	}
+}
 
 func TestFileService_List_DataServerDisabled(t *testing.T) {
 	db := newTestDB(t)
 	ds := createDataServer(t, db, "disabled-server", "local", "localhost", 0, false, `{"mount_path":"/tmp"}`)
 	svc := NewFileService(db, newNopLogger())
 
-	_, err := svc.List(context.Background(), ports.FileListRequest{
+	_, err := svc.Scan(context.Background(), ports.FileListRequest{
 		ServerID: ds.ID,
 	})
 
@@ -112,7 +113,7 @@ func TestFileService_List_LocalMountPathRequired(t *testing.T) {
 	ds := createDataServer(t, db, "local-no-path", "local", "localhost", 0, true, `{"mount_path":""}`)
 	svc := NewFileService(db, newNopLogger())
 
-	_, err := svc.List(context.Background(), ports.FileListRequest{
+	_, err := svc.Scan(context.Background(), ports.FileListRequest{
 		ServerID: ds.ID,
 	})
 
@@ -139,7 +140,7 @@ func TestFileService_List_MaxDepthOutOfRange(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			depth := tt.maxDepth
-			_, err := svc.List(context.Background(), ports.FileListRequest{
+			_, err := svc.Scan(context.Background(), ports.FileListRequest{
 				ServerID:  ds.ID,
 				Recursive: true,
 				MaxDepth:  &depth,
@@ -166,7 +167,7 @@ func TestFileService_List_LocalSuccess(t *testing.T) {
 	ds := createDataServer(t, db, "local-server", "local", "localhost", 0, true, options)
 	svc := NewFileService(db, newNopLogger())
 
-	files, err := svc.List(context.Background(), ports.FileListRequest{
+	files, err := svc.Scan(context.Background(), ports.FileListRequest{
 		ServerID:  ds.ID,
 		Path:      "/",
 		Recursive: false,

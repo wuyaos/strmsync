@@ -7,8 +7,8 @@ import (
 
 // FileService 文件服务接口
 type FileService interface {
-	// List 获取文件列表
-	List(ctx context.Context, req FileListRequest) ([]RemoteFile, error)
+	// Scan 获取文件列表
+	Scan(ctx context.Context, req FileListRequest) ([]RemoteFile, error)
 }
 
 // JobService Job业务逻辑服务
@@ -85,8 +85,6 @@ type TaskRunService interface {
 	// Cancel 标记TaskRun被取消
 	Cancel(ctx context.Context, taskRunID TaskRunID) error
 }
-
-
 
 // LogService 日志服务接口
 type LogService interface {

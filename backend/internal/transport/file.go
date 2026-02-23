@@ -354,7 +354,7 @@ func (h *FileHandler) listOpenListDirectoriesWithAuth(
 	})
 }
 
-// ListFiles 列出数据服务器文件（新架构API）
+// ListFiles 获取数据服务器文件（新架构API）
 // POST /api/files/list
 // 请求体: {"server_id": 1, "path": "/", "recursive": false, "max_depth": 5}
 // max_depth: 递归最大深度（可选），默认5，上限50，0表示非递归
@@ -392,8 +392,8 @@ func (h *FileHandler) ListFiles(c *gin.Context) {
 		req.MaxDepth = &defaultDepth
 	}
 
-	// 调用service层
-	files, err := h.fileSvc.List(c.Request.Context(), ports.FileListRequest{
+	// 调用 service 层（Scan 语义）
+	files, err := h.fileSvc.Scan(c.Request.Context(), ports.FileListRequest{
 		ServerID:  req.ServerID,
 		Path:      req.Path,
 		Recursive: req.Recursive,

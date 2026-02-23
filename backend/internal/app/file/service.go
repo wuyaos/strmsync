@@ -38,7 +38,7 @@ func NewFileService(db *gorm.DB, logger *zap.Logger) ports.FileService {
 	}
 }
 
-func (s *fileService) List(ctx context.Context, req ports.FileListRequest) ([]ports.RemoteFile, error) {
+func (s *fileService) Scan(ctx context.Context, req ports.FileListRequest) ([]ports.RemoteFile, error) {
 	if req.ServerID == 0 {
 		return nil, fmt.Errorf("server_id 不能为空")
 	}
