@@ -1,99 +1,205 @@
 <template>
-  <el-card class="mb-16 border-[var(--el-border-color-lighter)]" shadow="never">
+  <el-card class="job-card mb-16 border-[var(--el-border-color-lighter)]" shadow="never">
     <template #header>
       <div class="text-16 font-semibold text-[var(--el-text-color-primary)]">同步功能</div>
     </template>
 
-    <el-form-item label="定时同步">
-      <template #label>
-        <div class="flex items-center gap-8 w-full">
-          <span class="whitespace-nowrap">定时同步</span>
-          <span class="ml-auto text-12 text-[var(--el-text-color-secondary)] leading-5 max-w-[360px] text-right inline-flex items-center gap-4">启用后按 Cron 规则定时执行同步</span>
-        </div>
-      </template>
-      <div class="flex items-center gap-12">
-        <el-switch v-model="formData.schedule_enabled" />
-      </div>
-    </el-form-item>
-
-    <el-form-item v-if="formData.schedule_enabled" label="Cron 表达式" prop="cron" class="compact-field">
-      <template #label>
-        <div class="flex items-center gap-8 w-full">
-          <span class="whitespace-nowrap">Cron 表达式</span>
-          <span class="ml-auto text-12 text-[var(--el-text-color-secondary)] leading-5 max-w-[360px] text-right inline-flex items-center gap-4">
-            格式：分 时 日 月 周（例如：0 */6 * * * 表示每 6 小时执行一次）
-          </span>
-        </div>
-      </template>
-      <el-input v-model="formData.cron" placeholder="0 */6 * * *" />
-    </el-form-item>
-
-    <div class="text-14 font-semibold text-[var(--el-text-color-regular)] my-12">同步策略</div>
-    <div class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-12 mb-8">
-      <div
-        v-for="item in syncOptionGroups.general"
-        :key="item.value"
-        class="p-8 px-12 border border-[var(--el-border-color-lighter)] rounded-6 bg-[var(--el-fill-color-blank)]"
-      >
-        <el-radio v-model="syncStrategyModel" :value="item.value">{{ item.label }}</el-radio>
-        <div class="text-12 text-[var(--el-text-color-secondary)] leading-6 mt-4 flex items-start gap-4">
-          {{ item.help }}
-        </div>
-      </div>
-    </div>
-    <el-form-item v-if="currentServerHasApi" label="远程列表优先">
-      <div class="flex items-center gap-12">
-        <el-switch v-model="formData.prefer_remote_list" :disabled="forceRemoteOnly" />
-        <span class="text-12 text-[var(--el-text-color-secondary)] leading-6 mt-4 flex items-start gap-4">
-          优先使用远程 API 获取文件列表（更快），本地默认关闭
-          <span v-if="forceRemoteOnly">（OpenList 未配置访问目录时强制开启）</span>
-        </span>
-      </div>
-    </el-form-item>
-
-    <div class="text-14 font-semibold text-[var(--el-text-color-regular)] my-12">元数据选项</div>
-    <div class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-12 mb-8">
-      <div
-        v-for="item in syncOptionGroups.meta"
-        :key="item.value"
-        class="p-8 px-12 border border-[var(--el-border-color-lighter)] rounded-6 bg-[var(--el-fill-color-blank)]"
-      >
-        <el-radio v-model="metaStrategyModel" :value="item.value">{{ item.label }}</el-radio>
-        <div class="text-12 text-[var(--el-text-color-secondary)] leading-6 mt-4 flex items-start gap-4">
-          {{ item.help }}
-        </div>
-      </div>
-    </div>
-
-    <el-row :gutter="20" class="items-start">
-      <el-col :xs="24" :md="12">
-        <el-form-item label="元数据模式" class="inline-field">
-          <el-radio-group v-model="formData.metadata_mode">
-            <el-radio value="copy" :disabled="forceRemoteOnly">复制文件</el-radio>
-            <el-radio value="download" :disabled="currentServerIsLocal">下载文件</el-radio>
-            <el-radio value="none" :disabled="forceRemoteOnly">不处理</el-radio>
-          </el-radio-group>
-          <div
-            v-if="currentServerIsLocal && formData.metadata_mode === 'download'"
-            class="text-12 text-[var(--el-color-warning)] mt-4 flex items-start gap-4 basis-full"
-          >
-            <el-icon class="text-[var(--el-color-warning)] mt-4"><WarningFilled /></el-icon>
-            Local 模式不支持下载，已自动切换为复制模式
+    <!-- Partition 1: Schedule -->
+    <div class="section-title">定时设置</div>
+    <el-divider class="section-divider" />
+    <el-row :gutter="20" class="items-start schedule-row">
+      <el-col :xs="24" :sm="12" :md="8">
+        <el-form-item label="定时同步" class="schedule-item">
+          <template #label>
+            <div class="flex items-center gap-8 w-full">
+              <span class="whitespace-nowrap">定时同步</span>
+              <span class="label-sep">   </span>
+            </div>
+          </template>
+          <div class="flex items-center gap-12">
+            <el-switch v-model="formData.schedule_enabled" />
           </div>
         </el-form-item>
       </el-col>
-      <el-col :xs="24" :md="12">
-        <el-form-item label="同步线程数" class="inline-field">
-          <el-input v-model="formData.thread_count" class="input-short" type="number" min="1" max="16" step="1" />
+      <el-col :xs="24" :sm="12" :md="8">
+        <el-form-item label="Cron 表达式" prop="cron" class="compact-field cron-item">
+          <template #label>
+            <div class="flex items-center gap-8 w-full">
+              <span class="whitespace-nowrap">Cron 表达式</span>
+              <span class="label-sep">   </span>
+            </div>
+          </template>
+          <el-input v-model="formData.cron" placeholder="0 */6 * * *" />
         </el-form-item>
       </el-col>
     </el-row>
+
+    <!-- Partition 2: Sync Strategy -->
+    <div class="section-title">同步策略</div>
+    <el-divider class="section-divider" />
+    <el-row :gutter="20">
+      <el-col v-for="item in syncOptionGroups.general" :key="item.value" :xs="24" :sm="12" :md="8">
+        <div class="option-item">
+          <el-radio v-model="syncStrategyModel" :value="item.value">{{ item.label }}</el-radio>
+          <div class="option-help">{{ item.help }}</div>
+        </div>
+      </el-col>
+    </el-row>
+
+    <!-- Partition 3: Meta Strategy -->
+    <div class="section-title">元数据更新策略</div>
+    <el-divider class="section-divider" />
+    <el-row :gutter="20">
+      <el-col v-for="item in syncOptionGroups.meta" :key="item.value" :xs="24" :sm="12" :md="8">
+        <div class="option-item">
+          <el-radio v-model="metaStrategyModel" :value="item.value">{{ item.label }}</el-radio>
+          <div class="option-help">{{ item.help }}</div>
+        </div>
+      </el-col>
+    </el-row>
+
+    <!-- Partition 3: Metadata Mode -->
+    <div class="section-title">元数据模式</div>
+    <el-divider class="section-divider" />
+    <el-row :gutter="20" class="items-start">
+      <el-col :xs="24" :sm="12" :md="8">
+        <div class="option-item">
+          <el-radio v-model="formData.metadata_mode" value="download" :disabled="currentServerIsLocal">
+            API 下载
+          </el-radio>
+          <div class="option-help">优先 API 下载，失败回退复制</div>
+        </div>
+      </el-col>
+      <el-col :xs="24" :sm="12" :md="8">
+        <div class="option-item">
+          <el-radio v-model="formData.metadata_mode" value="copy" :disabled="forceRemoteOnly">
+            系统复制
+          </el-radio>
+          <div class="option-help">从挂载盘直接复制</div>
+        </div>
+      </el-col>
+      <el-col :xs="24" :sm="12" :md="8">
+        <div class="option-item">
+          <el-radio v-model="formData.metadata_mode" value="none" :disabled="forceRemoteOnly">
+            不处理
+          </el-radio>
+          <div class="option-help">跳过所有元数据文件</div>
+        </div>
+      </el-col>
+    </el-row>
+
+    <!-- Partition 5: Cleanup -->
+    <div class="section-title">清除策略</div>
+    <el-divider class="section-divider" />
+    <el-checkbox-group v-model="formData.cleanup_opts">
+      <el-row :gutter="20">
+        <el-col v-for="item in cleanupOptions" :key="item.value" :xs="24" :sm="12" :md="8">
+          <div class="option-item">
+            <el-checkbox :value="item.value">{{ item.label }}</el-checkbox>
+            <div class="option-help">{{ item.help }}</div>
+          </div>
+        </el-col>
+      </el-row>
+    </el-checkbox-group>
   </el-card>
 </template>
 
+<style scoped lang="scss">
+.job-card {
+  --el-card-padding: 24px 20px;
+  --option-min-width: 200px;
+
+  :deep(.el-card__header) {
+    padding: var(--el-card-padding);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+}
+
+.section-title {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+}
+
+.section-divider {
+  margin: 0 0 12px;
+}
+
+.option-item {
+  width: 100%;
+  padding: 4px 0;
+}
+
+.option-item :deep(.el-radio),
+.option-item :deep(.el-checkbox) {
+  min-width: var(--option-min-width);
+}
+
+.option-help {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.5;
+  padding-left: 24px;
+}
+
+.label-sep {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.label-help {
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.schedule-item {
+  margin-top: 12px;
+}
+
+.schedule-row :deep(.el-form-item__label) {
+  align-items: flex-start;
+}
+
+.cron-item :deep(.el-form-item__label) {
+  align-items: center;
+}
+
+.cron-help {
+  margin: 12px 0 0 0;
+}
+
+.el-form-item {
+  margin-bottom: 18px;
+
+  :deep(.el-form-item__label) {
+    font-size: 14px;
+    color: var(--el-text-color-regular);
+    font-weight: 500;
+    display: flex;
+    align-items: center; /* Align label and asterisk vertically */
+    line-height: 1; /* Consistent line height */
+    margin-bottom: 4px; /* Space below label */
+  }
+
+  :deep(.el-item.is-required .el-form-item__label:before) {
+    align-self: center; /* Vertically center the asterisk */
+    margin-right: 4px;
+  }
+
+  /* Style for help text within form items (e.g., div.text-12) */
+  .text-12 {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    line-height: 1.5;
+  }
+}
+</style>
+
 <script setup>
 import { computed } from 'vue'
-import WarningFilled from '~icons/ep/warning-filled'
 
 const props = defineProps({
   formData: {
@@ -103,6 +209,10 @@ const props = defineProps({
   syncOptionGroups: {
     type: Object,
     required: true
+  },
+  cleanupOptions: {
+    type: Array,
+    default: () => []
   },
   syncStrategy: {
     type: String,

@@ -34,7 +34,7 @@ func (c *debugFilterCore) With(fields []zapcore.Field) zapcore.Core {
 
 func (c *debugFilterCore) Check(entry zapcore.Entry, checked *zapcore.CheckedEntry) *zapcore.CheckedEntry {
 	if c.Enabled(entry.Level) {
-		return checked.AddCore(entry, c)
+		return checked.AddCore(entry, c.core)
 	}
 	return checked
 }

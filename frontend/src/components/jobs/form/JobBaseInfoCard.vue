@@ -1,5 +1,5 @@
 <template>
-  <el-card class="mb-16 border-[var(--el-border-color-lighter)]" shadow="never">
+  <el-card class="job-card mb-16 border-[var(--el-border-color-lighter)]" shadow="never">
     <template #header>
       <div class="text-16 font-semibold text-[var(--el-text-color-primary)]">基本信息</div>
     </template>
@@ -10,10 +10,10 @@
         </el-form-item>
       </el-col>
       <el-col :xs="24" :md="8">
-        <el-form-item label="数据服务器" prop="data_server_id">
+        <el-form-item label="网盘类型" prop="data_server_id">
           <el-select
             v-model="formData.data_server_id"
-            placeholder="选择数据服务器"
+            placeholder="选择网盘类型"
             class="w-full"
             @change="handleServerChange"
           >
@@ -29,7 +29,7 @@
       <el-col :xs="24" :md="8">
         <el-form-item prop="media_server_id">
           <template #label>
-            <span>媒体服务器（可选）</span>
+            <span>媒体服务器</span>
             <el-tooltip content="用于后续媒体库联动，不影响同步流程" placement="top">
               <el-icon class="ml-4 text-[var(--el-text-color-secondary)]"><InfoFilled /></el-icon>
             </el-tooltip>
@@ -52,6 +52,37 @@
     </el-row>
   </el-card>
 </template>
+
+<style scoped lang="scss">
+.job-card {
+  --el-card-padding: 20px;
+}
+
+:deep(.el-card__header) {
+  padding: var(--el-card-padding);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+:deep(.el-card__body) {
+  padding: var(--el-card-padding);
+}
+
+:deep(.el-form-item) {
+  margin-bottom: 16px;
+}
+
+:deep(.el-form-item__label) {
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+:deep(.el-input),
+:deep(.el-select) {
+  width: 100%;
+}
+</style>
 
 <script setup>
 import InfoFilled from '~icons/ep/info-filled'

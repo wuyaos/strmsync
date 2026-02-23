@@ -1,20 +1,29 @@
 <template>
-  <el-card class="mb-16 border-[var(--el-border-color-lighter)]" shadow="never">
+  <el-card class="job-card mb-16 border-[var(--el-border-color-lighter)]" shadow="never">
     <template #header>
       <div class="text-16 font-semibold text-[var(--el-text-color-primary)]">目录配置</div>
     </template>
-    <div class="flex flex-wrap items-center gap-16 text-12 text-[var(--el-text-color-secondary)] mb-12">
-      <div>
-        <span class="text-[var(--el-text-color-regular)]">访问目录：</span>
-        <span class="font-mono text-[var(--el-text-color-primary)]">{{ accessPathText }}</span>
-      </div>
-      <div>
-        <span class="text-[var(--el-text-color-regular)]">挂载目录：</span>
-        <span class="font-mono text-[var(--el-text-color-primary)]">{{ mountPathText }}</span>
-      </div>
-      <div>
-        <span class="text-[var(--el-text-color-regular)]">远程根目录：</span>
-        <span class="font-mono text-[var(--el-text-color-primary)]">{{ remoteRootText }}</span>
+    <div class="path-meta mb-12">
+      <div class="text-12 text-[var(--el-text-color-secondary)] mb-8">路径信息</div>
+      <div class="path-grid">
+        <div class="path-item">
+          <span class="path-label">访问目录</span>
+          <span class="path-value">
+            {{ accessPathText }}
+          </span>
+        </div>
+        <div class="path-item">
+          <span class="path-label">挂载目录</span>
+          <span class="path-value">
+            {{ mountPathText }}
+          </span>
+        </div>
+        <div class="path-item">
+          <span class="path-label">远程根目录</span>
+          <span class="path-value">
+            {{ remoteRootText }}
+          </span>
+        </div>
       </div>
     </div>
     <el-row :gutter="20" class="items-start">
@@ -23,7 +32,8 @@
           <template #label>
             <div class="flex items-center gap-8 w-full">
               <span class="whitespace-nowrap">媒体目录</span>
-              <span class="ml-auto text-12 text-[var(--el-text-color-secondary)] leading-5 max-w-[360px] text-right inline-flex items-center gap-4">
+              <span class="label-sep"> </span>
+              <span class="label-help ml-auto leading-5 max-w-[360px] text-right inline-flex items-center gap-4">
                 <span v-if="mediaDirDisabled">请先选择数据服务器。</span>
                 <template v-else>
                   <el-icon v-if="showMediaDirWarning" class="text-[var(--el-color-warning)] mt-4"><WarningFilled /></el-icon>
@@ -49,7 +59,8 @@
           <template #label>
             <div class="flex items-center gap-8 w-full">
               <span class="whitespace-nowrap">远程根目录</span>
-              <span class="ml-auto text-12 text-[var(--el-text-color-secondary)] leading-5 max-w-[360px] text-right inline-flex items-center gap-4">用于 CD2/OpenList 的远程 API 根路径</span>
+              <span class="label-sep"> </span>
+              <span class="label-help ml-auto leading-5 max-w-[360px] text-right inline-flex items-center gap-4">用于 CD2/OpenList 的远程 API 根路径</span>
             </div>
           </template>
           <el-input v-model="formData.remote_root" placeholder="/">
@@ -64,7 +75,8 @@
           <template #label>
             <div class="flex items-center gap-8 w-full">
               <span class="whitespace-nowrap">本地输出</span>
-              <span class="ml-auto text-12 text-[var(--el-text-color-secondary)] leading-5 max-w-[360px] text-right inline-flex items-center gap-4">用于存放生成的 STRM 文件和元数据</span>
+              <span class="label-sep"> </span>
+              <span class="label-help ml-auto leading-5 max-w-[360px] text-right inline-flex items-center gap-4">用于存放生成的 STRM 文件和元数据</span>
             </div>
           </template>
           <el-input v-model="formData.local_dir" placeholder="/local/strm/movies">
@@ -76,11 +88,12 @@
       </el-col>
     </el-row>
 
-    <el-form-item label="排除目录" prop="exclude_dirs" class="compact-field">
+    <el-form-item label="排除目录" prop="exclude_dirs" class="compact-field mt-20">
       <template #label>
         <div class="flex items-center gap-8 w-full">
           <span class="whitespace-nowrap">排除目录</span>
-          <span class="ml-auto text-12 text-[var(--el-text-color-secondary)] leading-5 max-w-[360px] text-right inline-flex items-center gap-4">可多选，支持手动输入(用\",\"隔开)</span>
+          <span class="label-sep"> </span>
+          <span class="label-help ml-auto leading-5 max-w-[360px] text-right inline-flex items-center gap-4">可多选，支持手动输入(用\",\"隔开)</span>
         </div>
       </template>
       <el-input
@@ -95,6 +108,79 @@
     </el-form-item>
   </el-card>
 </template>
+
+<style scoped lang="scss">
+.job-card {
+  --el-card-padding: 20px;
+}
+
+:deep(.el-card__header) {
+  padding: var(--el-card-padding);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+:deep(.el-card__body) {
+  padding: var(--el-card-padding);
+}
+
+.path-meta {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--el-fill-color-light);
+}
+
+.path-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px 16px;
+}
+
+.path-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.path-label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.path-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+  word-break: break-all;
+}
+
+.label-sep {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.label-help {
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+:deep(.el-form-item) {
+  margin-bottom: 16px;
+}
+
+:deep(.el-form-item__label) {
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+:deep(.el-form-item__label .ml-auto) {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  font-weight: normal;
+}
+</style>
 
 <script setup>
 import FolderOpened from '~icons/ep/folder-opened'

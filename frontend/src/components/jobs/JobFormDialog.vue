@@ -36,11 +36,10 @@
         @update:excludeDirsProxy="excludeDirsProxy = $event"
       />
 
-      <JobCleanupCard :form-data="formData" :cleanup-options="cleanupOptions" />
-
       <JobSyncCard
         :form-data="formData"
         :sync-option-groups="syncOptionGroups"
+        :cleanup-options="cleanupOptions"
         v-model:sync-strategy="syncStrategy"
         v-model:meta-strategy="metaStrategy"
         :current-server-has-api="currentServerHasApi"
@@ -71,7 +70,6 @@ import { computed, ref } from 'vue'
 import { joinPath, normalizePath } from '@/composables/usePathDialog'
 import JobBaseInfoCard from '@/components/jobs/form/JobBaseInfoCard.vue'
 import JobPathConfigCard from '@/components/jobs/form/JobPathConfigCard.vue'
-import JobCleanupCard from '@/components/jobs/form/JobCleanupCard.vue'
 import JobSyncCard from '@/components/jobs/form/JobSyncCard.vue'
 import JobStrmCard from '@/components/jobs/form/JobStrmCard.vue'
 
@@ -194,14 +192,12 @@ const syncStrategy = computed({
 
 const metaStrategy = computed({
   get: () => {
-    if (props.formData?.sync_opts?.overwrite_meta) return 'overwrite_meta'
     if (props.formData?.sync_opts?.skip_meta) return 'skip_meta'
     return 'update_meta'
   },
   set: (value) => {
     if (!props.formData?.sync_opts) return
     props.formData.sync_opts.update_meta = value === 'update_meta'
-    props.formData.sync_opts.overwrite_meta = value === 'overwrite_meta'
     props.formData.sync_opts.skip_meta = value === 'skip_meta'
   }
 })
@@ -243,21 +239,19 @@ const moveStrmRule = (index, direction) => {
 }
 
 const cleanupOptions = [
-  { value: 'clean_local', label: '清除本地目录', help: '删除本地输出中找不到源文件的条目' },
-  { value: 'clean_folders', label: '清除无效文件夹', help: '移除没有有效媒体的空目录' },
-  { value: 'clean_symlinks', label: '清除无效软链接', help: '清理指向不存在源文件的软链接' },
-  { value: 'clean_meta', label: '清除无效元数据', help: '移除无对应媒体的元数据文件' }
+  { value: 'clean_local', label: '清理孤儿文件', help: '删除源端不存在的条目' },
+  { value: 'clean_folders', label: '清理空目录', help: '递归移除空目录' },
+  { value: 'clean_meta', label: '清理独立元数据', help: '移除无对应媒体的元数据' }
 ]
 
 const syncOptionGroups = {
   general: [
-    { value: 'full_resync', label: '全量同步', help: '不管之前是否同步过，重新扫描并同步全部内容（会覆盖 STRM）' },
-    { value: 'full_update', label: '更新同步', help: '仅对新增条目执行同步/更新' }
+    { value: 'full_resync', label: '全量同步', help: '重新扫描并覆盖更新' },
+    { value: 'full_update', label: '更新同步', help: '只处理新增或变更' }
   ],
   meta: [
-    { value: 'update_meta', label: '更新元数据', help: '比对内容，相同跳过，不同/缺失则更新' },
-    { value: 'overwrite_meta', label: '元数据覆盖', help: '无条件覆盖已存在的元数据文件' },
-    { value: 'skip_meta', label: '元数据跳过', help: '跳过同名元数据文件，不做处理' }
+    { value: 'update_meta', label: '元数据更新', help: '有差异才更新' },
+    { value: 'skip_meta', label: '元数据跳过', help: '存在则不处理' }
   ]
 }
 </script>

@@ -3,15 +3,11 @@ import { DEFAULT_MEDIA_EXTS, DEFAULT_META_EXTS } from '@/constants/defaults'
 
 export const createDefaultSyncOpts = () => ({
   full_resync: false,
-  full_update: true,
-  update_strm: true,
   update_meta: true,
-  skip_strm: false,
-  overwrite_meta: false,
   skip_meta: false
 })
 
-export const defaultCleanupOptions = ['clean_local', 'clean_folders', 'clean_symlinks', 'clean_meta']
+export const defaultCleanupOptions = ['clean_local', 'clean_folders', 'clean_meta']
 
 export const createDefaultFormData = () => ({
   id: null,
@@ -26,7 +22,7 @@ export const createDefaultFormData = () => ({
   cron: '',
   sync_opts: createDefaultSyncOpts(),
   metadata_mode: 'copy',
-  thread_count: 4,
+  max_concurrency: 4,
   cleanup_opts: defaultCleanupOptions.slice(),
   strm_mode: 'local',
   prefer_remote_list: false,
@@ -86,22 +82,16 @@ export const useJobFormState = ({ currentServerHasApi }) => {
   const normalizeSyncOptions = () => {
     const syncOpts = formData.sync_opts || {}
     if (syncOpts.full_resync) {
-      syncOpts.full_update = false
-    } else {
-      syncOpts.full_update = true
+      // Full resync implies skipping updates based on other criteria, but we'll let backend handle exact logic
     }
 
-    if (syncOpts.overwrite_meta) {
+    if (syncOpts.skip_meta) {
       syncOpts.update_meta = false
-      syncOpts.skip_meta = false
-    } else if (syncOpts.skip_meta) {
-      syncOpts.update_meta = false
-      syncOpts.overwrite_meta = false
     } else {
       syncOpts.update_meta = true
-      syncOpts.overwrite_meta = false
-      syncOpts.skip_meta = false
     }
+
+    // Remove overwrite_meta handling, as it's deprecated from backend
 
     formData.metadata_mode = normalizeMetadataMode(formData.metadata_mode)
   }
