@@ -12,6 +12,7 @@ import (
 	"github.com/strmsync/strmsync/internal/pkg/logger"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // 队列相关错误定义
@@ -174,6 +175,14 @@ func (q *SyncQueue) ClaimNext(ctx context.Context, workerID string) (*model.Task
 	if runningCount > 0 {
 		_ = tx.Rollback().Error
 		return nil, nil
+	}
+
+	// 悲观锁：锁定对应的 Job 行，避免并发领取导致同 Job 竞态
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		Select("id").
+		First(&model.Job{}, task.JobID).Error; err != nil {
+		_ = tx.Rollback().Error
+		return nil, fmt.Errorf("claim next lock job: %w", err)
 	}
 
 	// 检查状态转移的合法性
