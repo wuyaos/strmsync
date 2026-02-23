@@ -8,25 +8,24 @@ import (
 
 // JobOptions 表示 Job.Options 中存储的高级配置项
 type JobOptions struct {
-	MaxConcurrency        int               `json:"max_concurrency"`
-	Recursive             *bool             `json:"recursive"`
-	Interval              *int              `json:"interval"`
-	AutoScanLibrary       *bool             `json:"auto_scan_library"`
-	MinFileSize           int64             `json:"min_file_size"`
-	MetadataMode          string            `json:"metadata_mode"`
-	STRMMode              string            `json:"strm_mode"`
-	ForceUpdate           bool              `json:"force_update"`
-	SyncOpts              SyncOpts          `json:"sync_opts"`
-	MediaExts             []string          `json:"media_exts"`
-	MetaExts              []string          `json:"meta_exts"`
-	ExcludeDirs           []string          `json:"exclude_dirs"`
-	StrmReplaceRules      []StrmReplaceRule `json:"strm_replace_rules"`
-	PreferRemoteList      bool              `json:"prefer_remote_list"`
-	DryRun                bool              `json:"dry_run"`
-	SkipExisting          bool              `json:"skip_existing"`
-	ModTimeEpsilonSeconds int               `json:"mod_time_epsilon_seconds"`
-	EnableOrphanCleanup   bool              `json:"enable_orphan_cleanup"`
-	OrphanCleanupDryRun   bool              `json:"orphan_cleanup_dry_run"`
+	MaxConcurrency      int               `json:"max_concurrency"`
+	Recursive           *bool             `json:"recursive"`
+	Interval            *int              `json:"interval"`
+	AutoScanLibrary     *bool             `json:"auto_scan_library"`
+	MinFileSize         int64             `json:"min_file_size"`
+	MetadataMode        string            `json:"metadata_mode"`
+	STRMMode            string            `json:"strm_mode"`
+	ForceUpdate         bool              `json:"force_update"`
+	SyncOpts            SyncOpts          `json:"sync_opts"`
+	MediaExts           []string          `json:"media_exts"`
+	MetaExts            []string          `json:"meta_exts"`
+	ExcludeDirs         []string          `json:"exclude_dirs"`
+	StrmReplaceRules    []StrmReplaceRule `json:"strm_replace_rules"`
+	PreferRemoteList    bool              `json:"prefer_remote_list"`
+	DryRun              bool              `json:"dry_run"`
+	SkipExisting        bool              `json:"skip_existing"`
+	EnableOrphanCleanup bool              `json:"enable_orphan_cleanup"`
+	OrphanCleanupDryRun bool              `json:"orphan_cleanup_dry_run"`
 }
 
 // SyncOpts 表示 JobOptions 中的 sync_opts

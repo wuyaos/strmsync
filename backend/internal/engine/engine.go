@@ -55,9 +55,9 @@ func (e *Engine) emitStrmEvent(ctx context.Context, event StrmEvent) {
 // 注意：此接口是 syncengine 内部定义，与 strmwriter.StrmWriter 功能相同
 // 未来可以统一，当前为了避免循环依赖而分开定义
 //
-// 重要约束：Writer 实现必须对应本地文件系统，因为 Engine 会使用 os.Stat
-// 来获取文件的 ModTime 以进行增量更新判定。如果未来需要支持非本地 Writer
-// （如 S3、远程文件系统），需要扩展 Writer 接口增加 Stat 方法。
+// 重要约束：Writer 实现必须对应本地文件系统，以便进行本地读写。
+// 如需支持非本地 Writer（如 S3、远程文件系统），需要扩展 Writer 接口
+// 或引入独立的读写适配层。
 type Writer interface {
 	// Read 读取 STRM 文件内容
 	Read(ctx context.Context, path string) (string, error)
@@ -98,10 +98,6 @@ func NewEngine(driver Driver, writer Writer, logger *zap.Logger, opts EngineOpti
 	if opts.MaxConcurrency <= 0 {
 		opts.MaxConcurrency = 10
 	}
-	if opts.ModTimeEpsilon <= 0 {
-		opts.ModTimeEpsilon = 2 * time.Second
-	}
-
 	return &Engine{
 		driver: driver,
 		writer: writer,
@@ -291,7 +287,6 @@ func (e *Engine) RunOnce(ctx context.Context, remotePath string) (SyncStats, err
 		zap.Int64("processed", stats.ProcessedFiles),
 		zap.Int64("created", stats.CreatedFiles),
 		zap.Int64("updated", stats.UpdatedFiles),
-		zap.Int64("updated_by_modtime", stats.UpdatedByModTime),
 		zap.Int64("skipped", stats.SkippedFiles),
 		zap.Int64("skipped_unchanged", stats.SkippedUnchanged),
 		zap.Int64("failed", stats.FailedFiles),
@@ -598,7 +593,6 @@ func (e *Engine) RunIncremental(ctx context.Context, events []EngineEvent) (Sync
 		zap.Int64("processed", stats.ProcessedFiles),
 		zap.Int64("created", stats.CreatedFiles),
 		zap.Int64("updated", stats.UpdatedFiles),
-		zap.Int64("updated_by_modtime", stats.UpdatedByModTime),
 		zap.Int64("skipped", stats.SkippedFiles),
 		zap.Int64("skipped_unchanged", stats.SkippedUnchanged),
 		zap.Int64("failed", stats.FailedFiles),

@@ -218,9 +218,6 @@ func validateJobOptions(options model.JobOptions, errs *[]FieldError) {
 	if options.Interval != nil && *options.Interval <= 0 {
 		*errs = append(*errs, FieldError{Field: "options.interval", Message: "interval 必须为正数"})
 	}
-	if options.ModTimeEpsilonSeconds < 0 {
-		*errs = append(*errs, FieldError{Field: "options.mod_time_epsilon_seconds", Message: "mod_time_epsilon_seconds 不能为负数"})
-	}
 }
 
 // validateRelatedServers 校验关联服务器是否存在

@@ -360,13 +360,12 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 // - DryRun: 干运行模式
 // - ForceUpdate: 强制更新
 // - SkipExisting: 跳过已存在文件
-// - ModTimeEpsilonSeconds: ModTime 容差（秒）
 // - EnableOrphanCleanup: 启用孤儿文件清理
 // - OrphanCleanupDryRun: 孤儿清理干运行模式
 // - StrmReplaceRules: STRM 替换规则
 func buildEngineOptions(job model.Job, extra model.JobOptions) (syncengine.EngineOptions, error) {
 	if strings.TrimSpace(job.TargetPath) == "" {
-		return syncengine.EngineOptions{}, fmt.Errorf("job %d target_path is empty", job.ID)
+		return syncengine.EngineOptions{}, fmt.Errorf("任务 %d 的 target_path 为空", job.ID)
 	}
 
 	opts := syncengine.EngineOptions{
@@ -388,9 +387,6 @@ func buildEngineOptions(job model.Job, extra model.JobOptions) (syncengine.Engin
 	opts.SkipExisting = extra.SkipExisting
 	opts.EnableOrphanCleanup = extra.EnableOrphanCleanup
 	opts.OrphanCleanupDryRun = extra.OrphanCleanupDryRun
-	if extra.ModTimeEpsilonSeconds > 0 {
-		opts.ModTimeEpsilon = time.Duration(extra.ModTimeEpsilonSeconds) * time.Second
-	}
 	opts.StrmReplaceRules = normalizeStrmReplaceRules(extra.StrmReplaceRules)
 	opts.ExcludeDirs = syncengine.NormalizeExcludeDirs(extra.ExcludeDirs)
 

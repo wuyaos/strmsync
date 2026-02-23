@@ -274,11 +274,7 @@ const (
 	// ChangeReasonContent 表示内容发生变化，需要更新
 	ChangeReasonContent
 
-	// ChangeReasonModTime 表示仅修改时间变化（内容相同）
-	// 这种情况下需要更新 STRM 文件的时间戳
-	ChangeReasonModTime
-
-	// ChangeReasonUnchanged 表示内容和修改时间均未变化
+	// ChangeReasonUnchanged 表示内容未变化
 	// 这是最常见的跳过原因
 	ChangeReasonUnchanged
 
@@ -295,8 +291,6 @@ func (r ChangeReason) String() string {
 		return "forced"
 	case ChangeReasonContent:
 		return "content"
-	case ChangeReasonModTime:
-		return "modtime"
 	case ChangeReasonUnchanged:
 		return "unchanged"
 	case ChangeReasonSkipExisting:
@@ -379,11 +373,6 @@ type EngineOptions struct {
 	// 启用时如果文件已存在则跳过，不进行比对
 	SkipExisting bool
 
-	// ModTimeEpsilon 修改时间允许的误差阈值（默认：2 秒）
-	// 由于不同文件系统的时间精度不同，小于阈值的时间差异将被忽略
-	// 这避免了因时间漂移导致的无意义更新
-	ModTimeEpsilon time.Duration
-
 	// EnableOrphanCleanup 是否启用孤儿文件清理（默认：false）
 	// 启用后会删除远程文件已不存在的本地 STRM 文件
 	EnableOrphanCleanup bool
@@ -429,9 +418,8 @@ type SyncStats struct {
 	ProcessedFiles   int64 // 已处理的文件数
 	CreatedFiles     int64 // 新创建的 STRM 文件数
 	UpdatedFiles     int64 // 更新的 STRM 文件数
-	UpdatedByModTime int64 // 仅因修改时间变化而更新的文件数
 	SkippedFiles     int64 // 跳过的文件数（总计）
-	SkippedUnchanged int64 // 因内容和时间均未变化而跳过的文件数
+	SkippedUnchanged int64 // 因内容未变化而跳过的文件数
 	FailedFiles      int64 // 处理失败的文件数
 	DeletedOrphans   int64 // 删除的孤儿文件数
 

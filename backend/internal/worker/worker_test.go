@@ -3,10 +3,9 @@ package worker
 import (
 	"context"
 	"errors"
-	"github.com/strmsync/strmsync/internal/domain/model"
 	"testing"
-	"time"
 
+	"github.com/strmsync/strmsync/internal/domain/model"
 	"github.com/strmsync/strmsync/internal/engine"
 	"github.com/strmsync/strmsync/internal/queue"
 )
@@ -47,12 +46,11 @@ func TestBuildEngineOptions_WithOptions(t *testing.T) {
 		ID:         1,
 		TargetPath: "/output",
 		Options: model.JobOptions{
-			MaxConcurrency:        8,
-			MediaExts:             []string{".mkv", ".mp4"},
-			MinFileSize:           10,
-			DryRun:                true,
-			ForceUpdate:           false,
-			ModTimeEpsilonSeconds: 5,
+			MaxConcurrency: 8,
+			MediaExts:      []string{".mkv", ".mp4"},
+			MinFileSize:    10,
+			DryRun:         true,
+			ForceUpdate:    false,
 		},
 	}
 
@@ -71,9 +69,6 @@ func TestBuildEngineOptions_WithOptions(t *testing.T) {
 	}
 	if opts.ForceUpdate {
 		t.Error("ForceUpdate should be false")
-	}
-	if opts.ModTimeEpsilon != 5*time.Second {
-		t.Errorf("ModTimeEpsilon: expected 5s, got %v", opts.ModTimeEpsilon)
 	}
 	if opts.MinFileSize != 10*1024*1024 {
 		t.Errorf("MinFileSize: expected 10MB, got %d", opts.MinFileSize)
