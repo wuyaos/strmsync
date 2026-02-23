@@ -1,22 +1,17 @@
-// Package filesystem provides CloudDrive2 filesystem provider implementation.
+// Package filesystem 提供 CloudDrive2 文件系统 Provider 实现。
 //
-// This is an internal sub-package that shares the parent filesystem package namespace.
-// It automatically registers the CloudDrive2 provider via init() and should only be
-// imported for side effects (provider registration).
+// 说明：
+// - 该子包与父包共享同一命名空间，通过 init() 自动注册 Provider
+// - 仅应以副作用方式导入（完成注册）
 //
-// Usage:
+// 用法：
 //
 //	import _ "github.com/strmsync/strmsync/internal/infra/filesystem/clouddrive2"
 //
-// The CloudDrive2 provider uses gRPC to communicate with CloudDrive2 server.
-// It supports both streaming and HTTP STRM modes.
+// CloudDrive2 Provider 使用 gRPC 与服务端通信，支持 HTTP STRM 与挂载路径 STRM。
 //
-// Exports:
-//   - NewCloudDrive2Provider: Creates a Provider implementation (used by registration)
-//
-// Note: The gRPC client is available in a separate subpackage:
-//
-//	github.com/strmsync/strmsync/internal/infra/filesystem/clouddrive2/grpc
+// 导出：
+// - NewCloudDrive2Provider：创建 Provider 实例（用于注册）
 package filesystem
 
 import (
@@ -33,14 +28,16 @@ import (
 	"github.com/strmsync/strmsync/internal/infra/filesystem"
 	"github.com/strmsync/strmsync/internal/pkg/errutil"
 	"github.com/strmsync/strmsync/internal/pkg/qos"
+	"github.com/sourcegraph/conc/pool"
 	cd2sdk "github.com/strmsync/strmsync/internal/pkg/sdk/clouddrive2"
+	pb "github.com/strmsync/strmsync/internal/pkg/sdk/clouddrive2/proto"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// ---------- CloudDrive2 Provider Implementation ----------
+// ---------- CloudDrive2 Provider 实现 ----------
 
-// cloudDrive2Provider CloudDrive2文件系统实现
+// cloudDrive2Provider CloudDrive2 文件系统实现
 type cloudDrive2Provider struct {
 	config          filesystem.Config
 	logger          *zap.Logger
@@ -51,7 +48,7 @@ type cloudDrive2Provider struct {
 	downloadLimiter *qos.Limiter
 }
 
-// NewCloudDrive2Provider 创建CloudDrive2 filesystem.Provider
+// NewCloudDrive2Provider 创建 CloudDrive2 Provider
 func NewCloudDrive2Provider(c *filesystem.ClientImpl) (filesystem.Provider, error) {
 	// 从 BaseURL 解析 host:port
 	if c.BaseURL == nil {
@@ -77,15 +74,79 @@ func NewCloudDrive2Provider(c *filesystem.ClientImpl) (filesystem.Provider, erro
 	}, nil
 }
 
-// List 列出目录内容
-func (p *cloudDrive2Provider) List(ctx context.Context, listPath string, recursive bool, maxDepth int) ([]filesystem.RemoteFile, error) {
+// Scan 流式扫描目录内容
+func (p *cloudDrive2Provider) Scan(ctx context.Context, listPath string, recursive bool, maxDepth int) (<-chan filesystem.RemoteFile, <-chan error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	if strings.TrimSpace(listPath) == "" {
 		listPath = "/"
 	}
-	return p.listCloudDrive2(ctx, listPath, recursive, maxDepth)
+
+	entryCh := make(chan filesystem.RemoteFile)
+	errCh := make(chan error, 1)
+
+	go func() {
+		defer close(entryCh)
+		defer close(errCh)
+
+		root := filesystem.CleanRemotePath(listPath)
+		if !recursive || maxDepth == 0 {
+			if err := p.scanSingleDir(ctx, root, entryCh); err != nil {
+				errCh <- err
+			}
+			return
+		}
+
+		maxDepthLimit := maxDepth
+		if maxDepthLimit < 0 {
+			maxDepthLimit = 0
+		}
+
+		workerPool := pool.New().WithMaxGoroutines(5)
+		var scanDir func(dir string, depth int)
+		scanDir = func(dir string, depth int) {
+			workerPool.Go(func() error {
+				if ctx.Err() != nil {
+					return ctx.Err()
+				}
+				files, err := p.listDir(ctx, dir)
+				if err != nil {
+					return err
+				}
+				for _, file := range files {
+					if file == nil {
+						continue
+					}
+					fullPath := filesystem.JoinRemotePath(dir, file.Name)
+					modTime := parseProtoTimestamp(file.WriteTime)
+					select {
+					case entryCh <- filesystem.RemoteFile{
+						Path:    fullPath,
+						Name:    file.Name,
+						Size:    file.Size,
+						ModTime: modTime,
+						IsDir:   file.IsDirectory,
+					}:
+					case <-ctx.Done():
+						return ctx.Err()
+					}
+					if recursive && file.IsDirectory && depth+1 < maxDepthLimit {
+						scanDir(fullPath, depth+1)
+					}
+				}
+				return nil
+			})
+		}
+
+		scanDir(root, 0)
+		if err := workerPool.Wait(); err != nil && err != context.Canceled {
+			errCh <- err
+			return
+		}
+	}()
+
+	return entryCh, errCh
 }
 
 // Watch 监控目录变化（CloudDrive2不支持）
@@ -316,76 +377,43 @@ func (p *cloudDrive2Provider) BuildStrmInfo(ctx context.Context, req syncengine.
 	}, nil
 }
 
-// listCloudDrive2 递归列出CloudDrive2目录（使用BFS，支持深度限制）
-func (p *cloudDrive2Provider) listCloudDrive2(ctx context.Context, root string, recursive bool, maxDepth int) ([]filesystem.RemoteFile, error) {
-	var results []filesystem.RemoteFile
-
-	// 使用BFS队列遍历目录树，队列中存储路径和当前深度
-	type queueItem struct {
-		path  string
-		depth int
+func (p *cloudDrive2Provider) scanSingleDir(ctx context.Context, dir string, entryCh chan<- filesystem.RemoteFile) error {
+	files, err := p.listDir(ctx, dir)
+	if err != nil {
+		return err
 	}
-	queue := []queueItem{{path: filesystem.CleanRemotePath(root), depth: 0}}
-
-	for len(queue) > 0 {
-		// 检查context取消
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
+	for _, file := range files {
+		if file == nil {
+			continue
 		}
-
-		// 取出队头目录
-		item := queue[0]
-		dir := item.path
-		queue = queue[1:]
-
-		// 调用GetSubFiles列出当前目录
-		release, err := p.acquireAPI(ctx)
-		if err != nil {
-			return nil, err
-		}
-		files, err := p.client.GetSubFiles(ctx, dir, false)
-		release()
-		if err != nil {
-			return nil, fmt.Errorf("list directory %s: %w", dir, err)
-		}
-
-		// 处理每个项目
-		for _, file := range files {
-			if file == nil {
-				continue
-			}
-
-			fullPath := filesystem.JoinRemotePath(dir, file.Name)
-			modTime := parseProtoTimestamp(file.WriteTime)
-
-			// 转换为RemoteFile
-			remoteFile := filesystem.RemoteFile{
-				Path:    fullPath,
-				Name:    file.Name,
-				Size:    file.Size,
-				ModTime: modTime,
-				IsDir:   file.IsDirectory,
-			}
-
-			// 将所有项目（文件和目录）加入结果
-			results = append(results, remoteFile)
-
-			// 递归模式：将子目录加入队列（深度控制）
-			// 只有当子目录的内容深度(item.depth+2)不超过maxDepth时才入队
-			// 即：item.depth + 1 < maxDepth
-			if file.IsDirectory && recursive && item.depth+1 < maxDepth {
-				queue = append(queue, queueItem{path: fullPath, depth: item.depth + 1})
-			}
+		fullPath := filesystem.JoinRemotePath(dir, file.Name)
+		modTime := parseProtoTimestamp(file.WriteTime)
+		select {
+		case entryCh <- filesystem.RemoteFile{
+			Path:    fullPath,
+			Name:    file.Name,
+			Size:    file.Size,
+			ModTime: modTime,
+			IsDir:   file.IsDirectory,
+		}:
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
+	return nil
+}
 
-	p.logger.Info("CloudDrive2目录列出完成",
-		zap.String("root", root),
-		zap.Bool("recursive", recursive),
-		zap.Int("max_depth", maxDepth),
-		zap.Int("count", len(results)))
-
-	return results, nil
+func (p *cloudDrive2Provider) listDir(ctx context.Context, dir string) ([]*pb.CloudDriveFile, error) {
+	release, err := p.acquireAPI(ctx)
+	if err != nil {
+		return nil, err
+	}
+	files, err := p.client.GetSubFiles(ctx, dir, false)
+	release()
+	if err != nil {
+		return nil, fmt.Errorf("list directory %s: %w", dir, err)
+	}
+	return files, nil
 }
 
 func (p *cloudDrive2Provider) acquireAPI(ctx context.Context) (func(), error) {

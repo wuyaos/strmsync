@@ -173,7 +173,7 @@ func (r *MetadataReplicator) emitMetaEvent(ctx context.Context, item *ports.Sync
 func (r *MetadataReplicator) applyItem(ctx context.Context, item *ports.SyncPlanItem) error {
 	// 验证目标路径
 	if err := r.validatePath(item.TargetMetaPath); err != nil {
-		return fmt.Errorf("validate target path: %w", err)
+		return fmt.Errorf("校验目标路径失败: %w", err)
 	}
 
 	switch item.Op {
@@ -182,7 +182,7 @@ func (r *MetadataReplicator) applyItem(ctx context.Context, item *ports.SyncPlan
 	case ports.SyncOpDelete:
 		return r.deleteMeta(item.TargetMetaPath)
 	default:
-		return fmt.Errorf("unknown operation: %v", item.Op)
+		return fmt.Errorf("未知操作: %v", item.Op)
 	}
 }
 
@@ -194,10 +194,10 @@ func (r *MetadataReplicator) copyOrDownload(ctx context.Context, item *ports.Syn
 		zap.Bool("prefer_mount", r.preferMount))
 
 	if r.preferMount {
-		// 策略1: 本地模式，仅使用访问路径复制
+		// 策略1: 复制模式，仅使用访问路径复制（不触发API下载）
 		accessPath, err := r.fs.ResolveAccessPath(ctx, item.SourcePath)
 		if err != nil {
-			return fmt.Errorf("resolve access path: %w", err)
+			return fmt.Errorf("解析访问路径失败: %w", err)
 		}
 		r.logger.Debug("使用访问路径复制",
 			zap.String("access_path", accessPath),
@@ -205,7 +205,7 @@ func (r *MetadataReplicator) copyOrDownload(ctx context.Context, item *ports.Syn
 		return r.copyLocal(accessPath, item.TargetMetaPath, item.ModTime)
 	}
 
-	// 策略2: API 模式，优先下载，失败再尝试访问路径复制
+	// 策略2: 下载模式，优先API下载，失败后回退访问路径复制
 	if err := r.downloadToFile(ctx, item.SourcePath, item.TargetMetaPath, item.ModTime); err != nil {
 		r.logger.Debug("API下载失败，尝试访问路径复制",
 			zap.String("source", item.SourcePath),
@@ -215,7 +215,10 @@ func (r *MetadataReplicator) copyOrDownload(ctx context.Context, item *ports.Syn
 			r.logger.Debug("使用访问路径复制（回退）",
 				zap.String("access_path", accessPath),
 				zap.String("target", item.TargetMetaPath))
-			return r.copyLocal(accessPath, item.TargetMetaPath, item.ModTime)
+			if copyErr := r.copyLocal(accessPath, item.TargetMetaPath, item.ModTime); copyErr != nil {
+				return fmt.Errorf("API 下载失败: %w；回退复制失败: %v", err, copyErr)
+			}
+			return nil
 		}
 
 		return err
@@ -234,49 +237,40 @@ func (r *MetadataReplicator) copyLocal(srcPath, dstPath string, modTime time.Tim
 	// 确保目标目录存在
 	dstDir := filepath.Dir(dstPath)
 	if err := os.MkdirAll(dstDir, 0o755); err != nil {
-		return fmt.Errorf("create target directory %s: %w", dstDir, err)
+		return fmt.Errorf("创建目标目录失败 %s: %w", dstDir, err)
 	}
 
 	// 打开源文件
 	srcFile, err := os.Open(srcPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("source file not found: %s", srcPath)
+			return fmt.Errorf("源文件不存在: %s", srcPath)
 		}
-		return fmt.Errorf("open source %s: %w", srcPath, err)
+		return fmt.Errorf("打开源文件失败 %s: %w", srcPath, err)
 	}
 	defer srcFile.Close()
 
 	// 获取源文件信息
 	srcInfo, err := srcFile.Stat()
 	if err != nil {
-		return fmt.Errorf("stat source %s: %w", srcPath, err)
+		return fmt.Errorf("获取源文件信息失败 %s: %w", srcPath, err)
 	}
 
-	// 创建临时文件
-	tmpPath := dstPath + ".tmp"
-	tmpFile, err := os.Create(tmpPath)
+	dstFile, err := os.Create(dstPath)
 	if err != nil {
-		return fmt.Errorf("create temp file %s: %w", tmpPath, err)
+		return fmt.Errorf("创建目标文件失败 %s: %w", dstPath, err)
 	}
 
-	// 复制文件内容
-	written, err := io.Copy(tmpFile, srcFile)
+	written, err := io.Copy(dstFile, srcFile)
 	if err != nil {
-		tmpFile.Close()
-		os.Remove(tmpPath)
-		return fmt.Errorf("copy %s -> %s: %w", srcPath, tmpPath, err)
+		dstFile.Close()
+		_ = os.Remove(dstPath)
+		return fmt.Errorf("复制文件失败 %s -> %s: %w", srcPath, dstPath, err)
 	}
 
-	if err := tmpFile.Close(); err != nil {
-		os.Remove(tmpPath)
-		return fmt.Errorf("close temp file %s: %w", tmpPath, err)
-	}
-
-	// 原子性地重命名临时文件为目标文件
-	if err := os.Rename(tmpPath, dstPath); err != nil {
-		os.Remove(tmpPath)
-		return fmt.Errorf("rename %s -> %s: %w", tmpPath, dstPath, err)
+	if err := dstFile.Close(); err != nil {
+		_ = os.Remove(dstPath)
+		return fmt.Errorf("关闭目标文件失败 %s: %w", dstPath, err)
 	}
 
 	// 设置修改时间
@@ -310,21 +304,21 @@ func (r *MetadataReplicator) downloadToFile(ctx context.Context, remotePath, dst
 	// 确保目标目录存在
 	dstDir := filepath.Dir(dstPath)
 	if err := os.MkdirAll(dstDir, 0o755); err != nil {
-		return fmt.Errorf("create target directory %s: %w", dstDir, err)
+		return fmt.Errorf("创建目标目录失败 %s: %w", dstDir, err)
 	}
 
 	// 创建临时文件
 	tmpPath := dstPath + ".tmp"
 	tmpFile, err := os.Create(tmpPath)
 	if err != nil {
-		return fmt.Errorf("create temp file %s: %w", tmpPath, err)
+		return fmt.Errorf("创建临时文件失败 %s: %w", tmpPath, err)
 	}
 
 	// 下载文件内容
 	if err := r.fs.Download(ctx, remotePath, tmpFile); err != nil {
 		tmpFile.Close()
 		os.Remove(tmpPath)
-		return fmt.Errorf("download %s: %w", remotePath, err)
+		return fmt.Errorf("API 下载失败 %s: %w", remotePath, err)
 	}
 
 	// 获取下载的文件大小
@@ -333,13 +327,13 @@ func (r *MetadataReplicator) downloadToFile(ctx context.Context, remotePath, dst
 
 	if err := tmpFile.Close(); err != nil {
 		os.Remove(tmpPath)
-		return fmt.Errorf("close temp file %s: %w", tmpPath, err)
+		return fmt.Errorf("关闭临时文件失败 %s: %w", tmpPath, err)
 	}
 
 	// 原子性地重命名临时文件为目标文件
 	if err := os.Rename(tmpPath, dstPath); err != nil {
 		os.Remove(tmpPath)
-		return fmt.Errorf("rename %s -> %s: %w", tmpPath, dstPath, err)
+		return fmt.Errorf("重命名临时文件失败 %s -> %s: %w", tmpPath, dstPath, err)
 	}
 
 	// 设置修改时间
@@ -373,7 +367,7 @@ func (r *MetadataReplicator) deleteMeta(path string) error {
 
 	// 删除文件
 	if err := os.Remove(path); err != nil {
-		return fmt.Errorf("remove %s: %w", path, err)
+		return fmt.Errorf("删除文件失败 %s: %w", path, err)
 	}
 
 	r.logger.Info(fmt.Sprintf("元数据文件已删除：%s", path), zap.String("path", path))
@@ -389,17 +383,17 @@ func (r *MetadataReplicator) validatePath(targetPath string) error {
 
 	absTarget, err := filepath.Abs(targetPath)
 	if err != nil {
-		return fmt.Errorf("get absolute path: %w", err)
+		return fmt.Errorf("获取绝对路径失败: %w", err)
 	}
 
 	rel, err := filepath.Rel(r.targetRoot, absTarget)
 	if err != nil {
-		return fmt.Errorf("calculate relative path: %w", err)
+		return fmt.Errorf("计算相对路径失败: %w", err)
 	}
 
 	// 检查是否逃逸到父目录
 	if strings.HasPrefix(rel, ".."+string(filepath.Separator)) || rel == ".." {
-		return fmt.Errorf("path %s escapes root %s", targetPath, r.targetRoot)
+		return fmt.Errorf("路径 %s 超出根目录 %s", targetPath, r.targetRoot)
 	}
 
 	return nil

@@ -1,32 +1,31 @@
-// Package filesystem provides local filesystem provider implementation.
+// Package filesystem 提供本地文件系统 Provider 实现。
 //
-// This is an internal sub-package that shares the parent filesystem package namespace.
-// It automatically registers the Local provider via init() and should only be
-// imported for side effects (provider registration).
+// 说明：
+// - 该子包与父包共享同一命名空间，通过 init() 自动注册 Provider
+// - 仅应以副作用方式导入（完成注册）
 //
-// Usage:
+// 用法：
 //
 //	import _ "github.com/strmsync/strmsync/internal/infra/filesystem/local"
 //
-// The Local provider accesses files directly from the local filesystem.
-// It only supports mount-based STRM mode (no HTTP streaming).
+// 本地 Provider 直接访问本地文件系统，仅支持挂载路径 STRM 模式（不支持 HTTP 流）。
 //
-// Exports:
-//   - NewLocalProvider: Creates a Provider implementation (used by registration)
+// 导出：
+// - NewLocalProvider：创建 Provider 实例（用于注册）
 package filesystem
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io"
-	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
-	"github.com/strmsync/strmsync/internal/engine"
+	syncengine "github.com/strmsync/strmsync/internal/engine"
 	"github.com/strmsync/strmsync/internal/infra/filesystem"
+	"github.com/karrick/godirwalk"
 	"go.uber.org/zap"
 )
 
@@ -36,11 +35,11 @@ type localProvider struct {
 	logger *zap.Logger
 }
 
-// newLocalProvider 创建本地文件系统 filesystem.Provider
+// NewLocalProvider 创建本地文件系统 Provider
 func NewLocalProvider(c *filesystem.ClientImpl) (filesystem.Provider, error) {
 	// 验证本地路径
 	if c.Config.MountPath == "" {
-		return nil, fmt.Errorf("filesystem: local mode requires mount_path")
+		return nil, fmt.Errorf("filesystem: 本地模式需要 mount_path")
 	}
 
 	return &localProvider{
@@ -49,8 +48,8 @@ func NewLocalProvider(c *filesystem.ClientImpl) (filesystem.Provider, error) {
 	}, nil
 }
 
-// List 列出本地目录内容
-func (p *localProvider) List(ctx context.Context, listPath string, recursive bool, maxDepth int) ([]filesystem.RemoteFile, error) {
+// Scan 流式扫描本地目录内容
+func (p *localProvider) Scan(ctx context.Context, listPath string, recursive bool, maxDepth int) (<-chan filesystem.RemoteFile, <-chan error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -58,7 +57,12 @@ func (p *localProvider) List(ctx context.Context, listPath string, recursive boo
 	// 规范化listPath为相对路径
 	normalizedListPath, err := normalizeListPath(listPath)
 	if err != nil {
-		return nil, err
+		errCh := make(chan error, 1)
+		fileCh := make(chan filesystem.RemoteFile)
+		errCh <- err
+		close(fileCh)
+		close(errCh)
+		return fileCh, errCh
 	}
 
 	mountRoot := strings.TrimSpace(p.config.MountPath)
@@ -66,7 +70,12 @@ func (p *localProvider) List(ctx context.Context, listPath string, recursive boo
 		mountRoot = strings.TrimSpace(p.config.StrmMountPath)
 	}
 	if mountRoot == "" {
-		return nil, fmt.Errorf("local: mount_path is required: %w", syncengine.ErrInvalidInput)
+		errCh := make(chan error, 1)
+		fileCh := make(chan filesystem.RemoteFile)
+		errCh <- fmt.Errorf("local: mount_path 不能为空: %w", syncengine.ErrInvalidInput)
+		close(fileCh)
+		close(errCh)
+		return fileCh, errCh
 	}
 	mountRoot = filepath.Clean(mountRoot)
 
@@ -75,102 +84,94 @@ func (p *localProvider) List(ctx context.Context, listPath string, recursive boo
 
 	// 验证路径在挂载点内
 	if err := ensureUnderMount(mountRoot, fullPath); err != nil {
-		return nil, err
+		errCh := make(chan error, 1)
+		fileCh := make(chan filesystem.RemoteFile)
+		errCh <- err
+		close(fileCh)
+		close(errCh)
+		return fileCh, errCh
 	}
 
-	var results []filesystem.RemoteFile
+	fileCh := make(chan filesystem.RemoteFile)
+	errCh := make(chan error, 1)
 
-	if recursive {
+	go func() {
+		defer close(fileCh)
+		defer close(errCh)
+
+		// 非递归：只读取当前目录
+		if !recursive || maxDepth == 0 {
+			dirents, err := godirwalk.ReadDirents(fullPath, nil)
+			if err != nil {
+				errCh <- fmt.Errorf("filesystem: 读取目录失败: %w", err)
+				return
+			}
+			for _, de := range dirents {
+				if ctx.Err() != nil {
+					errCh <- ctx.Err()
+					return
+				}
+				relPath := filepath.ToSlash(filepath.Join(normalizedListPath, de.Name()))
+				virtualPath := path.Join("/", relPath)
+				fileCh <- filesystem.RemoteFile{
+					Path:  virtualPath,
+					Name:  de.Name(),
+					IsDir: de.IsDir(),
+				}
+			}
+			p.logger.Info("本地目录扫描完成",
+				zap.String("path", fullPath),
+				zap.Bool("recursive", false))
+			return
+		}
+
 		// 递归遍历（带深度控制）
 		rootDepth := strings.Count(fullPath, string(filepath.Separator))
+		err = godirwalk.Walk(fullPath, &godirwalk.Options{
+			Unsorted: true,
+			Callback: func(osPathname string, de *godirwalk.Dirent) error {
+				if ctx.Err() != nil {
+					return ctx.Err()
+				}
+				if de == nil {
+					return nil
+				}
 
-		err := filepath.WalkDir(fullPath, func(filePath string, d fs.DirEntry, err error) error {
-			if err != nil {
-				p.logger.Warn("访问路径失败", zap.String("path", filePath), zap.Error(err))
-				return nil // 继续遍历
-			}
+				currentDepth := strings.Count(osPathname, string(filepath.Separator)) - rootDepth
 
-			// 检查 context 取消
-			if ctx.Err() != nil {
-				return ctx.Err()
-			}
+				relPath, relErr := filepath.Rel(mountRoot, osPathname)
+				if relErr != nil {
+					return relErr
+				}
+				relPath = filepath.ToSlash(relPath)
+				virtualPath := path.Clean("/" + relPath)
 
-			// 计算当前深度（相对于fullPath）
-			currentDepth := strings.Count(filePath, string(filepath.Separator)) - rootDepth
+				select {
+				case fileCh <- filesystem.RemoteFile{
+					Path:  virtualPath,
+					Name:  de.Name(),
+					IsDir: de.IsDir(),
+				}:
+				case <-ctx.Done():
+					return ctx.Err()
+				}
 
-			// 获取文件信息
-			info, err := d.Info()
-			if err != nil {
-				p.logger.Warn("获取文件信息失败", zap.String("path", filePath), zap.Error(err))
+				if de.IsDir() && maxDepth > 0 && currentDepth >= maxDepth && osPathname != fullPath {
+					return filepath.SkipDir
+				}
 				return nil
-			}
-
-			// 计算相对路径
-			relPath, err := filepath.Rel(mountRoot, filePath)
-			if err != nil {
-				return err
-			}
-			relPath = filepath.ToSlash(relPath) // 转换为 Unix 路径
-			virtualPath := path.Clean("/" + relPath)
-
-			// 记录当前文件/目录
-			results = append(results, filesystem.RemoteFile{
-				Path:    virtualPath,
-				Name:    info.Name(),
-				Size:    info.Size(),
-				ModTime: info.ModTime(),
-				IsDir:   d.IsDir(),
-			})
-
-			// 深度控制：如果是目录且已达最大深度，跳过其子项（但目录本身已被记录）
-			if d.IsDir() && currentDepth >= maxDepth && filePath != fullPath {
-				return fs.SkipDir
-			}
-
-			return nil
+			},
 		})
-
-		if err != nil {
-			return nil, fmt.Errorf("filesystem: walk directory: %w", err)
+		if err != nil && !errors.Is(err, context.Canceled) {
+			errCh <- fmt.Errorf("filesystem: 遍历目录失败: %w", err)
+			return
 		}
-	} else {
-		// 只列出当前目录
-		entries, err := os.ReadDir(fullPath)
-		if err != nil {
-			return nil, fmt.Errorf("filesystem: read directory: %w", err)
-		}
+		p.logger.Info("本地目录扫描完成",
+			zap.String("path", fullPath),
+			zap.Bool("recursive", true))
+	}()
 
-		for _, entry := range entries {
-			// 检查 context 取消
-			if ctx.Err() != nil {
-				return nil, ctx.Err()
-			}
-
-			info, err := entry.Info()
-			if err != nil {
-				p.logger.Warn("获取文件信息失败", zap.String("name", entry.Name()), zap.Error(err))
-				continue
-			}
-
-			relPath := filepath.ToSlash(filepath.Join(normalizedListPath, entry.Name()))
-			virtualPath := path.Join("/", relPath)
-
-			results = append(results, filesystem.RemoteFile{
-				Path:    virtualPath,
-				Name:    info.Name(),
-				Size:    info.Size(),
-				ModTime: info.ModTime(),
-				IsDir:   entry.IsDir(),
-			})
-		}
-	}
-
-	p.logger.Info("本地目录列出完成",
-		zap.String("path", fullPath),
-		zap.Bool("recursive", recursive),
-		zap.Int("count", len(results)))
-
-	return results, nil
+	return fileCh, errCh
 }
 
 // Watch 监控本地目录变化（暂不支持）
@@ -186,12 +187,12 @@ func (p *localProvider) TestConnection(ctx context.Context) error {
 	info, err := os.Stat(fullPath)
 	if err != nil {
 		p.logger.Error("本地文件系统连接失败", zap.String("path", fullPath), zap.Error(err))
-		return fmt.Errorf("filesystem: local path not accessible: %w", err)
+		return fmt.Errorf("filesystem: 本地路径不可访问: %w", err)
 	}
 
 	if !info.IsDir() {
 		p.logger.Error("本地文件系统连接失败：不是目录", zap.String("path", fullPath))
-		return fmt.Errorf("filesystem: mount_path is not a directory: %s", fullPath)
+		return fmt.Errorf("filesystem: mount_path 不是目录: %s", fullPath)
 	}
 
 	p.logger.Info("本地文件系统连接成功", zap.String("path", fullPath))
@@ -232,7 +233,7 @@ func (p *localProvider) Stat(ctx context.Context, targetPath string) (filesystem
 		mountRoot = strings.TrimSpace(p.config.StrmMountPath)
 	}
 	if mountRoot == "" {
-		return filesystem.RemoteFile{}, fmt.Errorf("local: mount_path is required: %w", syncengine.ErrInvalidInput)
+		return filesystem.RemoteFile{}, fmt.Errorf("local: mount_path 不能为空: %w", syncengine.ErrInvalidInput)
 	}
 	mountRoot = filepath.Clean(mountRoot)
 	fullPath := filepath.Join(mountRoot, normalizedPath)
@@ -289,7 +290,7 @@ func (p *localProvider) Stat(ctx context.Context, targetPath string) (filesystem
 // - 不使用 HTTP URL，而是返回本地文件系统的绝对路径
 // - BaseURL 字段为 nil（表示本地模式）
 // - Path 字段存储完整的本地路径
-// - 安全性：与 Stat/List 保持一致，防止路径逃逸
+// - 安全性：与 Stat/Scan 保持一致，防止路径逃逸
 //
 // 参数：
 //   - ctx: 上下文（当前未使用，保留用于未来扩展）
@@ -306,7 +307,7 @@ func (p *localProvider) BuildStrmInfo(ctx context.Context, req syncengine.BuildS
 		return syncengine.StrmInfo{}, fmt.Errorf("local: remote path 不能为空: %w", syncengine.ErrInvalidInput)
 	}
 
-	// 使用与 Stat/List 一致的路径规范化逻辑
+	// 使用与 Stat/Scan 一致的路径规范化逻辑
 	normalizedPath, err := normalizeListPath(req.RemotePath)
 	if err != nil {
 		return syncengine.StrmInfo{}, fmt.Errorf("local: 路径规范化失败: %w", err)
@@ -317,7 +318,7 @@ func (p *localProvider) BuildStrmInfo(ctx context.Context, req syncengine.BuildS
 		mountRoot = strings.TrimSpace(p.config.MountPath)
 	}
 	if mountRoot == "" {
-		return syncengine.StrmInfo{}, fmt.Errorf("local: mount_path is required: %w", syncengine.ErrInvalidInput)
+		return syncengine.StrmInfo{}, fmt.Errorf("local: mount_path 不能为空: %w", syncengine.ErrInvalidInput)
 	}
 	mountRoot = filepath.Clean(mountRoot)
 	localAbsPath := filepath.Join(mountRoot, normalizedPath)
@@ -352,7 +353,7 @@ func normalizeListPath(listPath string) (string, error) {
 
 	// 拒绝绝对路径
 	if filepath.IsAbs(listPath) || filepath.VolumeName(listPath) != "" {
-		return "", fmt.Errorf("filesystem: list path must be relative: %s", listPath)
+		return "", fmt.Errorf("filesystem: list 路径必须是相对路径: %s", listPath)
 	}
 
 	// 转换为Unix风格路径并去除前导斜杠
@@ -366,7 +367,7 @@ func normalizeListPath(listPath string) (string, error) {
 	segments := strings.Split(cleaned, "/")
 	for _, segment := range segments {
 		if segment == ".." {
-			return "", fmt.Errorf("filesystem: list path must not contain '..': %s", listPath)
+			return "", fmt.Errorf("filesystem: list 路径不能包含 '..': %s", listPath)
 		}
 	}
 
@@ -383,21 +384,21 @@ func normalizeListPath(listPath string) (string, error) {
 func ensureUnderMount(mountRoot, fullPath string) error {
 	rel, err := filepath.Rel(mountRoot, fullPath)
 	if err != nil {
-		return fmt.Errorf("filesystem: resolve list path: %w", err)
+		return fmt.Errorf("filesystem: 解析 list 路径失败: %w", err)
 	}
 	if rel == "." {
 		return nil
 	}
 	// 检查是否逃逸到父目录
 	if rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
-		return fmt.Errorf("filesystem: list path escapes mount: %s", fullPath)
+		return fmt.Errorf("filesystem: list 路径超出挂载点: %s", fullPath)
 	}
 	return nil
 }
 
 // Download local provider不支持Download，只支持挂载路径复制
 func (p *localProvider) Download(ctx context.Context, remotePath string, w io.Writer) error {
-	return fmt.Errorf("filesystem: local provider does not support Download: %w", filesystem.ErrNotSupported)
+	return fmt.Errorf("filesystem: 本地驱动不支持 Download: %w", filesystem.ErrNotSupported)
 }
 
 func init() {

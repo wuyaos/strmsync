@@ -1,7 +1,7 @@
-// Package filesystem provides OpenList filesystem operations.
+// Package filesystem 提供 OpenList 文件系统操作。
 //
-// This package uses the OpenList SDK (internal/pkg/sdk/openlist) for API communication
-// and provides filesystem-level abstractions (List, Stat, etc.) for the sync engine.
+// 本包使用 OpenList SDK（internal/pkg/sdk/openlist）进行 API 通信，
+// 并为同步引擎提供文件系统层的抽象（Scan/Stat 等）。
 package filesystem
 
 import (
@@ -12,14 +12,15 @@ import (
 	"path"
 	"strings"
 
-	"github.com/strmsync/strmsync/internal/engine"
+	syncengine "github.com/strmsync/strmsync/internal/engine"
 	"github.com/strmsync/strmsync/internal/infra/filesystem"
 	"github.com/strmsync/strmsync/internal/pkg/qos"
+	"github.com/sourcegraph/conc/pool"
 	openlistsdk "github.com/strmsync/strmsync/internal/pkg/sdk/openlist"
 	"go.uber.org/zap"
 )
 
-// openListProvider OpenList文件系统实现
+// openListProvider OpenList 文件系统实现
 type openListProvider struct {
 	config          filesystem.Config
 	baseURL         *url.URL
@@ -29,7 +30,7 @@ type openListProvider struct {
 	downloadLimiter *qos.Limiter
 }
 
-// NewOpenListProvider 创建OpenList filesystem.Provider
+// NewOpenListProvider 创建 OpenList Provider
 func NewOpenListProvider(c *filesystem.ClientImpl) (filesystem.Provider, error) {
 	// 创建SDK客户端
 	client, err := openlistsdk.NewClient(openlistsdk.Config{
@@ -53,15 +54,75 @@ func NewOpenListProvider(c *filesystem.ClientImpl) (filesystem.Provider, error) 
 	}, nil
 }
 
-// List 列出目录内容
-func (p *openListProvider) List(ctx context.Context, listPath string, recursive bool, maxDepth int) ([]filesystem.RemoteFile, error) {
+// Scan 流式扫描目录内容
+func (p *openListProvider) Scan(ctx context.Context, listPath string, recursive bool, maxDepth int) (<-chan filesystem.RemoteFile, <-chan error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	if strings.TrimSpace(listPath) == "" {
 		listPath = "/"
 	}
-	return p.listOpenList(ctx, listPath, recursive, maxDepth)
+
+	entryCh := make(chan filesystem.RemoteFile)
+	errCh := make(chan error, 1)
+
+	go func() {
+		defer close(entryCh)
+		defer close(errCh)
+
+		root := filesystem.CleanRemotePath(listPath)
+		if !recursive || maxDepth == 0 {
+			if err := p.scanSingleDir(ctx, root, entryCh); err != nil {
+				errCh <- err
+			}
+			return
+		}
+
+		maxDepthLimit := maxDepth
+		if maxDepthLimit < 0 {
+			maxDepthLimit = 0
+		}
+
+		workerPool := pool.New().WithMaxGoroutines(5)
+		var scanDir func(dir string, depth int)
+		scanDir = func(dir string, depth int) {
+			workerPool.Go(func() error {
+				if ctx.Err() != nil {
+					return ctx.Err()
+				}
+				items, err := p.listDir(ctx, dir)
+				if err != nil {
+					return err
+				}
+				for _, item := range items {
+					fullPath := filesystem.JoinRemotePath(dir, item.Name)
+					select {
+					case entryCh <- filesystem.RemoteFile{
+						Path:    fullPath,
+						Name:    item.Name,
+						Size:    item.Size,
+						ModTime: item.Modified,
+						IsDir:   item.IsDir,
+					}:
+					case <-ctx.Done():
+						return ctx.Err()
+					}
+					if recursive && item.IsDir && depth+1 < maxDepthLimit {
+						scanDir(fullPath, depth+1)
+					}
+				}
+				return nil
+			})
+		}
+
+		scanDir(root, 0)
+		if err := workerPool.Wait(); err != nil && err != context.Canceled {
+			errCh <- err
+			return
+		}
+	}()
+
+	return entryCh, errCh
 }
 
 // Watch 监控目录变化（OpenList不支持）
@@ -209,69 +270,39 @@ func (p *openListProvider) BuildStrmInfo(ctx context.Context, req syncengine.Bui
 	}, nil
 }
 
-// listOpenList 递归列出 OpenList 目录（使用 BFS，支持深度限制）
-func (p *openListProvider) listOpenList(ctx context.Context, root string, recursive bool, maxDepth int) ([]filesystem.RemoteFile, error) {
-	var results []filesystem.RemoteFile
-
-	// 使用 BFS 队列遍历目录树
-	type queueItem struct {
-		path  string
-		depth int
+func (p *openListProvider) scanSingleDir(ctx context.Context, dir string, entryCh chan<- filesystem.RemoteFile) error {
+	items, err := p.listDir(ctx, dir)
+	if err != nil {
+		return err
 	}
-	queue := []queueItem{{path: filesystem.CleanRemotePath(root), depth: 0}}
-
-	for len(queue) > 0 {
-		// 检查 context 取消
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		}
-
-		// 取出队头目录
-		item := queue[0]
-		dir := item.path
-		queue = queue[1:]
-
-		// 列出当前目录
-		release, err := p.acquireAPI(ctx)
-		if err != nil {
-			return nil, err
-		}
-		items, err := p.client.List(ctx, dir)
-		release()
-		if err != nil {
-			return nil, fmt.Errorf("list directory %s: %w", dir, err)
-		}
-
-		// 处理每个项目
-		for _, sdkItem := range items {
-			fullPath := filesystem.JoinRemotePath(dir, sdkItem.Name)
-
-			// 转换为RemoteFile
-			remoteFile := filesystem.RemoteFile{
-				Path:    fullPath,
-				Name:    sdkItem.Name,
-				Size:    sdkItem.Size,
-				ModTime: sdkItem.Modified,
-				IsDir:   sdkItem.IsDir,
-			}
-
-			// 将所有项目（文件和目录）加入结果
-			results = append(results, remoteFile)
-
-			// 递归模式：将子目录加入队列（深度控制）
-			if sdkItem.IsDir && recursive && item.depth+1 < maxDepth {
-				queue = append(queue, queueItem{path: fullPath, depth: item.depth + 1})
-			}
+	for _, item := range items {
+		fullPath := filesystem.JoinRemotePath(dir, item.Name)
+		select {
+		case entryCh <- filesystem.RemoteFile{
+			Path:    fullPath,
+			Name:    item.Name,
+			Size:    item.Size,
+			ModTime: item.Modified,
+			IsDir:   item.IsDir,
+		}:
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
+	return nil
+}
 
-	p.logger.Info("OpenList 目录列出完成",
-		zap.String("root", root),
-		zap.Bool("recursive", recursive),
-		zap.Int("max_depth", maxDepth),
-		zap.Int("count", len(results)))
-
-	return results, nil
+func (p *openListProvider) listDir(ctx context.Context, dir string) ([]openlistsdk.FileItem, error) {
+	release, err := p.acquireAPI(ctx)
+	if err != nil {
+		return nil, err
+	}
+	items, err := p.client.List(ctx, dir)
+	release()
+	if err != nil {
+		return nil, fmt.Errorf("openlist: list directory %s failed: %w", dir, err)
+	}
+	return items, nil
 }
 
 func (p *openListProvider) acquireAPI(ctx context.Context) (func(), error) {

@@ -8,9 +8,10 @@ import (
 
 // Client 数据服务器客户端接口
 type Client interface {
-	// List 列出目录内容
+	// Scan 流式扫描目录内容
 	// maxDepth: 递归最大深度，0表示非递归，>0表示递归的最大层级
-	List(ctx context.Context, path string, recursive bool, maxDepth int) ([]RemoteFile, error)
+	// 返回条目通道与错误通道，扫描结束时必须关闭
+	Scan(ctx context.Context, path string, recursive bool, maxDepth int) (<-chan RemoteFile, <-chan error)
 
 	// Watch 监控目录变化（如果支持）
 	Watch(ctx context.Context, path string) (<-chan FileEvent, error)

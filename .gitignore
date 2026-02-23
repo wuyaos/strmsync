@@ -17,12 +17,13 @@
 
 # AI CLI 工具相关
 .agents/
-.claude/index.json
-.claude/settings.local.json
+.claude
 .cursor/
 .aider*
 .windsurf/
 .ace-tool/
+.gemini/
+skills-lock.json
 
 # ============================================
 # IDE和编辑器

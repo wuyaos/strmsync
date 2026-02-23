@@ -32,7 +32,7 @@ var (
 
 // Provider 定义具体文件系统的行为
 type Provider interface {
-	List(ctx context.Context, path string, recursive bool, maxDepth int) ([]RemoteFile, error)
+	Scan(ctx context.Context, path string, recursive bool, maxDepth int) (<-chan RemoteFile, <-chan error)
 	Watch(ctx context.Context, path string) (<-chan FileEvent, error)
 	TestConnection(ctx context.Context) error
 	Download(ctx context.Context, remotePath string, w io.Writer) error
@@ -175,8 +175,8 @@ func newProvider(t Type, client *ClientImpl) (Provider, error) {
 	return factory(client)
 }
 
-// List 列出目录内容
-func (c *ClientImpl) List(ctx context.Context, listPath string, recursive bool, maxDepth int) ([]RemoteFile, error) {
+// Scan 流式扫描目录内容
+func (c *ClientImpl) Scan(ctx context.Context, listPath string, recursive bool, maxDepth int) (<-chan RemoteFile, <-chan error) {
 	// 防御 nil context
 	if ctx == nil {
 		ctx = context.Background()
@@ -188,9 +188,14 @@ func (c *ClientImpl) List(ctx context.Context, listPath string, recursive bool, 
 	}
 
 	if c.Provider == nil {
-		return nil, fmt.Errorf("filesystem: Provider not initialized")
+		errCh := make(chan error, 1)
+		fileCh := make(chan RemoteFile)
+		errCh <- fmt.Errorf("filesystem: Provider not initialized")
+		close(fileCh)
+		close(errCh)
+		return fileCh, errCh
 	}
-	return c.Provider.List(ctx, listPath, recursive, maxDepth)
+	return c.Provider.Scan(ctx, listPath, recursive, maxDepth)
 }
 
 // Watch 监控目录变化

@@ -40,7 +40,7 @@ func NewFileService(db *gorm.DB, logger *zap.Logger) ports.FileService {
 
 func (s *fileService) List(ctx context.Context, req ports.FileListRequest) ([]ports.RemoteFile, error) {
 	if req.ServerID == 0 {
-		return nil, fmt.Errorf("server_id is required")
+		return nil, fmt.Errorf("server_id 不能为空")
 	}
 
 	// 加载DataServer
@@ -49,7 +49,7 @@ func (s *fileService) List(ctx context.Context, req ports.FileListRequest) ([]po
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("%w: id=%d", ErrDataServerNotFound, req.ServerID)
 		}
-		return nil, fmt.Errorf("load data server: %w", err)
+		return nil, fmt.Errorf("加载数据服务器失败: %w", err)
 	}
 
 	if !server.Enabled {
@@ -81,7 +81,7 @@ func (s *fileService) List(ctx context.Context, req ports.FileListRequest) ([]po
 	switch cfg.Type {
 	case filesystem.TypeLocal:
 		if cfg.MountPath == "" {
-			return nil, fmt.Errorf("mount_path is required for local server")
+			return nil, fmt.Errorf("本地服务器必须配置 mount_path")
 		}
 	default:
 		baseURL := strings.TrimSpace(options.BaseURL)
@@ -99,7 +99,7 @@ func (s *fileService) List(ctx context.Context, req ports.FileListRequest) ([]po
 	// 创建filesystem客户端
 	client, err := filesystem.NewClient(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("create filesystem client: %w", err)
+		return nil, fmt.Errorf("创建文件系统客户端失败: %w", err)
 	}
 
 	listPath := strings.TrimSpace(req.Path)
@@ -130,21 +130,34 @@ func (s *fileService) List(ctx context.Context, req ports.FileListRequest) ([]po
 		effectiveRecursive = false
 	}
 
-	// 调用List，传递深度参数
-	files, err := client.List(ctx, listPath, effectiveRecursive, effectiveMaxDepth)
-	if err != nil {
-		return nil, fmt.Errorf("list files: %w", err)
-	}
+	// 调用Scan，传递深度参数
+	fileCh, errCh := client.Scan(ctx, listPath, effectiveRecursive, effectiveMaxDepth)
 
-	// 转换为ports类型
-	result := make([]ports.RemoteFile, len(files))
-	for i, f := range files {
-		result[i] = ports.RemoteFile{
-			Path:    f.Path,
-			Name:    f.Name,
-			Size:    f.Size,
-			ModTime: f.ModTime,
-			IsDir:   f.IsDir,
+	result := make([]ports.RemoteFile, 0)
+	for fileCh != nil || errCh != nil {
+		select {
+		case f, ok := <-fileCh:
+			if !ok {
+				fileCh = nil
+				continue
+			}
+			result = append(result, ports.RemoteFile{
+				Path:    f.Path,
+				Name:    f.Name,
+				Size:    f.Size,
+				ModTime: f.ModTime,
+				IsDir:   f.IsDir,
+			})
+		case err, ok := <-errCh:
+			if !ok {
+				errCh = nil
+				continue
+			}
+			if err != nil {
+				return nil, fmt.Errorf("扫描文件失败: %w", err)
+			}
+		case <-ctx.Done():
+			return nil, ctx.Err()
 		}
 	}
 

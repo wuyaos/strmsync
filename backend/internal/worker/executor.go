@@ -268,7 +268,7 @@ func (e *Executor) Run(ctx context.Context, task *model.TaskRun) (syncengine.Syn
 					return syncengine.SyncStats{}, permanentTaskError(fmt.Errorf("build local fallback driver: %w", err))
 				}
 			}
-			engineOpts.ListOverride = buildRemoteListOverride(remoteDriver, remoteRoot, fallbackDriver)
+			engineOpts.ScanOverride = buildRemoteScanOverride(remoteDriver, remoteRoot, fallbackDriver)
 			execLog.Info("远程列表 + 本地 STRM",
 				zap.String("remote_root", remoteRoot),
 				zap.String("source_path", job.SourcePath),
@@ -575,47 +575,124 @@ func normalizeRemoteRoot(value string) string {
 	return path.Clean("/" + cleaned)
 }
 
-func buildRemoteListOverride(remoteDriver syncengine.Driver, remoteRoot string, fallbackDriver syncengine.Driver) func(ctx context.Context, remotePath string, opt syncengine.ListOptions) ([]syncengine.RemoteEntry, error) {
+func buildRemoteScanOverride(remoteDriver syncengine.Driver, remoteRoot string, fallbackDriver syncengine.Driver) func(ctx context.Context, remotePath string, opt syncengine.ListOptions) (<-chan syncengine.RemoteEntry, <-chan error) {
 	root := normalizeRemoteRoot(remoteRoot)
-	return func(ctx context.Context, remotePath string, opt syncengine.ListOptions) ([]syncengine.RemoteEntry, error) {
-		entries, err := remoteDriver.List(ctx, root, opt)
-		if err != nil {
-			if fallbackDriver != nil {
-				return fallbackDriver.List(ctx, remotePath, opt)
+	return func(ctx context.Context, remotePath string, opt syncengine.ListOptions) (<-chan syncengine.RemoteEntry, <-chan error) {
+		outCh := make(chan syncengine.RemoteEntry)
+		errCh := make(chan error, 1)
+
+		go func() {
+			defer close(outCh)
+			defer close(errCh)
+
+			remoteCtx, cancelRemote := context.WithCancel(ctx)
+			defer cancelRemote()
+
+			entryCh, scanErrCh := remoteDriver.Scan(remoteCtx, root, opt)
+			if fallbackDriver == nil {
+				streamMappedEntries(ctx, root, entryCh, scanErrCh, outCh, errCh)
+				return
 			}
-			return nil, fmt.Errorf("remote list %s failed: %w", root, err)
-		}
-		return mapRemoteEntriesToLocal(root, entries), nil
+
+			shouldFallback := false
+			for entryCh != nil || scanErrCh != nil {
+				select {
+				case entry, ok := <-entryCh:
+					if !ok {
+						entryCh = nil
+						continue
+					}
+					if mapped, ok := mapRemoteEntryToLocal(root, entry); ok {
+						outCh <- mapped
+					}
+				case err, ok := <-scanErrCh:
+					if !ok {
+						scanErrCh = nil
+						continue
+					}
+					if err != nil {
+						shouldFallback = true
+						cancelRemote()
+					}
+				case <-ctx.Done():
+					errCh <- ctx.Err()
+					return
+				}
+				if shouldFallback {
+					break
+				}
+			}
+
+			if !shouldFallback {
+				return
+			}
+
+			fallbackEntryCh, fallbackErrCh := fallbackDriver.Scan(ctx, remotePath, opt)
+			streamMappedEntries(ctx, "", fallbackEntryCh, fallbackErrCh, outCh, errCh)
+		}()
+
+		return outCh, errCh
 	}
 }
 
-func mapRemoteEntriesToLocal(root string, entries []syncengine.RemoteEntry) []syncengine.RemoteEntry {
-	if len(entries) == 0 {
-		return nil
-	}
+func mapRemoteEntryToLocal(root string, entry syncengine.RemoteEntry) (syncengine.RemoteEntry, bool) {
 	cleanRoot := normalizeRemoteRoot(root)
 	cleanRoot = strings.TrimRight(cleanRoot, "/")
 	if cleanRoot == "" {
 		cleanRoot = "/"
 	}
-	mapped := make([]syncengine.RemoteEntry, 0, len(entries))
-	for _, entry := range entries {
-		entryPath := normalizeRemoteRoot(entry.Path)
-		rel := ""
-		if cleanRoot == "/" {
-			rel = strings.TrimPrefix(entryPath, "/")
-		} else if entryPath == cleanRoot {
-			rel = ""
-		} else if strings.HasPrefix(entryPath, cleanRoot+"/") {
-			rel = strings.TrimPrefix(entryPath, cleanRoot+"/")
-		} else {
-			continue
-		}
-		localPath := path.Clean("/" + rel)
-		entry.Path = localPath
-		mapped = append(mapped, entry)
+	entryPath := normalizeRemoteRoot(entry.Path)
+	rel := ""
+	if cleanRoot == "/" {
+		rel = strings.TrimPrefix(entryPath, "/")
+	} else if entryPath == cleanRoot {
+		rel = ""
+	} else if strings.HasPrefix(entryPath, cleanRoot+"/") {
+		rel = strings.TrimPrefix(entryPath, cleanRoot+"/")
+	} else {
+		return syncengine.RemoteEntry{}, false
 	}
-	return mapped
+	localPath := path.Clean("/" + rel)
+	entry.Path = localPath
+	return entry, true
+}
+
+func streamMappedEntries(
+	ctx context.Context,
+	root string,
+	entryCh <-chan syncengine.RemoteEntry,
+	errCh <-chan error,
+	outCh chan<- syncengine.RemoteEntry,
+	outErrCh chan<- error,
+) {
+	for entryCh != nil || errCh != nil {
+		select {
+		case entry, ok := <-entryCh:
+			if !ok {
+				entryCh = nil
+				continue
+			}
+			if root == "" {
+				outCh <- entry
+				continue
+			}
+			if mapped, ok := mapRemoteEntryToLocal(root, entry); ok {
+				outCh <- mapped
+			}
+		case err, ok := <-errCh:
+			if !ok {
+				errCh = nil
+				continue
+			}
+			if err != nil {
+				outErrCh <- err
+				return
+			}
+		case <-ctx.Done():
+			outErrCh <- ctx.Err()
+			return
+		}
+	}
 }
 
 // model.JobOptions 表示 Job.Options 的引擎参数
@@ -859,13 +936,10 @@ func (e *Executor) syncMetadata(ctx context.Context, job model.Job, server model
 		}
 	}
 
-	entries, err := listDriver.List(ctx, listPath, syncengine.ListOptions{
+	entryCh, scanErrCh := listDriver.Scan(ctx, listPath, syncengine.ListOptions{
 		Recursive: true,
-		MaxDepth:  100,
+		MaxDepth:  25,
 	})
-	if err != nil {
-		return metadataStats{}, fmt.Errorf("list metadata entries: %w", err)
-	}
 
 	metaOperation := logger.FormatJobOperation("元数据同步", job.Name)
 	metaLogger := e.log.With(
@@ -910,91 +984,113 @@ func (e *Executor) syncMetadata(ctx context.Context, job model.Job, server model
 	stats := metadataStats{}
 	preFailed := int64(0)
 	planned := int64(0)
+	scanErrorCh := make(chan error, 1)
 
 	go func() {
 		defer close(items)
-		for _, entry := range entries {
-			if ctx.Err() != nil {
+		defer close(scanErrorCh)
+		for entryCh != nil || scanErrCh != nil {
+			select {
+			case entry, ok := <-entryCh:
+				if !ok {
+					entryCh = nil
+					continue
+				}
+				if ctx.Err() != nil {
+					scanErrorCh <- ctx.Err()
+					return
+				}
+				if entry.IsDir {
+					continue
+				}
+				if syncengine.IsExcludedPath(remotePath, entry.Path, excludeDirs) {
+					continue
+				}
+				ext := strings.ToLower(filepath.Ext(entry.Name))
+				if _, ok := metaSet[ext]; !ok {
+					continue
+				}
+
+				stats.Total++
+
+				targetPath, err := buildTargetMetaPath(job.TargetPath, entry.Path)
+				if err != nil {
+					preFailed++
+					continue
+				}
+
+				info, statErr := os.Stat(targetPath)
+				if statErr != nil && !os.IsNotExist(statErr) {
+					preFailed++
+					continue
+				}
+
+				exists := statErr == nil
+				same := metaFileSame(info, entry, 2*time.Second)
+
+				switch strategy {
+				case metaStrategySkip:
+					if exists {
+						if eventSink != nil {
+							eventSink.OnMetaEvent(ctx, appsync.MetaEvent{
+								Op:           "skip",
+								Status:       "skipped",
+								SourcePath:   entry.Path,
+								TargetPath:   targetPath,
+								ErrorMessage: "skip_existing",
+							})
+						}
+						continue
+					}
+				case metaStrategyUpdate:
+					if exists && same {
+						if eventSink != nil {
+							eventSink.OnMetaEvent(ctx, appsync.MetaEvent{
+								Op:           "skip",
+								Status:       "skipped",
+								SourcePath:   entry.Path,
+								TargetPath:   targetPath,
+								ErrorMessage: "unchanged",
+							})
+						}
+						continue
+					}
+				case metaStrategyOverwrite:
+					// 总是覆盖
+				}
+
+				op := appports.SyncOpCreate
+				if exists {
+					op = appports.SyncOpUpdate
+				}
+				if op == appports.SyncOpCreate {
+					stats.Created++
+				} else {
+					stats.Updated++
+				}
+
+				items <- appports.SyncPlanItem{
+					Op:             op,
+					Kind:           appports.PlanItemMetadata,
+					SourcePath:     entry.Path,
+					TargetMetaPath: targetPath,
+					Size:           entry.Size,
+					ModTime:        entry.ModTime,
+				}
+				planned++
+			case err, ok := <-scanErrCh:
+				if !ok {
+					scanErrCh = nil
+					continue
+				}
+				if err != nil {
+					scanErrorCh <- err
+					return
+				}
+			case <-ctx.Done():
+				scanErrorCh <- ctx.Err()
 				return
 			}
-			if entry.IsDir {
-				continue
-			}
-			if syncengine.IsExcludedPath(remotePath, entry.Path, excludeDirs) {
-				continue
-			}
-			ext := strings.ToLower(filepath.Ext(entry.Name))
-			if _, ok := metaSet[ext]; !ok {
-				continue
-			}
-
-			stats.Total++
-
-			targetPath, err := buildTargetMetaPath(job.TargetPath, entry.Path)
-			if err != nil {
-				preFailed++
-				continue
-			}
-
-			info, statErr := os.Stat(targetPath)
-			if statErr != nil && !os.IsNotExist(statErr) {
-				preFailed++
-				continue
-			}
-
-			exists := statErr == nil
-			same := metaFileSame(info, entry, 2*time.Second)
-
-			switch strategy {
-			case metaStrategySkip:
-				if exists {
-					if eventSink != nil {
-						eventSink.OnMetaEvent(ctx, appsync.MetaEvent{
-							Op:           "skip",
-							Status:       "skipped",
-							SourcePath:   entry.Path,
-							TargetPath:   targetPath,
-							ErrorMessage: "skip_existing",
-						})
-					}
-					continue
-				}
-			case metaStrategyUpdate:
-				if exists && same {
-					if eventSink != nil {
-						eventSink.OnMetaEvent(ctx, appsync.MetaEvent{
-							Op:           "skip",
-							Status:       "skipped",
-							SourcePath:   entry.Path,
-							TargetPath:   targetPath,
-							ErrorMessage: "unchanged",
-						})
-					}
-					continue
-				}
-			case metaStrategyOverwrite:
-				// 总是覆盖
-			}
-
-			op := appports.SyncOpCreate
-			if exists {
-				op = appports.SyncOpUpdate
-			}
-			if op == appports.SyncOpCreate {
-				stats.Created++
-			} else {
-				stats.Updated++
-			}
-
-			items <- appports.SyncPlanItem{
-				Op:             op,
-				Kind:           appports.PlanItemMetadata,
-				SourcePath:     entry.Path,
-				TargetMetaPath: targetPath,
-				Size:           entry.Size,
-				ModTime:        entry.ModTime,
-			}
-			planned++
 		}
 	}()
 
@@ -1003,6 +1099,9 @@ func (e *Executor) syncMetadata(ctx context.Context, job model.Job, server model
 	stats.Failed = preFailed + int64(failed)
 	if err != nil {
 		return stats, err
+	}
+	if scanErr := <-scanErrorCh; scanErr != nil {
+		return stats, scanErr
 	}
 
 	metaLogger.Info("元数据同步完成",

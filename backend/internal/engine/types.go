@@ -164,7 +164,7 @@ type EngineEvent struct {
 	IsDir bool
 }
 
-// ListOptions 配置 Driver.List 方法的列表行为
+// ListOptions 配置 Driver.Scan 方法的扫描行为
 type ListOptions struct {
 	// Recursive 表示是否递归列出文件
 	Recursive bool
@@ -407,9 +407,9 @@ type EngineOptions struct {
 	// EventSink STRM 事件回调（可选）
 	EventSink StrmEventSink
 
-	// ListOverride 远端扫描自定义实现（可选）
+	// ScanOverride 远端扫描自定义实现（可选）
 	// 返回的 RemoteEntry.Path 必须使用远端虚拟路径格式（以 "/" 开头）
-	ListOverride func(ctx context.Context, remotePath string, opt ListOptions) ([]RemoteEntry, error)
+	ScanOverride func(ctx context.Context, remotePath string, opt ListOptions) (<-chan RemoteEntry, <-chan error)
 }
 
 // SyncStats 同步统计信息

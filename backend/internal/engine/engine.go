@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/sourcegraph/conc/pool"
 	"go.uber.org/zap"
 )
 
@@ -21,7 +22,7 @@ import (
 // 设计要点：
 // - 驱动器抽象：通过 Driver 接口支持多种数据源
 // - 写入器抽象：通过 Writer 接口支持多种写入目标
-// - 并发控制：使用 semaphore 限制并发数
+// - 并发控制：使用 conc/pool 控制并发数
 // - 统计收集：记录同步过程的统计信息
 // - 可取消：支持 context 取消同步任务
 //
@@ -112,12 +113,9 @@ func NewEngine(driver Driver, writer Writer, logger *zap.Logger, opts EngineOpti
 // RunOnce 执行一次完整的同步流程
 //
 // 工作流程：
-//  1. 扫描远程文件列表（使用 Driver.List）
-//  2. 过滤文件（根据扩展名）
-//  3. 并发处理每个文件：
-//     a. 构建 STRM 内容（使用 Driver.BuildStrmInfo）
-//     b. 比对现有内容（使用 Driver.CompareStrm）
-//     c. 写入/更新文件（使用 Writer）
+//  1. 扫描远程文件流（使用 Driver.Scan）
+//  2. 过滤文件（根据扩展名/排除目录/最小大小）
+//  3. 使用 conc/pool 并发处理每个文件
 //  4. 收集统计信息并返回
 //
 // 参数：
@@ -133,6 +131,11 @@ func (e *Engine) RunOnce(ctx context.Context, remotePath string) (SyncStats, err
 		return SyncStats{}, fmt.Errorf("syncengine: 引擎正在运行中")
 	}
 	defer e.running.Store(false)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	stats := SyncStats{
 		StartTime: time.Now(),
@@ -144,43 +147,137 @@ func (e *Engine) RunOnce(ctx context.Context, remotePath string) (SyncStats, err
 		zap.Int("max_concurrency", e.opts.MaxConcurrency),
 		zap.Bool("dry_run", e.opts.DryRun))
 
-	// 步骤1: 扫描远程文件列表
-	entries, err := e.scanRemoteFiles(ctx, remotePath)
-	if err != nil {
-		return stats, fmt.Errorf("扫描远程文件失败: %w", err)
+	// 步骤1: 扫描远程文件流
+	opt := ListOptions{
+		Recursive: true,
+		MaxDepth:  25,
+	}
+	var entryCh <-chan RemoteEntry
+	var scanErrCh <-chan error
+	if e.opts.ScanOverride != nil {
+		entryCh, scanErrCh = e.opts.ScanOverride(ctx, remotePath, opt)
+	} else {
+		entryCh, scanErrCh = e.driver.Scan(ctx, remotePath, opt)
 	}
 
-	e.logger.Info("扫描完成",
-		zap.Int64("total_files", stats.TotalFiles),
-		zap.Int64("total_dirs", stats.TotalDirs))
+	// 步骤2: 并发处理文件（流式+池化）
+	p := pool.New().WithMaxGoroutines(e.opts.MaxConcurrency).WithContext(ctx)
+	var mu sync.Mutex
+	appendError := func(path string, err error) {
+		if err == nil {
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if len(stats.Errors) >= 100 {
+			return
+		}
+		stats.Errors = append(stats.Errors, SyncError{
+			FilePath: path,
+			Error:    err.Error(),
+			Time:     time.Now(),
+		})
+	}
 
-	// 步骤2: 过滤文件
-	files := e.filterFiles(entries, &stats, remotePath)
-	e.logger.Info("文件过滤完成",
-		zap.Int("matched_files", len(files)),
-		zap.Int64("filtered_files", stats.FilteredFiles))
+	var orphanIndex map[string]struct{}
+	if e.opts.EnableOrphanCleanup {
+		orphanIndex = make(map[string]struct{}, 1024)
+	}
 
-	// 步骤3: 并发处理文件
-	if err := e.processFiles(ctx, files, &stats); err != nil {
-		return stats, fmt.Errorf("处理文件失败: %w", err)
+	for entryCh != nil || scanErrCh != nil {
+		select {
+		case entry, ok := <-entryCh:
+			if !ok {
+				entryCh = nil
+				continue
+			}
+
+			if entry.IsDir {
+				atomic.AddInt64(&stats.TotalDirs, 1)
+				continue
+			}
+			atomic.AddInt64(&stats.TotalFiles, 1)
+
+			// 排除目录过滤
+			if IsExcludedPath(remotePath, entry.Path, e.opts.ExcludeDirs) {
+				atomic.AddInt64(&stats.FilteredFiles, 1)
+				continue
+			}
+
+			// 扩展名过滤
+			if len(e.opts.FileExtensions) > 0 {
+				matched := false
+				for _, ext := range e.opts.FileExtensions {
+					if strings.HasSuffix(strings.ToLower(entry.Name), strings.ToLower(ext)) {
+						matched = true
+						break
+					}
+				}
+				if !matched {
+					atomic.AddInt64(&stats.FilteredFiles, 1)
+					continue
+				}
+			}
+
+			if e.opts.MinFileSize > 0 && entry.Size > 0 && entry.Size < e.opts.MinFileSize {
+				atomic.AddInt64(&stats.FilteredFiles, 1)
+				continue
+			}
+
+			if orphanIndex != nil {
+				outputPath, err := e.calculateOutputPath(entry.Path)
+				if err != nil {
+					appendError(entry.Path, fmt.Errorf("计算输出路径失败: %w", err))
+				} else {
+					rel, err := filepath.Rel(e.opts.OutputRoot, outputPath)
+					if err != nil {
+						appendError(outputPath, fmt.Errorf("计算相对路径失败: %w", err))
+					} else if rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+						rel = filepath.ToSlash(rel)
+						orphanIndex[rel] = struct{}{}
+					}
+				}
+			}
+
+			entryCopy := entry
+			p.Go(func(ctx context.Context) error {
+				if err := e.processFile(ctx, entryCopy, &stats); err != nil {
+					atomic.AddInt64(&stats.FailedFiles, 1)
+					appendError(entryCopy.Path, err)
+					e.logger.Warn("处理文件失败",
+						zap.String("path", entryCopy.Path),
+						zap.Error(err))
+				} else {
+					atomic.AddInt64(&stats.ProcessedFiles, 1)
+				}
+				return nil
+			})
+		case err, ok := <-scanErrCh:
+			if !ok {
+				scanErrCh = nil
+				continue
+			}
+			if err != nil {
+				return stats, fmt.Errorf("扫描远程文件失败: %w", err)
+			}
+		case <-ctx.Done():
+			return stats, ctx.Err()
+		}
+	}
+
+	if err := p.Wait(); err != nil {
+		return stats, err
 	}
 
 	// 步骤4: 孤儿文件清理（可选）
 	if e.opts.EnableOrphanCleanup {
 		e.logger.Info("开始清理孤儿文件")
-		// 注意：使用过滤后的文件列表构建索引，确保扩展名过滤规则变化后能清理旧 STRM
-		remoteIndex, idxErr := e.buildRemoteIndex(files)
-		if idxErr != nil {
-			e.logger.Warn("构建远端索引失败，跳过孤儿清理",
-				zap.Error(idxErr))
+		if err := e.CleanOrphans(ctx, orphanIndex, &stats); err != nil {
+			e.logger.Warn("清理孤儿文件失败",
+				zap.Error(err))
 		} else {
-			if err := e.CleanOrphans(ctx, remoteIndex, &stats); err != nil {
-				e.logger.Warn("清理孤儿文件失败",
-					zap.Error(err))
-			} else {
-				e.logger.Info("孤儿文件清理完成",
-					zap.Int64("deleted", stats.DeletedOrphans))
-			}
+			e.logger.Info("孤儿文件清理完成",
+				zap.Int64("deleted", stats.DeletedOrphans))
 		}
 	}
 
@@ -224,6 +321,11 @@ func (e *Engine) RunIncremental(ctx context.Context, events []EngineEvent) (Sync
 		return SyncStats{}, fmt.Errorf("syncengine: 引擎正在运行中")
 	}
 	defer e.running.Store(false)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	stats := SyncStats{
 		StartTime: time.Now(),
@@ -313,15 +415,20 @@ func (e *Engine) RunIncremental(ctx context.Context, events []EngineEvent) (Sync
 				continue
 			}
 
-			// 复用 filterFiles 的扩展名过滤逻辑（避免删除不相关文件）
-			deleteEntry := RemoteEntry{
-				Path:  path,
-				Name:  filepath.Base(path),
-				IsDir: false,
-			}
-			if len(e.filterFiles([]RemoteEntry{deleteEntry}, &stats, "")) == 0 {
-				// 被过滤（扩展名不匹配），跳过此删除事件
-				continue
+			// 扩展名过滤（避免删除不相关文件）
+			if len(e.opts.FileExtensions) > 0 {
+				name := filepath.Base(path)
+				matched := false
+				for _, ext := range e.opts.FileExtensions {
+					if strings.HasSuffix(strings.ToLower(name), strings.ToLower(ext)) {
+						matched = true
+						break
+					}
+				}
+				if !matched {
+					atomic.AddInt64(&stats.FilteredFiles, 1)
+					continue
+				}
 			}
 
 			outputPath, err := e.calculateOutputPath(path)
@@ -406,6 +513,7 @@ func (e *Engine) RunIncremental(ctx context.Context, events []EngineEvent) (Sync
 				ModTime: event.ModTime,
 				IsDir:   false,
 			})
+			atomic.AddInt64(&stats.TotalFiles, 1)
 		case DriverEventDelete:
 			continue
 		default:
@@ -414,69 +522,37 @@ func (e *Engine) RunIncremental(ctx context.Context, events []EngineEvent) (Sync
 		}
 	}
 
-	// 步骤3: 过滤文件（按扩展名）
-	files := e.filterFiles(entries, &stats, "")
-	e.logger.Info("增量文件过滤完成",
-		zap.Int("matched_files", len(files)),
-		zap.Int64("filtered_files", stats.FilteredFiles))
-
-	// 步骤4: 并发处理文件（复用 processFile）
-	if err := e.processFiles(ctx, files, &stats); err != nil {
-		return stats, fmt.Errorf("处理文件失败: %w", err)
+	// 步骤3: 过滤并并发处理文件
+	p := pool.New().WithMaxGoroutines(e.opts.MaxConcurrency).WithContext(ctx)
+	var mu sync.Mutex
+	appendError := func(path string, err error) {
+		if err == nil {
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if len(stats.Errors) >= 100 {
+			return
+		}
+		stats.Errors = append(stats.Errors, SyncError{
+			FilePath: path,
+			Error:    err.Error(),
+			Time:     time.Now(),
+		})
 	}
-
-	stats.EndTime = time.Now()
-	stats.Duration = stats.EndTime.Sub(stats.StartTime)
-
-	e.logger.Info("增量同步任务完成",
-		zap.Int64("processed", stats.ProcessedFiles),
-		zap.Int64("created", stats.CreatedFiles),
-		zap.Int64("updated", stats.UpdatedFiles),
-		zap.Int64("updated_by_modtime", stats.UpdatedByModTime),
-		zap.Int64("skipped", stats.SkippedFiles),
-		zap.Int64("skipped_unchanged", stats.SkippedUnchanged),
-		zap.Int64("failed", stats.FailedFiles),
-		zap.Int64("deleted_orphans", stats.DeletedOrphans),
-		zap.Duration("duration", stats.Duration))
-
-	return stats, nil
-}
-
-// scanRemoteFiles 扫描远程文件列表
-func (e *Engine) scanRemoteFiles(ctx context.Context, remotePath string) ([]RemoteEntry, error) {
-	opt := ListOptions{
-		Recursive: true,
-		MaxDepth:  100, // 默认最大深度100层，避免无限递归
-	}
-	if e.opts.ListOverride != nil {
-		return e.opts.ListOverride(ctx, remotePath, opt)
-	}
-	entries, err := e.driver.List(ctx, remotePath, opt)
-	if err != nil {
-		return nil, err
-	}
-	return entries, nil
-}
-
-// filterFiles 根据配置过滤文件
-func (e *Engine) filterFiles(entries []RemoteEntry, stats *SyncStats, remoteRoot string) []RemoteEntry {
-	var files []RemoteEntry
 
 	for _, entry := range entries {
-		// 统计目录和文件
-		if entry.IsDir {
-			atomic.AddInt64(&stats.TotalDirs, 1)
-			continue
+		if ctx.Err() != nil {
+			return stats, ctx.Err()
 		}
-		atomic.AddInt64(&stats.TotalFiles, 1)
 
-		// 排除目录过滤
-		if IsExcludedPath(remoteRoot, entry.Path, e.opts.ExcludeDirs) {
+		// 排除目录过滤（增量模式不依赖远端根路径）
+		if IsExcludedPath("/", entry.Path, e.opts.ExcludeDirs) {
 			atomic.AddInt64(&stats.FilteredFiles, 1)
 			continue
 		}
 
-		// 检查扩展名过滤
+		// 扩展名过滤
 		if len(e.opts.FileExtensions) > 0 {
 			matched := false
 			for _, ext := range e.opts.FileExtensions {
@@ -496,10 +572,40 @@ func (e *Engine) filterFiles(entries []RemoteEntry, stats *SyncStats, remoteRoot
 			continue
 		}
 
-		files = append(files, entry)
+		entryCopy := entry
+		p.Go(func(ctx context.Context) error {
+			if err := e.processFile(ctx, entryCopy, &stats); err != nil {
+				atomic.AddInt64(&stats.FailedFiles, 1)
+				appendError(entryCopy.Path, err)
+				e.logger.Warn("处理文件失败",
+					zap.String("path", entryCopy.Path),
+					zap.Error(err))
+			} else {
+				atomic.AddInt64(&stats.ProcessedFiles, 1)
+			}
+			return nil
+		})
 	}
 
-	return files
+	if err := p.Wait(); err != nil {
+		return stats, fmt.Errorf("处理文件失败: %w", err)
+	}
+
+	stats.EndTime = time.Now()
+	stats.Duration = stats.EndTime.Sub(stats.StartTime)
+
+	e.logger.Info("增量同步任务完成",
+		zap.Int64("processed", stats.ProcessedFiles),
+		zap.Int64("created", stats.CreatedFiles),
+		zap.Int64("updated", stats.UpdatedFiles),
+		zap.Int64("updated_by_modtime", stats.UpdatedByModTime),
+		zap.Int64("skipped", stats.SkippedFiles),
+		zap.Int64("skipped_unchanged", stats.SkippedUnchanged),
+		zap.Int64("failed", stats.FailedFiles),
+		zap.Int64("deleted_orphans", stats.DeletedOrphans),
+		zap.Duration("duration", stats.Duration))
+
+	return stats, nil
 }
 
 // applyMountPathMapping 应用挂载路径映射（系统级基线转换）
@@ -532,193 +638,16 @@ func applyStrmReplaceRules(input string, rules []StrmReplaceRule) string {
 	return output
 }
 
-// processFiles 并发处理文件列表
-func (e *Engine) processFiles(ctx context.Context, files []RemoteEntry, stats *SyncStats) error {
-	// 创建信号量控制并发数
-	sem := make(chan struct{}, e.opts.MaxConcurrency)
-	var wg sync.WaitGroup
-	var mu sync.Mutex // 保护 stats.Errors
-
-	// 使用可取消的子 context，确保所有 goroutine 能收到取消信号
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	for _, file := range files {
-		// 检查 context 取消（主循环级别）
-		if ctx.Err() != nil {
-			cancel() // 通知所有 goroutine 停止
-			break    // 退出循环，等待已启动的 goroutine
-		}
-
-		wg.Add(1)
-		go func(entry RemoteEntry) {
-			defer wg.Done()
-
-			// 获取信号量（可能被 context 取消中断）
-			select {
-			case sem <- struct{}{}:
-				defer func() { <-sem }()
-			case <-ctx.Done():
-				return // Context 已取消，提前退出
-			}
-
-			// 再次检查 context（在获取信号量后）
-			if ctx.Err() != nil {
-				return
-			}
-
-			// 处理单个文件
-			if err := e.processFile(ctx, entry, stats); err != nil {
-				atomic.AddInt64(&stats.FailedFiles, 1)
-
-				// 记录错误（限制最多100个）
-				mu.Lock()
-				if len(stats.Errors) < 100 {
-					stats.Errors = append(stats.Errors, SyncError{
-						FilePath: entry.Path,
-						Error:    err.Error(),
-						Time:     time.Now(),
-					})
-				}
-				mu.Unlock()
-
-				e.logger.Warn("处理文件失败",
-					zap.String("path", entry.Path),
-					zap.Error(err))
-			} else {
-				atomic.AddInt64(&stats.ProcessedFiles, 1)
-			}
-		}(file)
-	}
-
-	// 等待所有 goroutine 完成
-	wg.Wait()
-
-	// 检查是否因取消而退出
-	if ctx.Err() != nil {
-		return ctx.Err()
-	}
-	return nil
-}
-
-// normalizeModTime 统一修改时间到 UTC 并按精度截断
-//
-// 不同文件系统和操作系统的时间精度不同（FAT: 2秒, NTFS: 100ns, ext4: 1ns），
-// 此函数将时间统一到 UTC 并按指定精度截断，以便进行可靠的比较。
-//
-// 参数：
-//   - t: 要规范化的时间
-//   - precision: 精度（例如 time.Second）
-//
-// 返回：
-//   - 规范化后的时间
-func normalizeModTime(t time.Time, precision time.Duration) time.Time {
-	if t.IsZero() {
-		return t
-	}
-	if precision <= 0 {
-		precision = time.Second
-	}
-	return t.UTC().Truncate(precision)
-}
-
-// modTimeDifferent 判断两个修改时间是否有显著差异
-//
-// 考虑时间精度和允许的误差阈值，判断两个时间是否应视为不同。
-// 这避免了因时间漂移或精度差异导致的无意义更新。
-//
-// 参数：
-//   - local: 本地文件的修改时间
-//   - remote: 远程文件的修改时间
-//   - epsilon: 允许的误差阈值
-//
-// 返回：
-//   - true 表示时间有显著差异，false 表示时间相同或在阈值内
-func modTimeDifferent(local time.Time, remote time.Time, epsilon time.Duration) bool {
-	if local.IsZero() || remote.IsZero() {
-		return false
-	}
-	if epsilon < 0 {
-		epsilon = 0
-	}
-
-	// 规范化到相同精度
-	local = normalizeModTime(local, time.Second)
-	remote = normalizeModTime(remote, time.Second)
-
-	// 计算绝对差值
-	delta := remote.Sub(local)
-	if delta < 0 {
-		delta = -delta
-	}
-
-	return delta > epsilon
-}
-
-// DecideUpdate 根据内容和修改时间判定是否需要更新
-//
-// 这是更新决策的核心逻辑，根据多种因素（文件存在性、强制更新标志、
-// 内容相等性、修改时间差异）综合判断是否需要更新文件。
-//
-// 决策优先级：
-// 1. 文件不存在 → 创建（ChangeReasonNew）
-// 2. 强制更新模式 → 更新（ChangeReasonForced）
-// 3. 内容不同 → 更新（ChangeReasonContent）
-// 4. 内容相同但 ModTime 超出阈值 → 更新（ChangeReasonModTime）
-// 5. 内容和 ModTime 均未变化 → 跳过（ChangeReasonUnchanged）
-//
-// 参数：
-//   - localExists: 本地文件是否存在
-//   - localModTime: 本地文件的修改时间
-//   - remoteModTime: 远程文件的修改时间
-//   - contentEqual: 内容是否相等
-//   - opts: 引擎配置选项
-//
-// 返回：
-//   - ChangeDecision: 决策结果
-//   - error: 决策失败时返回错误
-func DecideUpdate(localExists bool, localModTime time.Time, remoteModTime time.Time, contentEqual bool, opts EngineOptions) (ChangeDecision, error) {
-	// 文件不存在，需要创建
-	if !localExists {
-		return ChangeDecision{ShouldUpdate: true, Reason: ChangeReasonNew}, nil
-	}
-
-	// 强制更新模式
-	if opts.ForceUpdate {
-		return ChangeDecision{ShouldUpdate: true, Reason: ChangeReasonForced}, nil
-	}
-
-	// 内容不同，需要更新
-	if !contentEqual {
-		return ChangeDecision{ShouldUpdate: true, Reason: ChangeReasonContent}, nil
-	}
-
-	// 内容相同，检查 ModTime
-	epsilon := opts.ModTimeEpsilon
-	if epsilon <= 0 {
-		epsilon = 2 * time.Second
-	}
-
-	if modTimeDifferent(localModTime, remoteModTime, epsilon) {
-		// ModTime 超出阈值，需要更新时间戳
-		return ChangeDecision{ShouldUpdate: true, Reason: ChangeReasonModTime}, nil
-	}
-
-	// 内容和 ModTime 均未变化，跳过
-	return ChangeDecision{ShouldUpdate: false, Reason: ChangeReasonUnchanged}, nil
-}
-
 // processFile 处理单个文件
 //
 // 工作流程：
 // 1. 构建 STRM 内容（BuildStrmInfo）
 // 2. 计算输出文件路径
 // 3. Dry Run 检查
-// 4. 获取本地文件元信息（存在性 + ModTime）
+// 4. 获取本地文件存在性
 // 5. SkipExisting 检查
-// 6. 读取现有文件内容并比对
-// 7. 使用 DecideUpdate 判定是否更新
-// 8. 写入或更新文件
+// 6. 读取现有文件文本并比对
+// 7. 写入或更新文件
 //
 // 参数：
 //   - ctx: 上下文
@@ -766,123 +695,51 @@ func (e *Engine) processFile(ctx context.Context, entry RemoteEntry, stats *Sync
 		return nil
 	}
 
-	// 步骤4: 获取本地文件元信息（存在性 + ModTime）
-	// 注意：这里直接使用 os.Stat 是基于 Writer 对应本地文件系统的假设
-	// 这样可以获取精确的 ModTime 用于增量更新判定
+	// 步骤4: 获取本地文件存在性
 	localExists := false
-	localModTime := time.Time{}
-	if info, err := os.Stat(outputPath); err == nil {
+	if _, err := os.Stat(outputPath); err == nil {
 		localExists = true
-		localModTime = info.ModTime()
 	} else if !isNotExist(err) {
 		return fmt.Errorf("获取本地文件信息失败: %w", err)
 	}
 
-	// 步骤5: 检查是否跳过已存在文件
+	// 步骤5: SkipExisting 检查
 	if e.opts.SkipExisting && localExists {
-		existingContent, err := e.writer.Read(ctx, outputPath)
-		if err == nil && strings.TrimSpace(existingContent) != "" {
-			e.logger.Debug("跳过已存在文件",
-				zap.String("output_path", outputPath))
-			atomic.AddInt64(&stats.SkippedFiles, 1)
-			e.emitStrmEvent(ctx, StrmEvent{
-				Op:           "skip",
-				Status:       "skipped",
-				SourcePath:   entry.Path,
-				TargetPath:   outputPath,
-				ErrorMessage: "skip_existing",
-			})
-			return nil
-		}
-		if err != nil && !isNotExist(err) {
-			return fmt.Errorf("读取现有文件失败: %w", err)
-		}
-	}
-
-	// 步骤6: 读取现有文件内容并比对
-	contentEqual := false
-	if !e.opts.ForceUpdate && localExists {
-		existingContent, err := e.writer.Read(ctx, outputPath)
-		if err != nil {
-			if isNotExist(err) {
-				// 文件在 Stat 和 Read 之间被删除
-				localExists = false
-				localModTime = time.Time{}
-			} else {
-				return fmt.Errorf("读取现有文件失败: %w", err)
-			}
-		} else {
-			if len(e.opts.StrmReplaceRules) > 0 {
-				if strings.TrimSpace(existingContent) == strings.TrimSpace(expectedContent) {
-					contentEqual = true
-					e.logger.Debug("内容相同",
-						zap.String("path", outputPath),
-						zap.String("reason", "raw_equal"))
-				} else {
-					e.logger.Debug("内容不同，需要更新",
-						zap.String("path", outputPath),
-						zap.String("reason", "raw_diff"))
-				}
-			} else if strmInfo.BaseURL == nil && strings.TrimSpace(strmInfo.RawURL) != "" {
-				if strings.TrimSpace(existingContent) == strings.TrimSpace(strmInfo.RawURL) {
-					contentEqual = true
-					e.logger.Debug("内容相同",
-						zap.String("path", outputPath),
-						zap.String("reason", "raw_equal_local"))
-				} else {
-					e.logger.Debug("内容不同，需要更新",
-						zap.String("path", outputPath),
-						zap.String("reason", "raw_diff_local"))
-				}
-			} else {
-				// 比对内容
-				compareResult, compareErr := e.driver.CompareStrm(ctx, CompareInput{
-					Expected:  strmInfo,
-					ActualRaw: existingContent,
-				})
-				if compareErr != nil {
-					e.logger.Warn("比对 STRM 内容失败，将更新",
-						zap.String("path", outputPath),
-						zap.Error(compareErr))
-				} else if compareResult.Equal {
-					contentEqual = true
-					e.logger.Debug("内容相同",
-						zap.String("path", outputPath),
-						zap.String("reason", compareResult.Reason))
-				} else {
-					e.logger.Debug("内容不同，需要更新",
-						zap.String("path", outputPath),
-						zap.String("reason", compareResult.Reason))
-				}
-			}
-		}
-	}
-
-	// 步骤7: 使用 DecideUpdate 判定是否更新
-	decision, err := DecideUpdate(localExists, localModTime, entry.ModTime, contentEqual, e.opts)
-	if err != nil {
-		return fmt.Errorf("判定更新策略失败: %w", err)
-	}
-
-	if !decision.ShouldUpdate {
 		atomic.AddInt64(&stats.SkippedFiles, 1)
-		if decision.Reason == ChangeReasonUnchanged {
-			atomic.AddInt64(&stats.SkippedUnchanged, 1)
-		}
-		e.logger.Debug("跳过更新",
-			zap.String("path", outputPath),
-			zap.String("reason", decision.Reason.String()))
 		e.emitStrmEvent(ctx, StrmEvent{
 			Op:           "skip",
 			Status:       "skipped",
 			SourcePath:   entry.Path,
 			TargetPath:   outputPath,
-			ErrorMessage: decision.Reason.String(),
+			ErrorMessage: "skip_existing",
 		})
 		return nil
 	}
 
-	// 步骤8: 写入或更新文件
+	// 步骤6: 读取现有文件文本并比对
+	if localExists && !e.opts.ForceUpdate {
+		existingContent, err := e.writer.Read(ctx, outputPath)
+		if err != nil {
+			if !isNotExist(err) {
+				return fmt.Errorf("读取现有文件失败: %w", err)
+			}
+		} else if strings.Compare(strings.TrimSpace(existingContent), strings.TrimSpace(expectedContent)) == 0 {
+			atomic.AddInt64(&stats.SkippedFiles, 1)
+			atomic.AddInt64(&stats.SkippedUnchanged, 1)
+			e.logger.Debug("内容相同，跳过更新",
+				zap.String("path", outputPath))
+			e.emitStrmEvent(ctx, StrmEvent{
+				Op:           "skip",
+				Status:       "skipped",
+				SourcePath:   entry.Path,
+				TargetPath:   outputPath,
+				ErrorMessage: "content_equal",
+			})
+			return nil
+		}
+	}
+
+	// 步骤7: 写入或更新文件
 	op := "update"
 	if !localExists {
 		op = "create"
@@ -911,12 +768,8 @@ func (e *Engine) processFile(ctx context.Context, entry RemoteEntry, stats *Sync
 		})
 	} else {
 		atomic.AddInt64(&stats.UpdatedFiles, 1)
-		if decision.Reason == ChangeReasonModTime {
-			atomic.AddInt64(&stats.UpdatedByModTime, 1)
-		}
 		e.logger.Debug("更新 STRM 文件",
-			zap.String("output_path", outputPath),
-			zap.String("reason", decision.Reason.String()))
+			zap.String("output_path", outputPath))
 		e.emitStrmEvent(ctx, StrmEvent{
 			Op:         "update",
 			Status:     "success",
@@ -983,76 +836,6 @@ func (e *Engine) calculateOutputPath(remotePath string) (string, error) {
 	}
 
 	return outputPath, nil
-}
-
-// buildRemoteIndex 构建远端快照索引
-//
-// 此方法遍历所有远端文件，为每个文件计算对应的本地输出路径，
-// 并构建一个快照索引（map）。此索引用于快速判断哪些本地 STRM 文件是孤儿。
-//
-// 使用基于输出相对路径的索引比逐个调用 Driver.Stat 高效得多，
-// 特别是在处理大量文件时避免了大量的远程 API 调用。
-//
-// 参数：
-//   - entries: 远端文件列表
-//
-// 返回：
-//   - map[string]struct{}: 远端文件的输出相对路径集合
-//   - error: 构建失败时返回第一个遇到的错误（部分失败不中断整体）
-func (e *Engine) buildRemoteIndex(entries []RemoteEntry) (map[string]struct{}, error) {
-	index := make(map[string]struct{}, len(entries))
-	var firstErr error
-
-	for _, entry := range entries {
-		// 跳过目录
-		if entry.IsDir {
-			continue
-		}
-
-		// 计算输出路径
-		outputPath, err := e.calculateOutputPath(entry.Path)
-		if err != nil {
-			wrapped := fmt.Errorf("计算输出路径失败: %w", err)
-			if firstErr == nil {
-				firstErr = wrapped
-			}
-			e.logger.Warn("构建远端索引失败",
-				zap.String("remote_file_path", entry.Path),
-				zap.Error(wrapped))
-			continue
-		}
-
-		// 计算相对路径
-		rel, err := filepath.Rel(e.opts.OutputRoot, outputPath)
-		if err != nil {
-			wrapped := fmt.Errorf("计算相对路径失败: %w", err)
-			if firstErr == nil {
-				firstErr = wrapped
-			}
-			e.logger.Warn("构建远端索引失败",
-				zap.String("output_path", outputPath),
-				zap.Error(wrapped))
-			continue
-		}
-
-		// 安全检查：防止路径逃逸
-		if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-			wrapped := fmt.Errorf("路径逃逸检测: %s 逃逸了根目录 %s", outputPath, e.opts.OutputRoot)
-			if firstErr == nil {
-				firstErr = wrapped
-			}
-			e.logger.Warn("构建远端索引失败",
-				zap.String("output_path", outputPath),
-				zap.Error(wrapped))
-			continue
-		}
-
-		// 统一使用 Unix 路径格式作为索引键
-		rel = filepath.ToSlash(rel)
-		index[rel] = struct{}{}
-	}
-
-	return index, firstErr
 }
 
 // CleanOrphans 清理本地孤儿 STRM 文件

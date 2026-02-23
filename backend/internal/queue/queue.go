@@ -141,9 +141,10 @@ func (q *SyncQueue) ClaimNext(ctx context.Context, workerID string) (*model.Task
 		return nil, fmt.Errorf("claim next begin transaction: %w", tx.Error)
 	}
 
-	// 查询一个待执行任务
+	// 查询一个待执行任务（同一 Job 严格串行）
 	var task model.TaskRun
 	if err := tx.Where("status = ? AND available_at <= ?", string(TaskPending), now).
+		Where("job_id NOT IN (SELECT job_id FROM task_runs WHERE status = ?)", string(TaskRunning)).
 		Order("priority asc, available_at asc, id asc").
 		Limit(1).
 		Take(&task).Error; err != nil {

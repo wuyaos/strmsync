@@ -26,7 +26,7 @@ import (
 // 设计要点：
 // - 组合而非继承：持有 Client 实例
 // - 类型断言：对于可选方法（如 Stat），通过类型断言检测是否支持
-// - 降级策略：不支持的方法可以降级实现（如 Stat 降级为 List+过滤）
+// - 降级策略：不支持的方法可以降级实现（如 Stat 降级为 Scan+过滤）
 // - 能力声明：根据 driver type 返回不同的 Capability
 type Adapter struct {
 	client Client
@@ -103,38 +103,65 @@ func (a *Adapter) Capabilities() syncengine.DriverCapability {
 	}
 }
 
-// List 使用 filesystem.Client 列出远程文件
+// Scan 使用 filesystem.Client 流式扫描远程文件
 //
 // 实现说明：
-// - 直接调用 filesystem.Client.List
+// - 直接调用 filesystem.Client.Scan
 // - 将 filesystem.RemoteFile 转换为 syncengine.RemoteEntry
 // - 传递 opt.Recursive 和 opt.MaxDepth 参数
-func (a *Adapter) List(ctx context.Context, listPath string, opt syncengine.ListOptions) ([]syncengine.RemoteEntry, error) {
+func (a *Adapter) Scan(ctx context.Context, listPath string, opt syncengine.ListOptions) (<-chan syncengine.RemoteEntry, <-chan error) {
 	normalizedPath := listPath
 	if a.typ == syncengine.DriverLocal {
 		var err error
 		normalizedPath, err = normalizeLocalListPath(a.client, listPath)
 		if err != nil {
-			return nil, err
+			errCh := make(chan error, 1)
+			entryCh := make(chan syncengine.RemoteEntry)
+			errCh <- err
+			close(entryCh)
+			close(errCh)
+			return entryCh, errCh
 		}
 	}
 
-	files, err := a.client.List(ctx, normalizedPath, opt.Recursive, opt.MaxDepth)
-	if err != nil {
-		return nil, fmt.Errorf("filesystem: 列出 %s 失败: %w", listPath, err)
-	}
+	fileCh, fileErrCh := a.client.Scan(ctx, normalizedPath, opt.Recursive, opt.MaxDepth)
+	entryCh := make(chan syncengine.RemoteEntry)
+	errCh := make(chan error, 1)
 
-	entries := make([]syncengine.RemoteEntry, 0, len(files))
-	for _, f := range files {
-		entries = append(entries, syncengine.RemoteEntry{
-			Path:    f.Path,
-			Name:    f.Name,
-			Size:    f.Size,
-			ModTime: f.ModTime,
-			IsDir:   f.IsDir,
-		})
-	}
-	return entries, nil
+	go func() {
+		defer close(entryCh)
+		defer close(errCh)
+
+		for fileCh != nil || fileErrCh != nil {
+			select {
+			case f, ok := <-fileCh:
+				if !ok {
+					fileCh = nil
+					continue
+				}
+				entryCh <- syncengine.RemoteEntry{
+					Path:    f.Path,
+					Name:    f.Name,
+					Size:    f.Size,
+					ModTime: f.ModTime,
+					IsDir:   f.IsDir,
+				}
+			case err, ok := <-fileErrCh:
+				if !ok {
+					fileErrCh = nil
+					continue
+				}
+				if err != nil {
+					errCh <- fmt.Errorf("filesystem: 扫描 %s 失败: %w", listPath, err)
+				}
+			case <-ctx.Done():
+				errCh <- ctx.Err()
+				return
+			}
+		}
+	}()
+
+	return entryCh, errCh
 }
 
 // Watch 订阅远程文件变更事件（如果支持）
@@ -186,7 +213,7 @@ func (a *Adapter) Watch(ctx context.Context, watchPath string, opt syncengine.Wa
 //
 // 实现策略：
 // 1. 优先使用：如果 client 实现了 Stat 方法，则直接调用
-// 2. 降级方案：使用 List(path, false, 0) 并过滤出精确匹配的路径
+// 2. 降级方案：使用 Scan(path, false, 0) 并过滤出精确匹配的路径
 //
 // 降级方案的成本较高，但保证了接口的完整性
 func (a *Adapter) Stat(ctx context.Context, targetPath string) (syncengine.RemoteEntry, error) {
@@ -209,27 +236,41 @@ func (a *Adapter) Stat(ctx context.Context, targetPath string) (syncengine.Remot
 		}, nil
 	}
 
-	// 策略2：降级使用 List + 过滤
-	// 注意：如果 targetPath 是文件，需要列出其父目录并匹配文件名
+	// 策略2：降级使用 Scan + 过滤
+	// 注意：如果 targetPath 是文件，需要扫描其父目录并匹配文件名
 	parentDir := path.Dir(targetPath)
 	if parentDir == "" {
 		parentDir = "/"
 	}
 	baseName := path.Base(targetPath)
 
-	files, err := a.client.List(ctx, parentDir, false, 0)
-	if err != nil {
-		return syncengine.RemoteEntry{}, fmt.Errorf("filesystem: stat 降级列表父目录 %s 失败: %w", parentDir, err)
-	}
-	for _, file := range files {
-		if file.Name == baseName || file.Path == targetPath {
-			return syncengine.RemoteEntry{
-				Path:    file.Path,
-				Name:    file.Name,
-				Size:    file.Size,
-				ModTime: file.ModTime,
-				IsDir:   file.IsDir,
-			}, nil
+	fileCh, errCh := a.client.Scan(ctx, parentDir, false, 0)
+	for fileCh != nil || errCh != nil {
+		select {
+		case file, ok := <-fileCh:
+			if !ok {
+				fileCh = nil
+				continue
+			}
+			if file.Name == baseName || file.Path == targetPath {
+				return syncengine.RemoteEntry{
+					Path:    file.Path,
+					Name:    file.Name,
+					Size:    file.Size,
+					ModTime: file.ModTime,
+					IsDir:   file.IsDir,
+				}, nil
+			}
+		case err, ok := <-errCh:
+			if !ok {
+				errCh = nil
+				continue
+			}
+			if err != nil {
+				return syncengine.RemoteEntry{}, fmt.Errorf("filesystem: stat 降级扫描父目录 %s 失败: %w", parentDir, err)
+			}
+		case <-ctx.Done():
+			return syncengine.RemoteEntry{}, ctx.Err()
 		}
 	}
 	return syncengine.RemoteEntry{}, fmt.Errorf("filesystem: 路径 %s 不存在: %w", targetPath, syncengine.ErrInvalidInput)
@@ -329,7 +370,7 @@ func normalizeLocalListPath(client Client, listPath string) (string, error) {
 			}
 			return rel, nil
 		}
-		return "", fmt.Errorf("filesystem: list path must be under mount_path: %s", mountRoot)
+		return "", fmt.Errorf("filesystem: list 路径必须位于 mount_path 下: %s", mountRoot)
 	}
 
 	if strings.HasPrefix(trimmed, "/") {

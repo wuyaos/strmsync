@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/strmsync/strmsync/internal/engine"
+	syncengine "github.com/strmsync/strmsync/internal/engine"
 )
 
 func init() {
@@ -24,8 +24,12 @@ type testLocalProvider struct {
 	config Config
 }
 
-func (p *testLocalProvider) List(ctx context.Context, path string, recursive bool, maxDepth int) ([]RemoteFile, error) {
-	return []RemoteFile{}, nil
+func (p *testLocalProvider) Scan(ctx context.Context, path string, recursive bool, maxDepth int) (<-chan RemoteFile, <-chan error) {
+	fileCh := make(chan RemoteFile)
+	errCh := make(chan error, 1)
+	close(fileCh)
+	close(errCh)
+	return fileCh, errCh
 }
 
 func (p *testLocalProvider) Watch(ctx context.Context, path string) (<-chan FileEvent, error) {
@@ -96,8 +100,8 @@ func TestAdapterBasicWorkflow(t *testing.T) {
 	}
 }
 
-// TestAdapterList 测试适配器 List 方法
-func TestAdapterList(t *testing.T) {
+// TestAdapterScan 测试适配器 Scan 方法
+func TestAdapterScan(t *testing.T) {
 	// 创建临时目录
 	tmpDir := t.TempDir()
 
@@ -118,14 +122,32 @@ func TestAdapterList(t *testing.T) {
 		t.Fatalf("创建适配器失败: %v", err)
 	}
 
-	// 测试 List 方法（空目录）
+	// 测试 Scan 方法（空目录）
 	ctx := context.Background()
-	entries, err := adapter.List(ctx, "/", syncengine.ListOptions{Recursive: false})
-	if err != nil {
-		t.Errorf("List() 失败: %v", err)
+	entryCh, errCh := adapter.Scan(ctx, "/", syncengine.ListOptions{Recursive: false})
+	var entries []syncengine.RemoteEntry
+	for entryCh != nil || errCh != nil {
+		select {
+		case entry, ok := <-entryCh:
+			if !ok {
+				entryCh = nil
+				continue
+			}
+			entries = append(entries, entry)
+		case err, ok := <-errCh:
+			if !ok {
+				errCh = nil
+				continue
+			}
+			if err != nil {
+				t.Errorf("Scan() 失败: %v", err)
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatal("Scan() 超时")
+		}
 	}
 	if len(entries) != 0 {
-		t.Errorf("List() 返回 %d 个条目, 期望 0", len(entries))
+		t.Errorf("Scan() 返回 %d 个条目, 期望 0", len(entries))
 	}
 }
 
