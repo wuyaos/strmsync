@@ -83,7 +83,7 @@ func (p *openListProvider) Scan(ctx context.Context, listPath string, recursive 
 			maxDepthLimit = 0
 		}
 
-		workerPool := pool.New().WithMaxGoroutines(5)
+		workerPool := pool.New().WithErrors().WithMaxGoroutines(5)
 		var scanDir func(dir string, depth int)
 		scanDir = func(dir string, depth int) {
 			workerPool.Go(func() error {

@@ -520,7 +520,7 @@ func (e *Engine) RunIncremental(ctx context.Context, events []EngineEvent) (Sync
 	// 步骤3: 过滤并并发处理文件
 	p := pool.New().WithMaxGoroutines(e.opts.MaxConcurrency).WithContext(ctx)
 	var mu sync.Mutex
-	appendError := func(path string, err error) {
+	appendError = func(path string, err error) {
 		if err == nil {
 			return
 		}

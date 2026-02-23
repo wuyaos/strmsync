@@ -3,12 +3,13 @@ package syncqueue
 import (
 	"context"
 	"errors"
-	"github.com/strmsync/strmsync/internal/domain/model"
 	"net"
+	"strconv"
 	"syscall"
 	"testing"
 	"time"
 
+	"github.com/strmsync/strmsync/internal/domain/model"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -23,12 +24,29 @@ func newTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	if err := db.AutoMigrate(&model.TaskRun{}); err != nil {
+	if err := db.AutoMigrate(&model.Job{}, &model.TaskRun{}); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 	// 每次测试前清空数据
 	db.Exec("DELETE FROM task_runs")
+	db.Exec("DELETE FROM jobs")
 	return db
+}
+
+func ensureJob(t *testing.T, db *gorm.DB, jobID uint) {
+	t.Helper()
+	job := model.Job{
+		ID:         jobID,
+		Name:       "job-" + strconv.FormatUint(uint64(jobID), 10),
+		Enabled:    true,
+		WatchMode:  "local",
+		SourcePath: "/source",
+		TargetPath: "/target",
+		STRMPath:   "/strm",
+	}
+	if err := db.Create(&job).Error; err != nil {
+		t.Fatalf("create job: %v", err)
+	}
 }
 
 // =============================================================
@@ -271,6 +289,10 @@ func TestClaimNext_PriorityOrdering(t *testing.T) {
 		t.Fatalf("new queue: %v", err)
 	}
 
+	ensureJob(t, db, 1)
+	ensureJob(t, db, 2)
+	ensureJob(t, db, 3)
+
 	now := time.Now().Add(-time.Second)
 	tasks := []*model.TaskRun{
 		{JobID: 1, Priority: int(TaskPriorityNormal), AvailableAt: now, DedupKey: "a"},
@@ -325,6 +347,8 @@ func TestClaimNext_RespectsAvailableAt(t *testing.T) {
 		t.Fatalf("new queue: %v", err)
 	}
 
+	ensureJob(t, db, 1)
+
 	// 创建一个未来才可执行的任务
 	future := &model.TaskRun{
 		JobID:       1,
@@ -365,6 +389,9 @@ func TestClaimNext_GlobalSerial(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new queue: %v", err)
 	}
+
+	ensureJob(t, db, 1)
+	ensureJob(t, db, 2)
 
 	running := &model.TaskRun{
 		JobID:     1,
@@ -728,6 +755,8 @@ func TestFullWorkflow_EnqueueClaimComplete(t *testing.T) {
 		t.Fatalf("new queue: %v", err)
 	}
 
+	ensureJob(t, db, 1)
+
 	// 1. 入队
 	task := &model.TaskRun{JobID: 1, DedupKey: "workflow-1"}
 	if err := q.Enqueue(context.Background(), task); err != nil {
@@ -773,6 +802,8 @@ func TestFullWorkflow_EnqueueClaimFailRetry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new queue: %v", err)
 	}
+
+	ensureJob(t, db, 1)
 
 	// 1. 入队
 	task := &model.TaskRun{JobID: 1, DedupKey: "workflow-retry"}
